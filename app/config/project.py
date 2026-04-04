@@ -5,7 +5,7 @@ from app.config.base import PROJECT_ROOT
 
 # 初始化当前路径
 def _init_current_project() -> Path:
-    var = os.environ.get("", None)
+    var = os.environ.get("GBC_PROJECT_PATH", None)
     if var:
         var = Path(var)
         if var.exists():
