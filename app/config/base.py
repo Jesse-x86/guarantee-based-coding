@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 
@@ -8,5 +9,3 @@ def get_project_root() -> Path:
 
 PROJECT_ROOT = get_project_root()
 CONFIG_DIR = PROJECT_ROOT / "config"
-
-

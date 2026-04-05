@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel, ValidationError
 
 from app.config.base import CONFIG_DIR
@@ -6,13 +8,19 @@ from app.utils.json_model_operator import load_model_from_json, save_model_to_js
 # 路径
 EXECUTORS_CONFIG_PATH = CONFIG_DIR / "executors.json"
 
+class EnvAction(BaseModel):
+    # key: 环境变量名
+    key: str
+    # action: 支持 set (覆盖), append (后补), prepend (前缀), remove (删除)
+    action: Literal["set", "append", "prepend", "remove"]
+    # value: 操作的值 (remove 时可为 None)
+    value: str | None = None
+
 # 单个执行器
 class Executor(BaseModel):
-    core_file: str
     command: list[str]
     cwd: str
-    env_add: None | dict[str, list[str] | str] = None
-    env_remove: None | dict[str, list[str] | str] = None
+    env_ops: None | list[EnvAction] = None
 
 # 执行器配置
 class ExecutorsConfig(BaseModel):
