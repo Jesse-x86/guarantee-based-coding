@@ -1,199 +1,189 @@
-# Guarantee-Based Coding
+# Guarantee-Based Coding (GBC)
 
-**Instead of making AI smarter at understanding code, make code safe to modify even by a dumb AI.**
+**Instead of making AI smarter at understanding code, make code safe to modify even without full understanding.**
 
 **中文版: [README.md](./README.md)**
 
 ## The Problem
 
-The core failure mode of coding agents (Cursor, Aider, Devin, etc.) is not writing incorrect code — that can be fixed with retries. The real problem is **silently breaking implicit assumptions in existing code**.
+The core failure mode of coding agents (Cursor, Aider, Devin, etc.) isn't writing wrong code — wrong code can be retried. The real problem is **silently breaking implicit assumptions in existing code**.
 
-When Agent A changes a function's return format, a module 12 folders away might depend on that exact format. Nothing tells Agent A that dependency exists. Nothing prevents the breakage from happening.
+When an agent modifies a function's return format, another module 12 directories away might depend on that format. Nothing tells the agent this dependency exists, and nothing prevents the breakage from happening.
 
-Current coding agents focus on **context retrieval and token efficiency** — how to understand codebases faster and more accurately. But they don't solve a more fundamental problem:
+Existing coding agents optimize for context retrieval and token efficiency. But they don't address a more fundamental question:
 
 > **When modifying code, how do you know what must not break?**
 
 ## Core Idea
 
-Dependencies between code modules are essentially a set of **guarantees**. Module A depends on Module B not because of B's implementation details, but because of B's behavioral promises — the type, format, and semantics of its return values.
+Dependencies between code modules are essentially a set of **guarantees**. Module A depends on Module B not because of B's implementation details, but because of B's behavioral promises — return types, formats, semantics.
 
-If we make these guarantees **explicit, executable, and attributed**, then:
+If we make these guarantees **explicit, executable, and verifiable**, then:
 
-- Every modification automatically verifies whether all guarantees still hold
-- If a guarantee is broken, we know exactly which one and who depends on it
-- The modifier must explicitly declare "I know what I'm breaking" to proceed
-
-**Correctness shifts from "the AI thinks it got it right" to "all guarantees still pass."** This is a mechanically verifiable boolean condition, independent of AI judgment.
+- Every modification automatically checks whether all guarantees still hold
+- If a guarantee breaks, you know exactly which one and who depends on it
+- **Correctness shifts from "the AI thinks it got it right" to "all guarantees still pass"** — a mechanically verifiable boolean condition
 
 ## How It Works
 
-### Core Principle: Zero Intrusion
+### Design Principles
 
-All framework files live in an isolated `.gbc/` directory. Your codebase stays completely clean:
+1. **Zero intrusion**: All metadata lives in a `.gbc/` directory; your codebase stays clean
+2. **User-managed test files**: GBC does not generate, store, or manage test files. You organize your test files however you like in your own project. GBC only **records which test files correspond to which guarantees, runs them, and aggregates results**
+3. **Language-agnostic**: Supports any language and test framework through executor configuration
+
+### Directory Structure
 
 ```
 my-project/
-├── src/                          # your code, completely untouched
+├── src/                                    # Your code
 │   ├── llm_client/
 │   │   └── client.py
 │   └── conversation/
 │       └── manager.py
 │
-└── .gbc/                         # framework directory, mirrors code structure
+├── tests/                                  # Your test files, managed by you
+│   ├── test_client_returns_dict.py
+│   ├── test_client_content_is_str.py
+│   └── ...
+│
+└── .gbc/                                   # GBC metadata directory (auto-generated)
     └── src/
-        ├── llm_client/
-        │   ├── design.client.py.md          # design doc: signatures + behavioral intent
-        │   ├── meta.client.py.yaml          # metadata: dependencies, dependents
-        │   ├── guarantee.init.client.py     # test initialization (fixtures, etc.)
-        │   ├── guarantee.root.client.py     # self-correctness guarantees
-        │   └── guarantee.1ef0a.client.py    # externally registered guarantee (hash identifies source)
-        └── conversation/
-            ├── design.manager.py.md
-            ├── meta.manager.py.yaml
-            ├── guarantee.init.manager.py
-            ├── guarantee.root.manager.py
-            └── guarantee.a3b72.manager.py
+        └── llm_client/
+            └── gbc.client.py.json          # Guarantee registry for client.py
 ```
 
-- `.gbc/` directory structure **mirrors** `src/`
-- Each source file maps to a set of framework files, linked by filename suffix
-- Guarantee files are standard **pytest** test files — no new tools to learn
+### Core Concepts
 
-### Design File Example
+- **Provider**: The source file that provides guarantees (e.g., `src/llm_client/client.py`)
+- **Target**: The file that depends on those guarantees (e.g., `src/conversation/manager.py`)
+- **Guarantee**: A specific behavioral promise, mapped to a test file path and a description
+- **Executor**: Configuration defining how to run tests (command template, working directory, environment variables, etc.)
 
-```markdown
-# design.client.py.md
+A provider can offer guarantees to multiple targets, and each target can register multiple guarantees.
 
-## chat(messages: list[dict]) -> dict
+### Meta File Example
 
-Send a conversation request to the LLM and return the model's response.
+Metadata file for `client.py` at `.gbc/src/llm_client/gbc.client.py.json`:
 
-**Parameters:**
-- messages: OpenAI-format message list, each containing role and content
-
-**Returns:**
-- dict in the format {"role": "assistant", "content": str}
-
-**Exceptions:**
-- LLMTimeoutError: raised on request timeout
-- LLMAuthError: raised on authentication failure
-
-**Design Constraints:**
-- Return format is consistent regardless of the underlying model
-- No conversation history management; responsible for single requests only
+```json
+{
+    "config": "pytest",
+    "guarantees": {
+        "src/conversation/manager.py": [
+            {
+                "guarantee_path": "tests/test_client_content_is_str.py",
+                "guarantee_desc": "manager uses result['content'] directly to build conversation history; depends on content being str",
+                "timeout_override": -1
+            }
+        ],
+        "src/api/handler.py": [
+            {
+                "guarantee_path": "tests/test_client_returns_dict.py",
+                "guarantee_desc": "handler depends on chat() returning a dict with 'role' and 'content' keys",
+                "timeout_override": -1
+            }
+        ]
+    }
+}
 ```
 
-### Guarantee Examples
+### Executor Configuration Example
 
-Self-correctness guarantee:
+Executors define how tests are run. `{file}` is a placeholder replaced at runtime with the guarantee's test file path:
 
-```python
-# guarantee.root.client.py
-
-"""Self-correctness guarantee: basic behavioral contract for client.py"""
-
-from llm_client.client import chat
-import pytest
-
-def test_returns_dict():
-    result = chat([{"role": "user", "content": "hello"}])
-    assert isinstance(result, dict)
-
-def test_returns_required_keys():
-    result = chat([{"role": "user", "content": "hello"}])
-    assert "role" in result
-    assert "content" in result
-
-def test_timeout_raises():
-    with pytest.raises(LLMTimeoutError):
-        chat([{"role": "user", "content": "hello"}], timeout=0.001)
+```json
+{
+    "executors": {
+        "pytest": {
+            "command": ["python", "-m", "pytest", "{file}", "-x", "-q"],
+            "cwd": "/path/to/my-project",
+            "timeout": 30,
+            "env_ops": [
+                {"key": "PYTHONPATH", "action": "prepend", "value": "/path/to/my-project/src"}
+            ]
+        },
+        "jest": {
+            "command": ["npx", "jest", "{file}"],
+            "cwd": "/path/to/my-project",
+            "timeout": 30,
+            "env_ops": null
+        }
+    }
+}
 ```
 
-Externally registered guarantee:
+Supported environment variable operations: `set`, `append`, `prepend`, `remove`.
 
-```python
-# guarantee.1ef0a.client.py
-
-"""
-External guarantee, source: conversation/manager.py
-Reason: manager uses result["content"] directly to build conversation history,
-        depends on the content field being of type str
-"""
-
-from llm_client.client import chat
-
-def test_content_is_string():
-    result = chat([{"role": "user", "content": "hello"}])
-    assert isinstance(result["content"], str), \
-        "content must be str — conversation.manager depends on this behavior"
-```
-
-These are just ordinary pytest files. Running guarantees is just `pytest .gbc/` — nothing new to learn.
-
-### Coding Agent Workflow
-
-When a coding agent needs to modify `src/llm_client/client.py`, its context consists of:
+### Workflow
 
 ```
-1. src/llm_client/client.py                  ← code to modify
-2. .gbc/src/llm_client/design.client.py.md   ← design intent and constraints
-3. dependents' design.*.md                    ← interface info (no implementation)
-4. if retrying: error message from last attempt
+Modify client.py
+       │
+       ▼
+gbc verify src/llm_client/client.py
+       │
+       ├── Run tests/test_client_content_is_str.py  (for manager.py)
+       ├── Run tests/test_client_returns_dict.py     (for handler.py)
+       │
+       ▼
+  All pass  → Modification is safe
+  Failure   → Precise report: which guarantee failed, who depends on it, why
 ```
 
-After modification:
+### Integration with Coding Agents
 
-```
-1. Automatically run .gbc/src/llm_client/guarantee.*.client.py
-2. All pass → modification accepted
-3. Any failure →
-   a) Agent attempts to fix without breaking the guarantee
-   b) If a guarantee must be broken → explicit declaration, notify the registrant to adapt
-```
+GBC doesn't prescribe how agents work. It provides integration points:
 
-**Context size depends on the complexity of the current file, not the overall project size.** A 10-file project and a 100-file project require the same amount of context when modifying the same file.
+- **Before modification**: `list` — the agent learns what guarantees exist, who registered them, and why
+- **After modification**: `verify` — run all guarantees; gate whether the modification is acceptable
+
+Context size depends on the number of guarantees for the current file, **not on overall project size**.
+
+GBC plans to offer both CLI and MCP interfaces.
 
 ## Comparison with Existing Approaches
 
-| | Context-Optimization (Cursor, Aider) | Full-Agent (Devin, OpenHands) | Guarantee-Based Coding |
+| | Context Optimization (Cursor, Aider) | Full Agent (Devin, OpenHands) | GBC |
 |---|---|---|---|
-| Core strategy | Better retrieval of relevant code | End-to-end automation | Use constraints to eliminate dependence on understanding |
+| Core strategy | Better code retrieval | End-to-end automation | Constraints eliminate the need for understanding |
 | Correctness guarantee | None | Agent self-verification | Guarantee gating |
 | Modification impact awareness | None | Agent reasoning (unreliable) | Explicit registration + automatic detection |
-| Context growth | Grows with project | Grows with project | Grows with single-file complexity, independent of project size |
-| Codebase intrusion | Low | Medium | **Zero** (all framework files under `.gbc/`) |
+| Context growth | Grows with project size | Grows with project size | Grows with per-file guarantee count, independent of project size |
+| Codebase intrusion | Low | Medium | **Zero** |
+| Language binding | Usually bound | Usually bound | Language-agnostic |
 
 ## How This Differs from Existing Concepts
 
 **"Isn't this just Design by Contract?"**
 
-Traditional Design by Contract (Eiffel-style preconditions/postconditions) has modules declare their **own** contracts. The key differences in Guarantee-Based Coding:
+Traditional DbC (Eiffel-style preconditions/postconditions) has modules declare their **own** contracts. GBC differs in key ways:
 
-- **Guarantees are registered by dependents**, not written by the provider. "What behavior I depend on" comes from the consumer, not the author's good intentions.
-- **Guarantees carry attribution** — we know who registered them and why. When broken, we can precisely notify the affected parties.
-- **Designed for AI agents** — the goal is to give coding agents explicit modification boundaries, not to give human programmers runtime checks.
+- **Guarantees are registered by the dependent**, not the provider — "what behavior I depend on" comes from the consumer, not the author
+- **Attribution is built in** — you know who registered it and why; breakage can be precisely traced
+- **Designed for AI agents** — provides modification boundaries for coding agents, not runtime checks for human programmers
 
 **"Isn't this just testing?"**
 
-How guarantees differ from regular tests:
+Technically, guarantees are test files. The conceptual differences:
 
-- **Attributed**: each guarantee knows who registered it and what cross-module dependency it protects
-- **Gating on modification**: not run after the fact in CI, but triggered **in real-time** as a precondition when an agent modifies code
-- **Semantically specific**: each guarantee verifies one concrete behavioral promise, not a vague "this feature works"
-
-Technically, guarantees are pytest tests. Conceptually, they are an **attributed, real-time-gated behavioral contract system designed for AI agents**.
+- **Attribution**: Each guarantee records who registered it and what cross-module dependency it protects
+- **Real-time gating**: Not a post-hoc CI check, but a precondition enforced at modification time
+- **User-managed**: GBC doesn't manage the test files themselves, only metadata and execution
 
 ## Current Status
 
-🚧 **Early stage** — Core architecture under design. Full implementation coming soon.
+🚧 **Early development**
 
-- [ ] Core architecture design document
-- [ ] Guarantee registration and execution mechanism
-- [ ] Design file generation tooling
-- [ ] Coding agent integration (interfacing with existing agents)
-- [ ] Example project: LLM Chatbot
-- [ ] Benchmarks and evaluation
+- [x] Core guarantee register / verify / update / unregister mechanism
+- [x] Multi-language executor configuration
+- [x] Atomic file writing with backup rotation
+- [X] CLI interface
+- [ ] Actually test the CLI interface and all
+- [ ] MCP interface
+- [ ] Full test coverage
+- [ ] Example project
+- [ ] PyPI release
 
 ## Contact
 
