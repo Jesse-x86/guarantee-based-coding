@@ -1,0 +1,6 @@
+typer[all]
+
+pydantic
+
+mcp
+
