@@ -32,6 +32,7 @@ class IllegalFilePathError(IllegalOperationError):
     非法操作，操作意图层面就是错误的
     """
     def __init__(self, target_file):
+        super().__init__(target_file)
         self.target_file = target_file
 
     def __str__(self):
@@ -41,6 +42,7 @@ class IllegalFilePathError(IllegalOperationError):
 
 class ConfigNotFoundError(ConfigError):
     def __init__(self, target_file):
+        super().__init__(target_file)
         self.target_file = target_file
 
     def __str__(self):
@@ -48,6 +50,7 @@ class ConfigNotFoundError(ConfigError):
 
 class ConfigParseError(ConfigError):
     def __init__(self, target_file, failure_info):
+        super().__init__(target_file)
         self.target_file = target_file
         self.failure_info = failure_info
 
@@ -58,6 +61,7 @@ class ConfigParseError(ConfigError):
 
 class ProjectNotFoundError(GBCError):
     def __init__(self, target_project):
+        super().__init__(target_project)
         self.target_project = target_project
 
     def __str__(self):
@@ -67,6 +71,7 @@ class ProjectNotFoundError(GBCError):
 
 class MetaNotFoundError(GBCError):
     def __init__(self, original_file, target_file):
+        super().__init__(target_file)
         self.original_file = original_file
         self.target_file = target_file
 
@@ -77,6 +82,7 @@ class MetaNotFoundError(GBCError):
 
 class GuaranteeDuplicatedError(GuaranteeError):
     def __init__(self, target_file: str, guarantee_path: str):
+        super().__init__(target_file)
         self.target_file = target_file
         self.guarantee_path = guarantee_path
 
@@ -85,6 +91,7 @@ class GuaranteeDuplicatedError(GuaranteeError):
 
 class GuaranteeNotFoundError(GuaranteeError):
     def __init__(self, target_file: str, guarantee_path: str):
+        super().__init__(target_file)
         self.target_file = target_file
         self.guarantee_path = guarantee_path
 
@@ -93,6 +100,7 @@ class GuaranteeNotFoundError(GuaranteeError):
 
 class GuaranteeTestFailedError(GuaranteeError):
     def __init__(self, target_file: str, guarantee_path: str, failure_info: str):
+        super().__init__(target_file)
         self.target_file = target_file
         self.guarantee_path = guarantee_path
         self.failure_info = failure_info
@@ -104,6 +112,7 @@ class GuaranteeTestFailedError(GuaranteeError):
 
 class ExecutorNotFoundError(ExecutorError):
     def __init__(self, config):
+        super().__init__(config)
         self.config = config
 
     def __str__(self):
@@ -112,6 +121,7 @@ class ExecutorNotFoundError(ExecutorError):
 
 class ExecutorConfigInvalidError(ExecutorError):
     def __init__(self, config):
+        super().__init__(config)
         self.config = config
 
     def __str__(self):

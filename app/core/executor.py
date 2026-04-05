@@ -1,7 +1,7 @@
 import subprocess
 
 from app.config.executor import executors_config, Executor, save_executors_config
-from app.core.env import apply_env_actions, CLEAN_ENV
+from app.core.env import apply_env_actions, get_clean_python_path
 from app.models.errors import ExecutorNotFoundError
 from app.models.verify import VerifyModel
 
@@ -18,14 +18,9 @@ def execute(config: str, file: str, timeout: int = -1) -> subprocess.CompletedPr
     executor_cfg = executors_config.executors[config]
 
     args = executor_cfg.command.copy()
-    indexes = []
-    for index, arg in enumerate(args):
-        if arg in FILE_PLACEHOLDERS:
-            indexes.append(index)
-    for index in indexes:
-        args[index] = file
+    args = [arg.replace("{file}", file).replace("{f}", file) for arg in args]
 
-    env = apply_env_actions(CLEAN_ENV.copy(), executor_cfg.env_ops)
+    env = apply_env_actions(get_clean_python_path(), executor_cfg.env_ops)
 
     if timeout < 0:
         timeout = executor_cfg.timeout

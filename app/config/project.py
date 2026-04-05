@@ -22,3 +22,6 @@ def set_current_project(new_path: str):
 
     global CURRENT_PROJECT
     CURRENT_PROJECT = new_path
+
+def get_current_project():
+    return CURRENT_PROJECT

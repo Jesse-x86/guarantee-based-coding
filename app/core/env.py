@@ -3,15 +3,13 @@ import os
 from app.config.executor import EnvAction
 
 
-def _clean_python_path():
+def get_clean_python_path():
     env = os.environ.copy()
     pp_list = env.get("PYTHONPATH", "").split(os.pathsep)
     pp_list = pp_list[1:]
     env["PYTHONPATH"] = os.pathsep.join(pp_list)
 
     return env
-
-CLEAN_ENV = _clean_python_path()
 
 
 def apply_env_action(env: dict[str, str], op: EnvAction, sep: str = os.pathsep) -> dict[str, str]:

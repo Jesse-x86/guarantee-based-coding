@@ -7,7 +7,7 @@ from app.config.base import PROJECT_ROOT
 def _init_meta_backups() -> int:
     var = os.environ.get("GBC_META_BACKUPS", None)
     if var and var.isdigit():
-        var = int(var)
+        return int(var)
 
     return 0
 

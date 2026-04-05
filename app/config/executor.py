@@ -35,7 +35,7 @@ def _init_executors_config() -> ExecutorsConfig:
     except FileNotFoundError as e:
         # 无文件
         return ExecutorsConfig(executors={})
-    except ValueError or ValidationError as e:
+    except (ValueError, ValidationError) as e:
         # 解析错误
         return ExecutorsConfig(executors={})
 
