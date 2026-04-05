@@ -20,6 +20,7 @@ class EnvAction(BaseModel):
 class Executor(BaseModel):
     command: list[str]
     cwd: str
+    timeout: int = -1
     env_ops: None | list[EnvAction] = None
 
 # 执行器配置

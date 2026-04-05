@@ -107,4 +107,12 @@ class ExecutorNotFoundError(ExecutorError):
         self.config = config
 
     def __str__(self):
-        return f"Meta file for '{self.config}' not found"
+        return f"Executor config '{self.config}' not found"
+
+
+class ExecutorConfigInvalidError(ExecutorError):
+    def __init__(self, config):
+        self.config = config
+
+    def __str__(self):
+        return f"Parameters received for executor config '{self.config}' invalid"

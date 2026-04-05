@@ -2,8 +2,11 @@ from pathlib import Path
 
 from app.config.backups import META_BACKUPS
 from app.config.project import CURRENT_PROJECT
-from app.models.errors import GuaranteeDuplicatedError, MetaNotFoundError, GuaranteeNotFoundError
+from app.core import executor
+from app.models.errors import GuaranteeDuplicatedError, MetaNotFoundError, GuaranteeNotFoundError, \
+    GuaranteeTestFailedError
 from app.models.meta import FileMeta, Guarantee
+from app.models.verify import VerifyModel
 from app.utils.json_model_operator import save_model_to_json, load_model_from_json
 
 
@@ -37,7 +40,10 @@ def register(provider: Path, target: str, guarantee: Guarantee):
             if guarantee.guarantee_path == item.guarantee_path:
                 raise GuaranteeDuplicatedError(guarantee_path=item.guarantee_path, target_file=target)
 
-        # TODO: 测试，失败则返回
+        result = executor.verify_single(json_model.config, file=guarantee.guarantee_path, return_model=True)
+        if not result.return_code == 0:
+            raise GuaranteeTestFailedError(target_file=target, guarantee_path=guarantee.guarantee_path,
+                                           failure_info=result.stderr)
 
         existing_items.append(guarantee)
 
@@ -47,7 +53,7 @@ def register(provider: Path, target: str, guarantee: Guarantee):
     except Exception as e:
         raise
 
-def unregister_all(provider: Path, target: str):
+def erase_guarantee(provider: Path, target: str):
     try:
         json_path = _to_json_path(provider)
 
@@ -55,7 +61,7 @@ def unregister_all(provider: Path, target: str):
         if not json_model:
             raise MetaNotFoundError(original_file=provider, target_file=target)
 
-        json_model.guarantees[target] = []
+        del json_model.guarantees[target]
         save_model_to_json(json_model, json_path, META_BACKUPS)
         return
     except Exception as e:
@@ -70,11 +76,6 @@ def unregister(provider: Path, target: str, guarantee_path: str):
         if not json_model:
             raise MetaNotFoundError(original_file=provider, target_file=target)
 
-        if not guarantee_path:
-            json_model.guarantees[target] = []
-            save_model_to_json(json_model, json_path, META_BACKUPS)
-            return
-
         existing_items = json_model.guarantees.get(target, [])
         for index, item in enumerate(existing_items):
             if guarantee_path == item.guarantee_path:
@@ -87,7 +88,7 @@ def unregister(provider: Path, target: str, guarantee_path: str):
         raise
 
 
-def list_all(provider: Path, target: str):
+def list_all(provider: Path, target: str) -> list[Guarantee]:
     try:
         json_path = _to_json_path(provider)
 
@@ -118,10 +119,55 @@ def update(provider: Path, target: str, guarantee: Guarantee):
         if not item:
             raise GuaranteeNotFoundError(target_file=target, guarantee_path=guarantee.guarantee_path)
 
-        # TODO: 测试，失败则返回
+        result = executor.verify_single(json_model.config, file=guarantee.guarantee_path, return_model=True)
+        if not result.return_code == 0:
+            raise GuaranteeTestFailedError(target_file=target, guarantee_path=guarantee.guarantee_path, failure_info=result.stderr)
 
         item.guarantee_desc = guarantee.guarantee_desc
 
         save_model_to_json(json_model, json_path, META_BACKUPS)
     except Exception as e:
         raise
+
+def verify_all(provider: Path, target: str, *, timeout: int = -1, single_output: bool = False, return_model: bool = True) -> bool | list[bool] | list[VerifyModel]:
+    try:
+        json_path = _to_json_path(provider)
+
+        json_model = load_model_from_json(json_path, FileMeta)
+        if not json_model:
+            raise MetaNotFoundError(original_file=provider, target_file=target)
+
+        existing_items = json_model.guarantees.get(target, [])
+        result_list = []
+
+        if single_output:
+            return_model = False
+
+        for index, item in enumerate(existing_items):
+            result_list.append(executor.verify_single(json_model.config, file=item.guarantee_path, timeout=timeout, return_model=return_model))
+
+        if single_output:
+            return all(result_list)
+
+        return result_list
+
+    except Exception as e:
+        raise
+
+
+def verify_single(provider: Path, target: str, guarantee_path:str, *, timeout: int = -1, return_model: bool = True) -> bool | VerifyModel:
+    try:
+        json_path = _to_json_path(provider)
+
+        json_model = load_model_from_json(json_path, FileMeta)
+        if not json_model:
+            raise MetaNotFoundError(original_file=provider, target_file=target)
+
+        existing_items = json_model.guarantees.get(target, [])
+        for index, item in enumerate(existing_items):
+            if guarantee_path == item.guarantee_path:
+                return executor.verify_single(json_model.config, file=item.guarantee_path, timeout=timeout, return_model=return_model)
+        raise GuaranteeNotFoundError(target_file=target, guarantee_path=guarantee_path)
+    except Exception as e:
+        raise
+
