@@ -20,16 +20,14 @@ def _to_json_path(provider: Path):
 
     return json_path
 
-def initialize(provider: Path, config: str) -> None:
-    model = FileMeta(config=config, guarantees={})
-    try:
-        json_path = _to_json_path(provider)
-
-        save_model_to_json(model, json_path, META_BACKUPS)
-    except Exception as e:
-        raise
-
 def register(provider: Path, target: str, guarantee: Guarantee):
+    """
+    注册新的保证
+    :param provider:
+    :param target:
+    :param guarantee:
+    :return:
+    """
     try:
         json_path = _to_json_path(provider)
 
@@ -55,24 +53,15 @@ def register(provider: Path, target: str, guarantee: Guarantee):
     except Exception as e:
         raise
 
-def erase_guarantee(provider: Path, target: str):
-    try:
-        json_path = _to_json_path(provider)
-
-        json_model = load_model_from_json(json_path, FileMeta)
-        if target not in json_model.guarantees:
-            raise GuaranteeNotFoundError(guarantee_path="Any", target_file=target)
-
-        del json_model.guarantees[target]
-        save_model_to_json(json_model, json_path, META_BACKUPS)
-        return
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
-
 
 def unregister(provider: Path, target: str, guarantee_path: str):
+    """
+    取消注册单个保证
+    :param provider:
+    :param target:
+    :param guarantee_path:
+    :return:
+    """
     try:
         json_path = _to_json_path(provider)
 
@@ -86,6 +75,28 @@ def unregister(provider: Path, target: str, guarantee_path: str):
                 save_model_to_json(json_model, json_path, META_BACKUPS)
                 return
         raise GuaranteeNotFoundError(target_file=target, guarantee_path=guarantee_path)
+    except FileNotFoundError as e:
+        raise MetaNotFoundError(original_file=provider, target_file=json_path)
+    except Exception as e:
+        raise
+
+def unregister_all(provider: Path, target: str):
+    """
+    取消注册单个文件的所有保证
+    :param provider:
+    :param target:
+    :return:
+    """
+    try:
+        json_path = _to_json_path(provider)
+
+        json_model = load_model_from_json(json_path, FileMeta)
+        if target not in json_model.guarantees:
+            raise GuaranteeNotFoundError(guarantee_path="Any", target_file=target)
+
+        del json_model.guarantees[target]
+        save_model_to_json(json_model, json_path, META_BACKUPS)
+        return
     except FileNotFoundError as e:
         raise MetaNotFoundError(original_file=provider, target_file=json_path)
     except Exception as e:

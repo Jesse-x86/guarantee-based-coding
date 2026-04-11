@@ -108,7 +108,7 @@ def guarantee_erase(
 ):
     """清除某个 target 下的全部保证"""
     try:
-        base.erase_all_guarantees(provider, target)
+        base.unregister_all_guarantees(provider, target)
         console.print(f"[red]✘[/red] Erased all guarantees for target [bold]{target}[/bold]")
     except Exception as e:
         raise handle_error(e)

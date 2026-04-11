@@ -1,6 +1,6 @@
 import subprocess
 
-from app.config.executor import executors_config, Executor, save_executors_config
+from app.config.executor import executors_config, ExecutorModel, save_executors_config
 from app.core.env import apply_env_actions, get_clean_python_path
 from app.models.errors import ExecutorNotFoundError
 from app.models.verify import VerifyModel
@@ -8,11 +8,23 @@ from app.models.verify import VerifyModel
 FILE_PLACEHOLDERS = ["{file}", "{f}"]
 DEFAULT_TIMEOUT = 15
 
-def has_executor(config: str) -> bool:
+def has_exec_config(config: str) -> bool:
+    """
+    是否存在该 config
+    :param config:
+    :return:
+    """
     return config in executors_config.executors
 
-def execute(config: str, file: str, timeout: int = -1) -> subprocess.CompletedProcess[str]:
-    if not has_executor(config):
+def _execute(config: str, file: str, timeout: int = -1) -> subprocess.CompletedProcess[str]:
+    """
+    使用特定配置文件，执行单个测试
+    :param config:
+    :param file:
+    :param timeout:
+    :return:
+    """
+    if not has_exec_config(config):
         raise ExecutorNotFoundError(config)
 
     executor_cfg = executors_config.executors[config]
@@ -40,7 +52,15 @@ def execute(config: str, file: str, timeout: int = -1) -> subprocess.CompletedPr
     return result
 
 def verify_single(config: str, file: str, *, timeout: int = -1, return_model: bool = True) -> bool | VerifyModel:
-    result = execute(config, file, timeout)
+    """
+    验证单个测试
+    :param config:
+    :param file:
+    :param timeout:
+    :param return_model:
+    :return:
+    """
+    result = _execute(config, file, timeout)
 
     if not return_model:
         return result.returncode == 0
@@ -51,6 +71,29 @@ def verify_single(config: str, file: str, *, timeout: int = -1, return_model: bo
         stderr=result.stderr
     )
 
-def upsert_executor(config_name: str, model: Executor):
+def upsert_exec_config(config_name: str, model: ExecutorModel):
+    """
+    插入或更新执行器配置
+    :param config_name:
+    :param model:
+    :return:
+    """
     executors_config.executors[config_name] = model
     save_executors_config()
+
+def remove_exec_config(config_name: str):
+    """
+    删除执行器配置
+    :param config_name:
+    :return:
+    """
+    if has_exec_config(config_name):
+        del executors_config.executors[config_name]
+    save_executors_config()
+
+def get_all_exec_configs():
+    """
+    获取全部执行器配置
+    :return:
+    """
+    return executors_config.copy()

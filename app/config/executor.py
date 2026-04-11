@@ -17,7 +17,7 @@ class EnvAction(BaseModel):
     value: str | None = None
 
 # 单个执行器
-class Executor(BaseModel):
+class ExecutorModel(BaseModel):
     command: list[str]
     cwd: str
     timeout: int = -1
@@ -25,7 +25,7 @@ class Executor(BaseModel):
 
 # 执行器配置
 class ExecutorsConfig(BaseModel):
-    executors: dict[str, Executor]
+    executors: dict[str, ExecutorModel]
 
 # 初始化单例
 def _init_executors_config() -> ExecutorsConfig:

@@ -3,10 +3,10 @@ from typing import Optional
 
 from pydantic import ValidationError
 
-from app.config.executor import Executor
+from app.config.executor import ExecutorModel
 from app.config.project import get_current_project
 from app.core import executor
-from app.core.guarantee import initialize, register, unregister, list_all_for_one, update, erase_guarantee, \
+from app.core.guarantee import register, unregister, list_all_for_one, update, unregister_all, \
     verify_single, \
     verify_all_of_one_target, verify_all, list_all
 from app.models.errors import IllegalFilePathError, ExecutorConfigInvalidError
@@ -22,22 +22,18 @@ def _normalize_provider(provider: str) -> Path:
 
 # ======== Guarantees ========
 
-def initialize_guarantee(provider: str, config: str) -> None:
+def register_guarantee(provider: str, config: str, target: str, path: str, spec: str) -> None:
     provider_path = _normalize_provider(provider)
-    return initialize(provider_path, config)
-
-def register_guarantee(provider: str, target: str, path: str, spec: str) -> None:
-    provider_path = _normalize_provider(provider)
-    guarantee = Guarantee(guarantee_path=path, guarantee_desc=spec)
+    guarantee = Guarantee(config=config, guarantee_path=path, guarantee_desc=spec)
     return register(provider_path, target, guarantee)
 
 def unregister_guarantee(provider: str, target: str, path: str) -> None:
     provider_path = _normalize_provider(provider)
     return unregister(provider_path, target, guarantee_path=path)
 
-def erase_all_guarantees(provider: str, target: str) -> None:
+def unregister_all_guarantees(provider: str, target: str) -> None:
     provider_path = _normalize_provider(provider)
-    return erase_guarantee(provider_path, target)
+    return unregister_all(provider_path, target)
 
 def list_guarantees_of_one(provider: str, target: str) -> list[Guarantee]:
     provider_path = _normalize_provider(provider)
@@ -70,7 +66,7 @@ def verify_single_guarantee(provider: str, target: str, path: str, *, timeout: i
 
 def upsert_executor(config_name: str, config_data: dict):
     try:
-        model = Executor(**config_data)
-        executor.upsert_executor(config_name=config_name, model=model)
+        model = ExecutorModel(**config_data)
+        executor.upsert_exec_config(config_name=config_name, model=model)
     except ValidationError as e:
         raise ExecutorConfigInvalidError(config_name)
