@@ -1,66 +1,147 @@
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Optional
 
 from pydantic import ValidationError
 
+from app.config.backups import META_BACKUPS
 from app.config.executor import ExecutorModel
 from app.config.project import get_current_project
 from app.core import executor
 from app.core.guarantee import register, unregister, list_all_for_one, update, unregister_all, \
     verify_single, \
     verify_all_of_one_target, verify_all, list_all
-from app.models.errors import IllegalFilePathError, ExecutorConfigInvalidError
-from app.models.meta import Guarantee
+from app.models.errors import IllegalFilePathError, ExecutorConfigInvalidError, MetaNotFoundError
+from app.models.meta import Guarantee, FileMeta
 from app.models.verify import VerifyModel
+from app.utils.file_utils import to_gbc_json_path
+from app.utils.json_model_operator import load_model_from_json, save_model_to_json
 
-
-def _normalize_provider(provider: str) -> Path:
-    provider_path = Path(provider).resolve()
+@contextmanager
+def meta_session(provider_str: str, readonly: bool = False, create_if_missing: bool = False):
+    """
+    统一处理 Provider 路径校验、模型加载、异常转换及自动保存
+    :param provider_str: 输入的原始 provider 文件字符串
+    :param readonly: 如果为 True，退出时不会保存文件
+    :param create_if_missing: 如果文件不存在，是否创建一个新的 FileMeta 对象
+    """
+    provider_path = Path(provider_str).resolve()
     if not provider_path.is_relative_to(get_current_project()):
         raise IllegalFilePathError(provider_path)
-    return provider_path
 
-# ======== Guarantees ========
+    json_path = to_gbc_json_path(provider_path)
 
-def register_guarantee(provider: str, config: str, target: str, path: str, spec: str) -> None:
-    provider_path = _normalize_provider(provider)
-    guarantee = Guarantee(config=config, guarantee_path=path, guarantee_desc=spec)
-    return register(provider_path, target, guarantee)
+    try:
+        if json_path.exists():
+            json_model = load_model_from_json(json_path, FileMeta)
+        elif create_if_missing:
+            json_model = FileMeta(guarantees={})
+        else:
+            raise MetaNotFoundError(original_file=provider_path, target_file=json_path)
 
-def unregister_guarantee(provider: str, target: str, path: str) -> None:
-    provider_path = _normalize_provider(provider)
-    return unregister(provider_path, target, guarantee_path=path)
+        yield json_model
 
-def unregister_all_guarantees(provider: str, target: str) -> None:
-    provider_path = _normalize_provider(provider)
-    return unregister_all(provider_path, target)
+        # 只有在非只读模式且模型存在时才保存
+        if not readonly and json_model is not None:
+            save_model_to_json(json_model, json_path, META_BACKUPS)
+
+    except Exception:
+        raise
+
+# ======== Guarantees 写操作 ========
+
+def register_guarantee(
+    provider: str,
+    config: str,
+    target: str,
+    guarantee_path: str,
+    guarantee_spec: str,
+    timeout_override: int = -1
+) -> None:
+    guarantee = Guarantee(
+        config=config,
+        guarantee_path=guarantee_path,
+        guarantee_desc=guarantee_spec,
+        timeout_override=timeout_override  # 存入模型
+    )
+    # 注册新测试时允许文件不存在
+    with meta_session(provider, readonly=False, create_if_missing=True) as meta:
+        return register(meta, target, guarantee)
+
+def unregister_guarantee(
+    provider: str,
+    target: str,
+    guarantee_path: str
+) -> None:
+    with meta_session(provider, readonly=False) as meta:
+        return unregister(meta, target, guarantee_path=guarantee_path)
+
+def unregister_all_guarantees(
+    provider: str,
+    target: str
+) -> None:
+    with meta_session(provider, readonly=False) as meta:
+        return unregister_all(meta, target)
+
+def update_guarantees(
+    provider: str,
+    target: str,
+    guarantee_path: str,
+    guarantee_spec: str,
+    timeout_override: int = -1
+) -> None:
+    # 更新模型数据
+    guarantee = Guarantee(
+        guarantee_path=guarantee_path,
+        guarantee_desc=guarantee_spec,
+        timeout_override=timeout_override # 存入模型
+    )
+    with meta_session(provider, readonly=False) as meta:
+        return update(meta, target, guarantee)
+
+# ======== Guarantees 读操作 ========
 
 def list_guarantees_of_one(provider: str, target: str) -> list[Guarantee]:
-    provider_path = _normalize_provider(provider)
-    return list_all_for_one(provider_path, target)
+    with meta_session(provider, readonly=True) as meta:
+        return list_all_for_one(meta, target)
 
 def list_guarantees_of_all(provider: str) -> dict[str, list[Guarantee]]:
-    provider_path = _normalize_provider(provider)
-    return list_all(provider_path)
+    with meta_session(provider, readonly=True) as meta:
+        return list_all(meta)
 
-def update_guarantees(provider: str, target: str, path: str, spec: str) -> None:
-    provider_path = _normalize_provider(provider)
-    guarantee = Guarantee(guarantee_path=path, guarantee_desc=spec)
-    return update(provider_path, target, guarantee)
+# ======== Verify 操作 ========
 
-# ======== Verify ========
+def verify_all_guarantees(
+    provider: str,
+    *,
+    timeout: int = -1,
+    single_output: bool = False,
+    return_model: bool = True
+) -> dict:
+    with meta_session(provider, readonly=True) as meta:
+        return verify_all(meta, timeout=timeout, single_output=single_output, return_model=return_model)
 
-def verify_all_guarantees(provider: str, *, timeout: int = -1, single_output: bool = False, return_model: bool = True) -> dict[str, bool] | dict[str, list[bool]] | dict[str, list[VerifyModel]]:
-    provider_path = _normalize_provider(provider)
-    return verify_all(provider=provider_path, timeout=timeout, single_output=single_output, return_model=return_model)
+def verify_all_guarantees_of_one_target(
+    provider: str,
+    target: str,
+    *,
+    timeout: int = -1,
+    single_output: bool = False,
+    return_model: bool = True
+) -> list:
+    with meta_session(provider, readonly=True) as meta:
+        return verify_all_of_one_target(meta, target=target, timeout=timeout, single_output=single_output, return_model=return_model)
 
-def verify_all_guarantees_of_one_target(provider: str, target: str, *, timeout: int = -1, single_output: bool = False, return_model: bool = True) -> bool | list[bool] | list[VerifyModel]:
-    provider_path = _normalize_provider(provider)
-    return verify_all_of_one_target(provider=provider_path, target=target, timeout=timeout, single_output=single_output, return_model=return_model)
-
-def verify_single_guarantee(provider: str, target: str, path: str, *, timeout: int = -1, return_model: bool = True) -> bool | VerifyModel:
-    provider_path = _normalize_provider(provider)
-    return verify_single(provider=provider_path, target=target, guarantee_path=path, timeout=timeout, return_model=return_model)
+def verify_single_guarantee(
+    provider: str,
+    target: str,
+    guarantee_path: str,
+    *,
+    timeout: int = -1,
+    return_model: bool = True
+) -> VerifyModel:
+    with meta_session(provider, readonly=True) as meta:
+        return verify_single(meta, target=target, guarantee_path=guarantee_path, timeout=timeout, return_model=return_model)
 
 # ======== Executors ========
 
