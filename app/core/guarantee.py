@@ -1,24 +1,14 @@
 from pathlib import Path
 
-from pydantic import ValidationError
-
 from app.config.backups import META_BACKUPS
-from app.config.project import get_current_project
 from app.core import executor
 from app.models.errors import GuaranteeDuplicatedError, MetaNotFoundError, GuaranteeNotFoundError, \
     GuaranteeTestFailedError
 from app.models.meta import FileMeta, Guarantee
 from app.models.verify import VerifyModel
+from app.utils.file_utils import to_json_path
 from app.utils.json_model_operator import save_model_to_json, load_model_from_json
 
-
-def _to_json_path(provider: Path):
-    relative_path = provider.relative_to(get_current_project())
-    target_dir = get_current_project() / ".gbc" / relative_path.parent
-    target_filename = f"gbc.{relative_path.name}.json"
-    json_path = target_dir / target_filename
-
-    return json_path
 
 def register(provider: Path, target: str, guarantee: Guarantee):
     """
@@ -29,7 +19,7 @@ def register(provider: Path, target: str, guarantee: Guarantee):
     :return:
     """
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
@@ -63,7 +53,7 @@ def unregister(provider: Path, target: str, guarantee_path: str):
     :return:
     """
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
@@ -88,7 +78,7 @@ def unregister_all(provider: Path, target: str):
     :return:
     """
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
         if target not in json_model.guarantees:
@@ -104,7 +94,7 @@ def unregister_all(provider: Path, target: str):
 
 def list_all(provider: Path) -> dict[str, list[Guarantee]]:
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
@@ -116,7 +106,7 @@ def list_all(provider: Path) -> dict[str, list[Guarantee]]:
 
 def list_all_for_one(provider: Path, target: str) -> list[Guarantee]:
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
@@ -131,7 +121,7 @@ def list_all_for_one(provider: Path, target: str) -> list[Guarantee]:
 
 def update(provider: Path, target: str, guarantee: Guarantee):
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
@@ -158,7 +148,7 @@ def update(provider: Path, target: str, guarantee: Guarantee):
 
 def verify_all(provider: Path, *, timeout: int = -1, single_output: bool = False, return_model: bool = True) -> dict[str, bool] | dict[str, list[bool]] | dict[str, list[VerifyModel]]:
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
@@ -186,7 +176,7 @@ def verify_all(provider: Path, *, timeout: int = -1, single_output: bool = False
 
 def verify_all_of_one_target(provider: Path, target: str, *, timeout: int = -1, single_output: bool = False, return_model: bool = True) -> bool | list[bool] | list[VerifyModel]:
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
@@ -212,7 +202,7 @@ def verify_all_of_one_target(provider: Path, target: str, *, timeout: int = -1, 
 
 def verify_single(provider: Path, target: str, guarantee_path:str, *, timeout: int = -1, return_model: bool = True) -> bool | VerifyModel:
     try:
-        json_path = _to_json_path(provider)
+        json_path = to_json_path(provider)
 
         json_model = load_model_from_json(json_path, FileMeta)
 
