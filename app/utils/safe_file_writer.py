@@ -1,7 +1,7 @@
 # REQUIREMENTS
 # None, raw python should have all libs required
 # From https://github.com/Jesse-x86/devkit/blob/master/file_operations/safe_file_writer.py
-
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -54,9 +54,10 @@ class SafeFileWriter:
         self.num_backups = max(0, num_backups)
         self._temp_path = None
         self._file_handle = None
+        self._logger = logging.getLogger("SafeFileWriter")
 
     def _log(self, msg: str):
-        print(msg)
+        self._logger.debug(msg)
 
     def _rotate_backups(self):
         """管理和轮转备份文件。"""
