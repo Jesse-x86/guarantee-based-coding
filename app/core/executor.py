@@ -47,6 +47,9 @@ def _execute(config: str, file: str, timeout: int = -1) -> subprocess.CompletedP
         timeout=timeout,
         cwd=executor_cfg.cwd,
         env=env,
+        # 绝不让被测进程继承父进程的 stdin。作为 MCP server 运行时父进程 stdin 是
+        # JSON-RPC 协议管道，子进程继承后会阻塞（"终端能跑、当服务挂"的经典坑）。
+        stdin=subprocess.DEVNULL,
     )
 
     return result
