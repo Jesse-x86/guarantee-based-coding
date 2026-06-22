@@ -1,13 +1,69 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-# 单个保证的 运行必须变量 和 具体保证描述
+# ============================================================================
+# .gbc 元数据模型
+#
+# 每个代码文件对应一份 .gbc json（FileMeta），它是「双段自包含」的：
+#   - provides   : 本文件作为 provider 提供的具名保证（保证为一等公民）
+#   - depends_on : 本文件作为 consumer 声明的依赖边
+# 两段分别承载依赖图的两个方向，由工具层负责跨文件原子地保持双向一致。
+# ============================================================================
+
+
 class Guarantee(BaseModel):
-    config: str
-    guarantee_path: str                 # 保证对应的测试的核心文件名或其他需要插入启动命令的关键str
-    guarantee_desc: str                 # 对该保证的描述，例如为何要求该保证，以及要求的是什么保证
-    timeout_override: int = -1
-    heavy: bool = False
+    """一条具名行为保证，由某个 provider 文件持有、唯一一份。
 
-# 总保证文件
+    身份 = 它在 ``FileMeta.provides`` 中的 key（一个语义化点路径 id，例如
+    ``"config.llm.get_model.returns_loaded"``），**不是** 测试路径——改测试
+    文件名不会改变保证的身份；多个消费者共享同一条保证时也只认这个 id。
+    """
+
+    # 承诺了什么行为、以及为何需要它（富描述，给人和 agent 读）
+    desc: str
+
+    # 测试选择器：交给 executor 做 {file} 替换的那个 str（= 旧 guarantee_path）。
+    # 与 executor 分离——这里只说「跑哪个测试」，不说「怎么跑」。
+    test: str
+
+    # executor 配置名：决定「怎么跑」这个测试（命令/cwd/env/默认超时）。
+    executor: str
+
+    # 单条保证的超时覆写；-1 表示回退到 executor 的默认超时。
+    timeout_override: int = -1
+
+    # 成本秩 + 自动运行授权等级。0 = 普通，批量必跑；>=1 = 贵/慢（如需 LLM），
+    # 批量 verify 中按阈值跳过并响亮报告。数字越大越「别随便跑」，高到一定
+    # 程度应由人类决定是否运行。批量只跑 heavy <= 阈值的；register / 点名
+    # verify_single 无视它、永远跑。
+    heavy: int = 0
+
+    # 依赖这条保证的消费者文件路径列表（多对一：一条保证可被多个文件依赖）。
+    # 这是反向边；非空即代表「还有人靠着它」，退休保护据此拒绝删除。
+    dependents: list[str] = Field(default_factory=list)
+
+
+class Dependency(BaseModel):
+    """本文件（作为 consumer）声明的一条依赖边。
+
+    ``symbol`` 写成 ``"<provider 文件>:<符号名>"``，既标明依赖了谁的哪个符号，
+    也隐含了 provider 文件（取 ``:`` 前半段）。
+
+    ``guarantees`` 列出本文件依赖的、该 provider 上的具名保证 id：
+      - 空列表  = symbol 级「免费依赖」：只依赖符号存在/签名，不依赖具体行为，
+                  不需要、也不创建保证与测试。
+      - 非空    = 行为级依赖：每个 id 必须对应 provider ``provides`` 里的一条保证，
+                  且该保证的 ``dependents`` 里登记了本文件（双向一致）。
+    """
+
+    symbol: str
+    guarantees: list[str] = Field(default_factory=list)
+
+
 class FileMeta(BaseModel):
-    guarantees: dict[str, list[Guarantee]]    # key: 要求该保证的项目文件
+    """单个代码文件的 .gbc 元数据，对 provider / consumer 两种角色都自包含。"""
+
+    # 本文件作为 provider 提供的保证：key = 保证 id。
+    provides: dict[str, Guarantee] = Field(default_factory=dict)
+
+    # 本文件作为 consumer 声明的依赖边。
+    depends_on: list[Dependency] = Field(default_factory=list)

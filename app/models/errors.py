@@ -108,6 +108,25 @@ class GuaranteeTestFailedError(GuaranteeError):
     def __str__(self):
         return f"Guarantee '{self.guarantee_path}' failed for '{self.target_file}', failure info: \n {self.failure_info}"
 
+class GuaranteeHasDependentsError(GuaranteeError):
+    """退休保护：拒绝删除仍有 dependents 的保证。
+
+    系统不替使用者「反射式」删掉一条还有人依赖的保证——那必然悄悄弄坏下游。
+    必须先沿依赖线把 dependents 修复/迁移掉，dependents 清空后才允许退休。
+    """
+    def __init__(self, provider: str, guarantee_id: str, dependents: list[str]):
+        super().__init__(guarantee_id)
+        self.provider = provider
+        self.guarantee_id = guarantee_id
+        self.dependents = dependents
+
+    def __str__(self):
+        return (
+            f"Guarantee '{self.guarantee_id}' on '{self.provider}' still has "
+            f"{len(self.dependents)} dependent(s): {self.dependents}. "
+            f"Repair or migrate them first; a guarantee can only be retired once its dependents are empty."
+        )
+
 # ======== Executor ========
 
 class ExecutorNotFoundError(ExecutorError):
