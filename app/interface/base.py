@@ -32,9 +32,16 @@ from app.utils.json_model_operator import load_model_from_json, save_model_to_js
 # ============================================================================
 
 def _resolve(file_str: str) -> Path:
-    """把输入文件字符串解析为绝对路径，并校验它在当前项目内。"""
-    path = Path(file_str).resolve()
-    if not path.is_relative_to(get_current_project()):
+    """把输入文件路径解析到项目内并校验。
+
+    相对路径按**当前项目根**(get_current_project())解释，而非进程 cwd——这样工具作为
+    MCP server 在任意 cwd 下启动（其 app 包与目标项目可能重名）都能正确定位目标项目的文件。
+    """
+    project = get_current_project()
+    path = Path(file_str)
+    if not path.is_absolute():
+        path = project / path
+    if not path.is_relative_to(project):
         raise IllegalFilePathError(path)
     return path
 

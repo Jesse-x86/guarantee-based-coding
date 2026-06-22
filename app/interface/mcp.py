@@ -269,3 +269,14 @@ def upsert_executor(config_name: str, config_data: dict) -> str:
         return "upserted"
     except Exception as e:
         return _err(e)
+
+
+# ======== 入口 ========
+
+def main() -> None:
+    """以 stdio transport 启动 gbc MCP server。"""
+    mcp.run()
+
+
+if __name__ == "__main__":
+    main()
