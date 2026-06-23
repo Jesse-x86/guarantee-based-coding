@@ -253,7 +253,7 @@ function editor(node, path) {
     ta({ rows: 1, value: node.constraints || "", oninput: ev => { node.constraints = ev.target.value; } }),
 
     el("label", {}, "子项 ",
-      el("span", { class: "mut" }, "(## · 名称结尾带 / 即文件夹;底部灰条输入即新增,清空失焦即删除)")),
+      el("span", { class: "mut" }, "(# 文件 段下的 ## · 名称结尾带 / 即文件夹;底部灰条输入即新增,清空失焦即删除)")),
     entriesSection(node));
 }
 
