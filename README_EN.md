@@ -6,7 +6,12 @@
 
 ## 🚀 Want your agent to use GBC?
 
-Hand **[docs/teach-your-agent.md](./docs/teach-your-agent.md)** to your coding agent — it can follow that to install GBC into your project, wire up the tools, and start using it. More docs in [docs/](./docs/).
+You'll barely lift a finger — hand it to your coding agent. Pick whoever you are:
+
+- **You're a human** → [docs/for-humans.md](./docs/for-humans.md)
+- **You're an agent** → [docs/for-agents.md](./docs/for-agents.md)
+
+Prefer to do it by hand, or to understand each step: [docs/manual.md](./docs/manual.md) (the manual / detailed reference).
 
 ## The Problem
 
@@ -154,7 +159,7 @@ GBC provides two sets of integration points, available via both CLI and MCP:
 
 Context size depends on the number of guarantees for the current file, **not on overall project size**.
 
-GBC offers **both CLI and MCP** interfaces, plus a **recommended agent workflow** — just hand [docs/teach-your-agent.md](./docs/teach-your-agent.md) to your agent to get started.
+GBC offers **both CLI and MCP** interfaces, plus a **recommended agent workflow** — just hand [docs/for-agents.md](./docs/for-agents.md) to your agent to get started.
 
 ## Comparison with Existing Approaches
 

@@ -1,6 +1,6 @@
 # 把 GBC 接到你自己的 Agent(MCP)
 
-> 第一次接触?先看前门:**[teach-your-agent.md](./teach-your-agent.md)**。本文是其中「接 MCP」一步的展开(跨平台、自研客户端、工具清单)。
+> 入口见 [for-agents.md](./for-agents.md)(给 agent)/ [for-humans.md](./for-humans.md)(给人类)。本文是手动文档 [manual.md](./manual.md) 中「接 MCP」一步的展开(跨平台、自研客户端、工具清单)。
 
 GBC 的保证能力(创建/验证保证、登记/反查依赖、一致性体检)通过一个 **MCP server** 暴露。
 任何支持 [MCP](https://modelcontextprotocol.io) 的 agent(Claude Code、Cursor、自研 agent……)
@@ -36,7 +36,7 @@ pip install -r requirements.txt   # typer[all] / pydantic / mcp
 python <工具仓>/serve.py <目标项目根的绝对路径>
 ```
 
-两点必须照做,原因见 `serve.py` 顶部注释:
+有两点请务必照做,原因写在 `serve.py` 顶部的注释里:
 
 1. **目标项目根由 argv[1] 传入,不要靠环境变量。** 跨平台调用(见下)时 env 传不进去;且 server
    要把 `.gbc/` 定位到这个项目根。一个 server 实例锁定一个项目根。

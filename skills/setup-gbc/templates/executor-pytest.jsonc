@@ -1,0 +1,18 @@
+// Executor config object for:  upsert_executor("{{EXECUTOR_NAME}}", <this object>)
+//
+// {file} is substituted at run time with each guarantee's test selector
+//   (e.g. "tests/test_x.py::test_y").
+//
+// Not pytest? Replace `command` with any argv that contains {file}, e.g.
+//   jest:  ["npx", "jest", "{file}"]
+//   go:    ["go", "test", "-run", "{file}"]
+//   cargo: ["cargo", "test", "{file}"]
+// and drop/adjust env_ops accordingly. env_ops actions: set | append | prepend | remove.
+{
+  "command": ["python", "-m", "pytest", "{file}", "-x", "-q"],
+  "cwd": "{{PROJECT_ROOT}}",
+  "timeout": 30,
+  "env_ops": [
+    {"key": "PYTHONPATH", "action": "prepend", "value": "{{PROJECT_ROOT}}"}
+  ]
+}

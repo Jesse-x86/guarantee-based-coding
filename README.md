@@ -4,9 +4,14 @@
 
 **English version: [README_EN.md](./README_EN.md)**
 
-## 🚀 想让你的 Agent 用 GBC?
+## 🚀 想让你的 Agent 用上 GBC?
 
-把 **[docs/teach-your-agent.md](./docs/teach-your-agent.md)** 直接交给你的 coding agent——它能照着把 GBC 装进你的项目、接上工具面并开始用。更细的接入与文档见 [docs/](./docs/)。
+几乎不用你动手——交给你的 coding agent 就好。先看你是谁:
+
+- **你是人类** → [docs/for-humans.md](./docs/for-humans.md)
+- **你是 agent** → [docs/for-agents.md](./docs/for-agents.md)
+
+想亲自动手、或弄清每一步:[docs/manual.md](./docs/manual.md)(手动 / 详细文档)。
 
 ## 问题
 
@@ -154,7 +159,7 @@ GBC 提供两组集成点，CLI 与 MCP 皆可：
 
 上下文大小取决于当前文件的 guarantee 数量，**与项目整体规模无关**。
 
-GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent 工作流**——把 [docs/teach-your-agent.md](./docs/teach-your-agent.md) 交给你的 agent 即可上手。
+GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent 工作流**——把 [docs/for-agents.md](./docs/for-agents.md) 交给你的 agent 即可上手。
 
 ## 和现有方案的对比
 
