@@ -252,11 +252,14 @@ def verify_single(
 # ======== Tree ========
 
 @app.command("tree")
-def tree_cmd():
+def tree_cmd(
+    detail: bool = typer.Option(False, "--detail", "-d", help="展开保证 desc/test/heavy + 每个 .gbc 目录的其它产物(.pyi)"),
+    gaps: bool = typer.Option(False, "--gaps", "-g", help="末尾附图反推的登记缺口(有 json/被依赖却未登记)"),
+):
     """把整棵 .gbc 渲染成一份 AI 可读的依赖树（gbc.md 意图为骨 + json 依赖边）。"""
     try:
         # 用 print 而非 console.print：树里有 [意图]/[保证] 等方括号，避免被 rich 当样式标记解析。
-        print(base.render_tree())
+        print(base.render_tree(detail=detail, gaps=gaps))
     except Exception as e:
         raise handle_error(e)
 
