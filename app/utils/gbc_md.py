@@ -1,4 +1,8 @@
-"""Parse / serialize a single GBC `gbc.md` file.
+"""Parse / serialize a single GBC `gbc.md` file — the canonical parser.
+
+This is the single authoritative parser/serializer for the `gbc.md` format. Both
+`interface.base.render_tree` (engine side) and the standalone intent-editor tool
+build on it; neither re-implements the format. Pure text handling, no IO.
 
 Format:
 

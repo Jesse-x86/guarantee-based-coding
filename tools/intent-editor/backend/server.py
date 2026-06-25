@@ -1,6 +1,6 @@
-"""GBC intent-tree editor — thin local backend (stdlib only, no deps).
+"""GBC intent-tree editor — thin local backend (stdlib only; shares the main lib's parser).
 
-Run:  python3 app.py [--port 8765]
+Run:  python3 server.py [--port 8765]
 Then: open http://localhost:8765
 
 Two jobs only:
@@ -21,8 +21,11 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
+import sys
 
-import gbc_format as gf
+# 让 `from app...` 解析到本仓主库包(而非目标项目的同名 app/):把 GBC 仓根放 sys.path 最前。
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from app.utils import gbc_md as gf  # noqa: E402  gbc.md 解析器单源(取代旧的本地 gbc_format)
 
 GBC_FILE = "gbc.md"
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"

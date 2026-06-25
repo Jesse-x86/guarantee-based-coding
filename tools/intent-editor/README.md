@@ -9,12 +9,12 @@ GBC 意图文件(`.gbc/<path>/gbc.md`)里存在**刻意的重复**:一个子文�
 
 ## 跑起来
 
-纯标准库,零依赖:
+纯标准库(gbc.md 解析复用主库 `app/utils/gbc_md`,需在本仓内运行):
 
 ```bash
 cd backend
-python3 app.py                       # 127.0.0.1:8765,路径框留空
-python3 app.py --root /path/to/.gbc  # 预填并自动加载该目录
+python3 server.py                       # 127.0.0.1:8765,路径框留空
+python3 server.py --root /path/to/.gbc  # 预填并自动加载该目录
 # 另可加 --port / --host
 ```
 

@@ -25,8 +25,10 @@ import argparse
 import sys
 from pathlib import Path
 
-import gbc_format as gf
-from app import resolve_gbc, GBC_FILE
+# 让 `from app...` 解析到本仓主库包(而非目标项目的同名 app/):把 GBC 仓根放 sys.path 最前。
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from app.utils import gbc_md as gf  # noqa: E402  gbc.md 解析器单源(取代旧的本地 gbc_format)
+from server import resolve_gbc, GBC_FILE  # noqa: E402  路径解析复用同目录后端
 
 
 # ---- 路径与读写 -------------------------------------------------------------
@@ -242,6 +244,7 @@ def main() -> None:
     sub.add_parser("check")
     sub.add_parser("sync")
     sub.add_parser("migrate")
+    sub.add_parser("tree")
 
     args = ap.parse_args()
     gbc_root, _ = resolve_gbc(args.root)
@@ -281,6 +284,8 @@ def main() -> None:
         print(f"migrated {len(changed)} file(s)")
         for c in changed:
             print(" ", c)
+    elif args.cmd == "tree":
+        print(tree(gbc_root))
 
 
 if __name__ == "__main__":
