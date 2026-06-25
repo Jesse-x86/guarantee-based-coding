@@ -249,6 +249,18 @@ def verify_single(
         raise handle_error(e)
 
 
+# ======== Tree ========
+
+@app.command("tree")
+def tree_cmd():
+    """把整棵 .gbc 渲染成一份 AI 可读的依赖树（gbc.md 意图为骨 + json 依赖边）。"""
+    try:
+        # 用 print 而非 console.print：树里有 [意图]/[保证] 等方括号，避免被 rich 当样式标记解析。
+        print(base.render_tree())
+    except Exception as e:
+        raise handle_error(e)
+
+
 # ======== Doctor ========
 
 @doctor_app.command("check")

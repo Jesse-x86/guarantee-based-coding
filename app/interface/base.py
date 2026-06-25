@@ -23,8 +23,11 @@ from app.models.errors import (
 )
 from app.models.meta import FileMeta, Guarantee, Dependency
 from app.models.verify import VerifyModel, VerifySummary
+from app.utils import gbc_md
 from app.utils.file_utils import to_gbc_json_path
 from app.utils.json_model_operator import load_model_from_json, save_model_to_json
+
+GBC_FILE = "gbc.md"
 
 
 # ============================================================================
@@ -325,3 +328,83 @@ def upsert_executor(config_name: str, config_data: dict) -> None:
     except ValidationError:
         raise ExecutorConfigInvalidError(config_name)
     executor.upsert_exec_config(config_name=config_name, model=model)
+
+
+# ============================================================================
+# 全树渲染：把 .gbc 整合成一份 AI 可读的依赖树
+# ============================================================================
+
+_TREE_LEGEND = "图例: 📁 文件夹 / 📄 文件 / → 依赖<provider:符号> [保证] / ⊕ 提供<保证> ← 被依赖"
+
+
+def _tree_read_doc(gbc_root: Path, rel: str) -> gbc_md.ParsedDoc:
+    p = (gbc_root / rel / GBC_FILE) if rel else (gbc_root / GBC_FILE)
+    return gbc_md.parse(p.read_text(encoding="utf-8")) if p.exists() else gbc_md.ParsedDoc()
+
+
+def _tree_block(text: str, indent: str) -> str:
+    """把多行文本接到一个标签后：首行原位，后续行按 indent 对齐。"""
+    parts = text.strip().splitlines()
+    if not parts:
+        return ""
+    return parts[0] + "".join(f"\n{indent}{p}" for p in parts[1:])
+
+
+def _tree_render_file(rel: str, entry: gbc_md.Entry, metas: dict[str, FileMeta],
+                      depth: int, lines: list[str]) -> None:
+    pad = "  " * depth
+    inner = pad + "   "
+    lines.append(f"{pad}📄 {entry.name}")
+    if entry.desc:
+        lines.append(f"{inner}{_tree_block(entry.desc, inner)}")
+    src_rel = f"{rel}/{entry.name}" if rel else entry.name
+    meta = metas.get(src_rel)
+    if meta is None:
+        return
+    for dep in meta.depends_on:
+        tag = f"  [{', '.join(dep.guarantees)}]" if dep.guarantees else ""
+        lines.append(f"{inner}→ {dep.symbol}{tag}")
+    for gid, g in meta.provides.items():
+        tail = f"  ← {', '.join(g.dependents)}" if g.dependents else ""
+        lines.append(f"{inner}⊕ {gid}{tail}")
+
+
+def _tree_render_folder(gbc_root: Path, rel: str, metas: dict[str, FileMeta],
+                        depth: int, lines: list[str]) -> None:
+    pad = "  " * depth
+    inner = pad + "   "
+    doc = _tree_read_doc(gbc_root, rel)
+    lines.append(f"{pad}📁 {rel + '/' if rel else '(根)'}")
+    if doc.intent:
+        lines.append(f"{inner}[意图] {_tree_block(doc.intent, inner)}")
+    if doc.constraints:
+        lines.append(f"{inner}[约束] {_tree_block(doc.constraints, inner)}")
+    # 按 gbc.md `# 文件` 的登记顺序：文件叶子就地展开，子文件夹递归读其自身 gbc.md。
+    for e in doc.entries:
+        if not e.is_dir:
+            _tree_render_file(rel, e, metas, depth + 1, lines)
+            continue
+        child = f"{rel}/{e.name.rstrip('/')}".lstrip("/")
+        if (gbc_root / child / GBC_FILE).exists():
+            _tree_render_folder(gbc_root, child, metas, depth + 1, lines)
+        else:  # 父登记了子文件夹但其 gbc.md 尚未建
+            cpad = "  " * (depth + 1)
+            lines.append(f"{cpad}📁 {e.name}（未建 gbc.md）")
+            if e.desc:
+                lines.append(f"{cpad}   {_tree_block(e.desc, cpad + '   ')}")
+
+
+def render_tree() -> str:
+    """把整棵 `.gbc` 渲染成一份 AI 可读的依赖树。
+
+    骨架来自所有 gbc.md（意图 / 内部约束 / `# 文件` 条目，沿登记的包含关系递归）；每个
+    文件叶子再从其 FileMeta 折入依赖出边（depends_on）与所提供保证（provides + 反向
+    dependents）。一次调用替代逐个读散落的 gbc.md/json。只读，不改任何文件。
+    """
+    gbc_root = get_current_project() / ".gbc"
+    if not gbc_root.exists():
+        return f"(.gbc 不存在: {gbc_root})"
+    metas = {src_rel: meta for src_rel, meta in _iter_all_metas()}
+    lines: list[str] = [_TREE_LEGEND, ""]
+    _tree_render_folder(gbc_root, "", metas, 0, lines)
+    return "\n".join(lines)

@@ -202,6 +202,21 @@ def who_depends_on(provider: str, symbol: str | None = None, guarantee_id: str |
 
 
 @mcp.tool()
+def tree() -> str:
+    """Render the whole `.gbc` tree as one AI-readable dependency document.
+
+    Backbone = every folder's intent / internal constraints / file entries (from
+    gbc.md); each file leaf is annotated with its dependency edges (→ provider:symbol
+    [guarantee]) and the guarantees it provides (⊕ guarantee ← dependents). A single
+    read-only call that replaces opening many gbc.md/json files to grasp the architecture.
+    """
+    try:
+        return _ok(base.render_tree())
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
 def check_consistency() -> str:
     """Global lint of the .gbc graph: report dangling guarantee refs and broken
     bidirectional edges (dangling_guarantee / missing_reverse / missing_forward).
