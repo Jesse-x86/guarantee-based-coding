@@ -217,7 +217,9 @@ def tree(detail: bool = False, gaps: bool = False) -> str:
             are depended-upon yet have no gbc.md file entry.
     """
     try:
-        return _ok(base.render_tree(detail=detail, gaps=gaps))
+        # 文档型工具：直接返回原始文本(不经 _ok 的 json.dumps)，让 MCP 当文本块发出，
+        # 换行是字面换行、零转义开销。是「工具返回 JSON 字符串」约定的有意例外。
+        return base.render_tree(detail=detail, gaps=gaps)
     except Exception as e:
         return _err(e)
 
