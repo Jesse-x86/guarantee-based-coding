@@ -16,12 +16,15 @@
     set-file     <folder> <name> <desc>
     rm-entry     <folder> <name>
     check
+    sync
     migrate
+    tree         （把整棵 .gbc 渲染成 AI 可读的依赖树:md 意图为骨、json 依赖边为注解）
 其中 <folder> 是项目相对路径,根用 "" 或 "."。
 """
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -217,6 +220,92 @@ def migrate(gbc_root: Path) -> list[str]:
     return changed
 
 
+# ---- tree:整棵 .gbc → AI 可读的依赖树 --------------------------------------
+
+_LEGEND = "图例: 📁 文件夹 / 📄 文件 / → 依赖<provider:符号> [保证] / ⊕ 提供<保证> ← 被依赖"
+
+
+def _block(text: str, indent: str) -> str:
+    """把多行文本接到一个标签后:首行原位,后续行按 indent 对齐。"""
+    parts = text.strip().splitlines()
+    if not parts:
+        return ""
+    return parts[0] + "".join(f"\n{indent}{p}" for p in parts[1:])
+
+
+def _load_meta(gbc_root: Path, rel: str, filename: str) -> dict | None:
+    """读某文件条目同目录的 `gbc.<filename>.json`(依赖图元数据)。无/坏则 None。
+
+    只 json.load 抽 depends_on/provides 两段,不依赖主库的 FileMeta 模型——工具自包含、语言无关。
+    """
+    base = (gbc_root / rel) if rel else gbc_root
+    p = base / f"gbc.{filename}.json"
+    if not p.exists():
+        return None
+    try:
+        return json.loads(p.read_text(encoding="utf-8"))
+    except (ValueError, OSError):
+        return None
+
+
+def _render_file(gbc_root: Path, rel: str, entry: gf.Entry, depth: int, lines: list[str]) -> None:
+    pad = "  " * depth
+    inner = pad + "   "
+    lines.append(f"{pad}📄 {entry.name}")
+    if entry.desc:
+        lines.append(f"{inner}{_block(entry.desc, inner)}")
+    meta = _load_meta(gbc_root, rel, entry.name)
+    if not meta:
+        return
+    for dep in meta.get("depends_on") or []:
+        sym = dep.get("symbol", "?")
+        gids = dep.get("guarantees") or []
+        tag = f"  [{', '.join(gids)}]" if gids else ""
+        lines.append(f"{inner}→ {sym}{tag}")
+    for gid, g in (meta.get("provides") or {}).items():
+        deps = (g or {}).get("dependents") or []
+        tail = f"  ← {', '.join(deps)}" if deps else ""
+        lines.append(f"{inner}⊕ {gid}{tail}")
+
+
+def _render_folder(gbc_root: Path, rel: str, depth: int, lines: list[str]) -> None:
+    pad = "  " * depth
+    inner = pad + "   "
+    doc = read_doc(gbc_root, rel)
+    lines.append(f"{pad}📁 {rel + '/' if rel else '(根)'}")
+    if doc.intent:
+        lines.append(f"{inner}[意图] {_block(doc.intent, inner)}")
+    if doc.constraints:
+        lines.append(f"{inner}[约束] {_block(doc.constraints, inner)}")
+    # 按 gbc.md `# 文件` 的登记顺序渲染:文件叶子就地展开,子文件夹递归读其自身 gbc.md。
+    for e in doc.entries:
+        if not e.is_dir:
+            _render_file(gbc_root, rel, e, depth + 1, lines)
+            continue
+        child = f"{rel}/{e.name.rstrip('/')}".lstrip("/")
+        if _doc_path(gbc_root, child).exists():
+            _render_folder(gbc_root, child, depth + 1, lines)
+        else:  # 父登记了子文件夹但其 gbc.md 尚未建(叶子/待建)
+            cpad = "  " * (depth + 1)
+            lines.append(f"{cpad}📁 {e.name}(未建 gbc.md)")
+            if e.desc:
+                lines.append(f"{cpad}   {_block(e.desc, cpad + '   ')}")
+
+
+def tree(gbc_root: Path) -> str:
+    """一键把整棵 `.gbc` 渲染成一份 AI 可读的依赖树。
+
+    骨架来自所有 gbc.md(意图 / 内部约束 / `# 文件` 条目,沿登记的包含关系递归);
+    每个文件叶子再从同目录 `gbc.<name>.json` 折入依赖边(出边 depends_on)与所提供保证
+    (provides + 反向 dependents)。一次调用替代逐个读散落的 gbc.md/json。
+    """
+    if not gbc_root.exists():
+        return f"(.gbc 不存在: {gbc_root})"
+    lines: list[str] = [_LEGEND, ""]
+    _render_folder(gbc_root, "", 0, lines)
+    return "\n".join(lines)
+
+
 # ---- CLI --------------------------------------------------------------------
 
 def main() -> None:
@@ -242,6 +331,7 @@ def main() -> None:
     sub.add_parser("check")
     sub.add_parser("sync")
     sub.add_parser("migrate")
+    sub.add_parser("tree")
 
     args = ap.parse_args()
     gbc_root, _ = resolve_gbc(args.root)
@@ -281,6 +371,8 @@ def main() -> None:
         print(f"migrated {len(changed)} file(s)")
         for c in changed:
             print(" ", c)
+    elif args.cmd == "tree":
+        print(tree(gbc_root))
 
 
 if __name__ == "__main__":
