@@ -1,217 +1,280 @@
-from pathlib import Path
+"""保证系统的核心逻辑（纯模型操作 + 跑测试，无文件 IO / 无路径解析）。
 
-from pydantic import ValidationError
+约定：
+  - 所有进出本模块的文件路径都是「项目相对 POSIX 字符串」，路径解析由 base 层负责。
+  - 本模块直接读写 FileMeta 模型对象；跨文件操作（注册依赖）同时收 consumer 与
+    provider 两个 meta，原子地维护双向一致，但落盘仍由 base 层负责。
+  - 「出生即绿」门禁：create / update 改动测试时当场跑测试，不过则拒绝（抛错），
+    绝不留下一条没验证过的保证。
+"""
 
-from app.config.backups import META_BACKUPS
-from app.config.project import get_current_project
 from app.core import executor
-from app.models.errors import GuaranteeDuplicatedError, MetaNotFoundError, GuaranteeNotFoundError, \
-    GuaranteeTestFailedError
-from app.models.meta import FileMeta, Guarantee
-from app.models.verify import VerifyModel
-from app.utils.json_model_operator import save_model_to_json, load_model_from_json
+from app.models.errors import (
+    GuaranteeDuplicatedError,
+    GuaranteeNotFoundError,
+    GuaranteeTestFailedError,
+    GuaranteeHasDependentsError,
+)
+from app.models.meta import FileMeta, Guarantee, Dependency
+from app.models.verify import VerifyModel, VerifySummary, SkippedGuarantee
 
 
-def _to_json_path(provider: Path):
-    relative_path = provider.relative_to(get_current_project())
-    target_dir = get_current_project() / ".gbc" / relative_path.parent
-    target_filename = f"gbc.{relative_path.name}.json"
-    json_path = target_dir / target_filename
+# ============================================================================
+# 内部小工具
+# ============================================================================
 
-    return json_path
+def _run_test(guarantee: Guarantee, *, timeout: int = -1) -> VerifyModel:
+    """跑一条保证的测试，返回原始结果。timeout=-1 时回退到保证自带的 override。"""
+    effective_timeout = timeout if timeout != -1 else guarantee.timeout_override
+    return executor.verify_single(
+        guarantee.executor, guarantee.test, timeout=effective_timeout, return_model=True
+    )
 
-def initialize(provider: Path, config: str) -> None:
-    model = FileMeta(config=config, guarantees={})
-    try:
-        json_path = _to_json_path(provider)
 
-        save_model_to_json(model, json_path, META_BACKUPS)
-    except Exception as e:
-        raise
+def _gate(provider: str, gid: str, guarantee: Guarantee) -> None:
+    """出生即绿门禁：跑测试，不过就抛 GuaranteeTestFailedError。"""
+    result = _run_test(guarantee)
+    if result.return_code != 0:
+        raise GuaranteeTestFailedError(
+            target_file=provider, guarantee_path=gid, failure_info=result.stderr or ""
+        )
 
-def register(provider: Path, target: str, guarantee: Guarantee):
-    try:
-        json_path = _to_json_path(provider)
 
-        json_model = load_model_from_json(json_path, FileMeta)
+def _find_dependency(meta: FileMeta, symbol: str) -> Dependency | None:
+    """在 consumer meta 的 depends_on 里按 symbol 找依赖边。"""
+    for dep in meta.depends_on:
+        if dep.symbol == symbol:
+            return dep
+    return None
 
-        existing_items = json_model.guarantees.get(target, [])
-        for item in existing_items:
-            if guarantee.guarantee_path == item.guarantee_path:
-                raise GuaranteeDuplicatedError(guarantee_path=item.guarantee_path, target_file=target)
 
-        result = executor.verify_single(json_model.config, file=guarantee.guarantee_path, return_model=True)
-        if not result.return_code == 0:
-            raise GuaranteeTestFailedError(target_file=target, guarantee_path=guarantee.guarantee_path,
-                                           failure_info=result.stderr)
+# ============================================================================
+# Provider 侧：保证生命周期
+# ============================================================================
 
-        existing_items.append(guarantee)
+def create_guarantee(
+    provider_meta: FileMeta,
+    provider: str,
+    gid: str,
+    *,
+    desc: str,
+    test: str,
+    executor_name: str,
+    heavy: int = 0,
+    timeout_override: int = -1,
+) -> Guarantee:
+    """在 provider 上新建一条具名保证。出生即绿：当场跑测试，不过则拒绝。"""
+    if gid in provider_meta.provides:
+        raise GuaranteeDuplicatedError(target_file=provider, guarantee_path=gid)
 
-        json_model.guarantees[target] = existing_items
+    guarantee = Guarantee(
+        desc=desc,
+        test=test,
+        executor=executor_name,
+        timeout_override=timeout_override,
+        heavy=heavy,
+        dependents=[],
+    )
+    _gate(provider, gid, guarantee)  # 先验证后落入模型
+    provider_meta.provides[gid] = guarantee
+    return guarantee
 
-        save_model_to_json(json_model, json_path, META_BACKUPS)
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
 
-def erase_guarantee(provider: Path, target: str):
-    try:
-        json_path = _to_json_path(provider)
+def update_guarantee(
+    provider_meta: FileMeta,
+    provider: str,
+    gid: str,
+    *,
+    desc: str | None = None,
+    test: str | None = None,
+    executor_name: str | None = None,
+    heavy: int | None = None,
+    timeout_override: int | None = None,
+) -> Guarantee:
+    """更新一条保证的元数据。只传想改的字段；若改动了测试/执行方式则重新跑门禁。"""
+    guarantee = provider_meta.provides.get(gid)
+    if guarantee is None:
+        raise GuaranteeNotFoundError(target_file=provider, guarantee_path=gid)
 
-        json_model = load_model_from_json(json_path, FileMeta)
-        if target not in json_model.guarantees:
-            raise GuaranteeNotFoundError(guarantee_path="Any", target_file=target)
+    # 是否动了「怎么验证」——动了就要重新证明出生即绿
+    runner_changed = (
+        (test is not None and test != guarantee.test)
+        or (executor_name is not None and executor_name != guarantee.executor)
+        or (timeout_override is not None and timeout_override != guarantee.timeout_override)
+    )
 
-        del json_model.guarantees[target]
-        save_model_to_json(json_model, json_path, META_BACKUPS)
+    if desc is not None:
+        guarantee.desc = desc
+    if test is not None:
+        guarantee.test = test
+    if executor_name is not None:
+        guarantee.executor = executor_name
+    if heavy is not None:
+        guarantee.heavy = heavy
+    if timeout_override is not None:
+        guarantee.timeout_override = timeout_override
+
+    if runner_changed:
+        _gate(provider, gid, guarantee)
+
+    return guarantee
+
+
+def retire_guarantee(provider_meta: FileMeta, provider: str, gid: str) -> None:
+    """退休一条保证。退休保护：仍有 dependents 则拒绝（抛 GuaranteeHasDependentsError）。
+
+    系统不替使用者反射式删掉还有人依赖的保证；必须先沿依赖线修复/迁移 dependents。
+    """
+    guarantee = provider_meta.provides.get(gid)
+    if guarantee is None:
+        raise GuaranteeNotFoundError(target_file=provider, guarantee_path=gid)
+
+    if guarantee.dependents:
+        raise GuaranteeHasDependentsError(
+            provider=provider, guarantee_id=gid, dependents=list(guarantee.dependents)
+        )
+
+    del provider_meta.provides[gid]
+
+
+# ============================================================================
+# Consumer 侧：依赖边（跨文件，双向写）
+# ============================================================================
+
+def add_dependency(
+    consumer_meta: FileMeta,
+    consumer: str,
+    provider_meta: FileMeta,
+    provider: str,
+    symbol_name: str,
+    gid: str | None = None,
+) -> None:
+    """登记 consumer 对 provider 的一条依赖。
+
+    - gid 为 None：symbol 级「免费依赖」——只在 consumer.depends_on 记一条 symbol 边，
+      不挂保证、无反向边。
+    - gid 非 None：行为级依赖——gid 必须已存在于 provider.provides（消费者不能凭空要求
+      新行为；要新行为先让 provider create_guarantee）。双向写：consumer 边挂上 gid，
+      provider 该保证的 dependents 追加 consumer。
+    """
+    symbol = f"{provider}:{symbol_name}"
+
+    # 保证 consumer 侧有这条 symbol 边
+    dep = _find_dependency(consumer_meta, symbol)
+    if dep is None:
+        dep = Dependency(symbol=symbol, guarantees=[])
+        consumer_meta.depends_on.append(dep)
+
+    if gid is None:
+        return  # 免费依赖，到此为止
+
+    if gid not in provider_meta.provides:
+        raise GuaranteeNotFoundError(target_file=provider, guarantee_path=gid)
+
+    # 双向写（各自去重）
+    if gid not in dep.guarantees:
+        dep.guarantees.append(gid)
+    dependents = provider_meta.provides[gid].dependents
+    if consumer not in dependents:
+        dependents.append(consumer)
+
+
+def remove_dependency(
+    consumer_meta: FileMeta,
+    consumer: str,
+    provider_meta: FileMeta,
+    provider: str,
+    symbol_name: str,
+    gid: str | None = None,
+) -> None:
+    """撤销一条依赖（add_dependency 的逆操作，同样维护双向一致）。
+
+    - gid 非 None：只摘掉这一个保证依赖（consumer 边去掉 gid，provider 反向边去掉 consumer），
+      symbol 边若还挂着别的保证则保留。
+    - gid 为 None：整条 symbol 边连同它挂的所有保证一起撤销，并从各保证的 dependents 摘除 consumer。
+    """
+    symbol = f"{provider}:{symbol_name}"
+    dep = _find_dependency(consumer_meta, symbol)
+    if dep is None:
+        raise GuaranteeNotFoundError(target_file=consumer, guarantee_path=symbol)
+
+    def _detach(target_gid: str) -> None:
+        guarantee = provider_meta.provides.get(target_gid)
+        if guarantee and consumer in guarantee.dependents:
+            guarantee.dependents.remove(consumer)
+
+    if gid is None:
+        for g in list(dep.guarantees):
+            _detach(g)
+        consumer_meta.depends_on.remove(dep)
         return
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
+
+    if gid in dep.guarantees:
+        dep.guarantees.remove(gid)
+    _detach(gid)
+    # symbol 边变空（无保证）后是否保留：保留——它仍是一条有效的免费 symbol 依赖。
 
 
-def unregister(provider: Path, target: str, guarantee_path: str):
-    try:
-        json_path = _to_json_path(provider)
+# ============================================================================
+# 读 / 反查
+# ============================================================================
 
-        json_model = load_model_from_json(json_path, FileMeta)
-
-        existing_items = json_model.guarantees.get(target, [])
-        for index, item in enumerate(existing_items):
-            if guarantee_path == item.guarantee_path:
-                existing_items.pop(index)
-                json_model.guarantees[target] = existing_items
-                save_model_to_json(json_model, json_path, META_BACKUPS)
-                return
-        raise GuaranteeNotFoundError(target_file=target, guarantee_path=guarantee_path)
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
-
-def list_all(provider: Path) -> dict[str, list[Guarantee]]:
-    try:
-        json_path = _to_json_path(provider)
-
-        json_model = load_model_from_json(json_path, FileMeta)
-
-        return json_model.guarantees.copy()
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
-
-def list_all_for_one(provider: Path, target: str) -> list[Guarantee]:
-    try:
-        json_path = _to_json_path(provider)
-
-        json_model = load_model_from_json(json_path, FileMeta)
-
-        existing_items = json_model.guarantees.get(target, [])
-
-        return existing_items.copy()
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
+def list_provides(provider_meta: FileMeta) -> dict[str, Guarantee]:
+    """provider 提供的全部保证（含各自 dependents）。"""
+    return dict(provider_meta.provides)
 
 
-def update(provider: Path, target: str, guarantee: Guarantee):
-    try:
-        json_path = _to_json_path(provider)
-
-        json_model = load_model_from_json(json_path, FileMeta)
-
-        existing_items = json_model.guarantees.get(target, [])
-        index = -1
-        for _index, _item in enumerate(existing_items):
-            if guarantee.guarantee_path == _item.guarantee_path:
-                index = _index
-                break
-        if index < 0:
-            raise GuaranteeNotFoundError(target_file=target, guarantee_path=guarantee.guarantee_path)
-
-        result = executor.verify_single(json_model.config, file=guarantee.guarantee_path, return_model=True)
-        if not result.return_code == 0:
-            raise GuaranteeTestFailedError(target_file=target, guarantee_path=guarantee.guarantee_path, failure_info=result.stderr)
-
-        existing_items[index].guarantee_desc = guarantee.guarantee_desc
-
-        save_model_to_json(json_model, json_path, META_BACKUPS)
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
-
-def verify_all(provider: Path, *, timeout: int = -1, single_output: bool = False, return_model: bool = True) -> dict[str, bool] | dict[str, list[bool]] | dict[str, list[VerifyModel]]:
-    try:
-        json_path = _to_json_path(provider)
-
-        json_model = load_model_from_json(json_path, FileMeta)
-
-        result_dict = {}
-
-        if single_output:
-            return_model = False
-
-        for target, existing_items in json_model.guarantees.items():
-            result_list = []
-            for index, item in enumerate(existing_items):
-                result_list.append(executor.verify_single(json_model.config, file=item.guarantee_path,
-                                                          timeout=timeout, return_model=return_model))
-            if single_output:
-                result_dict[target] = all(result_list)
-            else:
-                result_dict[target] = result_list
-
-        return result_dict
-
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
-
-def verify_all_of_one_target(provider: Path, target: str, *, timeout: int = -1, single_output: bool = False, return_model: bool = True) -> bool | list[bool] | list[VerifyModel]:
-    try:
-        json_path = _to_json_path(provider)
-
-        json_model = load_model_from_json(json_path, FileMeta)
-
-        existing_items = json_model.guarantees.get(target, [])
-        result_list = []
-
-        if single_output:
-            return_model = False
-
-        for index, item in enumerate(existing_items):
-            result_list.append(executor.verify_single(json_model.config, file=item.guarantee_path, timeout=timeout, return_model=return_model))
-
-        if single_output:
-            return all(result_list)
-
-        return result_list
-
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
+def list_depends_on(consumer_meta: FileMeta) -> list[Dependency]:
+    """consumer 声明的全部依赖边。"""
+    return list(consumer_meta.depends_on)
 
 
-def verify_single(provider: Path, target: str, guarantee_path:str, *, timeout: int = -1, return_model: bool = True) -> bool | VerifyModel:
-    try:
-        json_path = _to_json_path(provider)
+def dependents_of(provider_meta: FileMeta, gid: str) -> list[str]:
+    """谁依赖 provider 的这条保证——O(1) 直接读反向边。"""
+    guarantee = provider_meta.provides.get(gid)
+    if guarantee is None:
+        raise GuaranteeNotFoundError(target_file="<provider>", guarantee_path=gid)
+    return list(guarantee.dependents)
 
-        json_model = load_model_from_json(json_path, FileMeta)
 
-        existing_items = json_model.guarantees.get(target, [])
-        for index, item in enumerate(existing_items):
-            if guarantee_path == item.guarantee_path:
-                return executor.verify_single(json_model.config, file=item.guarantee_path, timeout=timeout, return_model=return_model)
-        raise GuaranteeNotFoundError(target_file=target, guarantee_path=guarantee_path)
-    except FileNotFoundError as e:
-        raise MetaNotFoundError(original_file=provider, target_file=json_path)
-    except Exception as e:
-        raise
+# ============================================================================
+# 验证
+# ============================================================================
 
+def verify_provider(
+    provider_meta: FileMeta,
+    *,
+    auto_run_max_heavy: int = 0,
+    timeout: int = -1,
+) -> VerifySummary:
+    """批量验证 provider 提供的所有保证，按 heavy 阈值跳过并三桶汇总。
+
+    批量只跑 heavy <= auto_run_max_heavy 的；其余进 skipped 桶并被响亮报告。
+    门禁二元：green = failed 桶为空（skipped 不染红）。
+    """
+    summary = VerifySummary()
+    for gid, guarantee in provider_meta.provides.items():
+        if guarantee.heavy > auto_run_max_heavy:
+            summary.skipped.append(SkippedGuarantee(id=gid, heavy=guarantee.heavy))
+            continue
+        result = _run_test(guarantee, timeout=timeout)
+        summary.results[gid] = result
+        if result.return_code == 0:
+            summary.passed.append(gid)
+        else:
+            summary.failed.append(gid)
+    return summary
+
+
+def verify_guarantee(
+    provider_meta: FileMeta,
+    provider: str,
+    gid: str,
+    *,
+    timeout: int = -1,
+) -> VerifyModel:
+    """点名验证单条保证——无视 heavy 阈值，永远跑（你点了名就是要跑）。"""
+    guarantee = provider_meta.provides.get(gid)
+    if guarantee is None:
+        raise GuaranteeNotFoundError(target_file=provider, guarantee_path=gid)
+    return _run_test(guarantee, timeout=timeout)

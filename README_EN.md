@@ -4,6 +4,15 @@
 
 **中文版: [README.md](./README.md)**
 
+## 🚀 Want your agent to use GBC?
+
+You'll barely lift a finger — hand it to your coding agent. Pick whoever you are:
+
+- **You're a human** → [docs/for-humans.md](./docs/for-humans.md)
+- **You're an agent** → [docs/for-agents.md](./docs/for-agents.md)
+
+Prefer to do it by hand, or to understand each step: [docs/manual.md](./docs/manual.md) (the manual / detailed reference).
+
 ## The Problem
 
 The core failure mode of coding agents (Cursor, Aider, Devin, etc.) isn't writing wrong code — wrong code can be retried. The real problem is **silently breaking implicit assumptions in existing code**.
@@ -56,37 +65,46 @@ my-project/
 ### Core Concepts
 
 - **Provider**: The source file that provides guarantees (e.g., `src/llm_client/client.py`)
-- **Target**: The file that depends on those guarantees (e.g., `src/conversation/manager.py`)
-- **Guarantee**: A specific behavioral promise, mapped to a test file path and a description
+- **Consumer / Dependent**: The file that depends on a guarantee (e.g., `src/conversation/manager.py`)
+- **Guarantee**: A **named** (globally-unique id) behavioral promise, mapped to a test + a description; **multiple consumers can share one guarantee**
 - **Executor**: Configuration defining how to run tests (command template, working directory, environment variables, etc.)
 
-A provider can offer guarantees to multiple targets, and each target can register multiple guarantees.
+Dependency edges come in two levels: a free **symbol dependency** (on a signature/symbol existing) and a **named-guarantee dependency** (on a specific behavior). The latter is **registered bidirectionally** — the provider's `provides[id].dependents` ⇄ the consumer's `depends_on[].guarantees`, kept in sync by the tools.
 
 ### Meta File Example
 
-Metadata file for `client.py` at `.gbc/src/llm_client/gbc.client.py.json`:
+Each source file may have a sibling `.json` recording two things: what guarantees it **provides** (`provides`) and what it **depends on** (`depends_on`).
+
+`client.py` (provider) at `.gbc/src/llm_client/gbc.client.py.json`:
 
 ```json
 {
-    "config": "pytest",
-    "guarantees": {
-        "src/conversation/manager.py": [
-            {
-                "guarantee_path": "tests/test_client_content_is_str.py",
-                "guarantee_desc": "manager uses result['content'] directly to build conversation history; depends on content being str",
-                "timeout_override": -1
-            }
-        ],
-        "src/api/handler.py": [
-            {
-                "guarantee_path": "tests/test_client_returns_dict.py",
-                "guarantee_desc": "handler depends on chat() returning a dict with 'role' and 'content' keys",
-                "timeout_override": -1
-            }
-        ]
+    "provides": {
+        "llm_client.client.chat.content_is_str": {
+            "desc": "chat() returns result['content'] as str; manager uses it directly to build conversation history",
+            "test": "tests/test_client_content_is_str.py::test_content_is_str",
+            "executor": "pytest",
+            "heavy": 0,
+            "dependents": ["src/conversation/manager.py"]
+        }
     }
 }
 ```
+
+`manager.py` (consumer) at `.gbc/src/conversation/gbc.manager.py.json` registers the reverse edge:
+
+```json
+{
+    "depends_on": [
+        {
+            "symbol": "src/llm_client/client.py:chat",
+            "guarantees": ["llm_client.client.chat.content_is_str"]
+        }
+    ]
+}
+```
+
+Guarantee ids are globally unique (`<dotted.path>.<symbol>.<behavior>`); both directions are written by the tools (CLI/MCP) — you don't hand-edit them.
 
 ### Executor Configuration Example
 
@@ -121,7 +139,7 @@ Supported environment variable operations: `set`, `append`, `prepend`, `remove`.
 Modify client.py
        │
        ▼
-gbc verify src/llm_client/client.py
+verify_provider(src/llm_client/client.py)
        │
        ├── Run tests/test_client_content_is_str.py  (for manager.py)
        ├── Run tests/test_client_returns_dict.py     (for handler.py)
@@ -133,14 +151,15 @@ gbc verify src/llm_client/client.py
 
 ### Integration with Coding Agents
 
-GBC doesn't prescribe how agents work. It provides integration points:
+GBC provides two sets of integration points, available via both CLI and MCP:
 
-- **Before modification**: `list` — the agent learns what guarantees exist, who registered them, and why
-- **After modification**: `verify` — run all guarantees; gate whether the modification is acceptable
+- **Before modification**: `list_provides` / `list_depends_on` / `who_depends_on` — the agent learns what guarantees a file has, what it depends on, and who depends on it
+- **Registration**: `add_dependency` / `create_guarantee` — explicitly record "I depend on this behavior of yours" (a named guarantee is run-on-birth)
+- **After modification**: `verify_provider` / `verify_guarantee` — run guarantees to gate whether the change is acceptable
 
 Context size depends on the number of guarantees for the current file, **not on overall project size**.
 
-GBC plans to offer both CLI and MCP interfaces.
+GBC offers **both CLI and MCP** interfaces, plus a **recommended agent workflow** — just hand [docs/for-agents.md](./docs/for-agents.md) to your agent to get started.
 
 ## Comparison with Existing Approaches
 
@@ -175,14 +194,15 @@ Technically, guarantees are test files. The conceptual differences:
 
 🚧 **Early development**
 
-- [x] Core guarantee register / verify / update / unregister mechanism
+- [x] Core guarantee register / verify / update / unregister mechanism (named guarantee ids, many-to-one, retire protection, reverse lookup)
 - [x] Multi-language executor configuration
 - [x] Atomic file writing with backup rotation
-- [X] CLI interface
-- [ ] Actually test the CLI interface and all
-- [ ] MCP interface
+- [x] CLI interface
+- [x] MCP interface
+- [x] Example project (dogfood: AIGameGen, in progress)
+- [x] Usage docs ([docs/](./docs/))
+- [ ] Actually test the CLI interface and core code
 - [ ] Full test coverage
-- [ ] Example project
 - [ ] PyPI release
 
 ## Contact

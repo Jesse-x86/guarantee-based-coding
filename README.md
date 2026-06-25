@@ -4,6 +4,15 @@
 
 **English version: [README_EN.md](./README_EN.md)**
 
+## 🚀 想让你的 Agent 用上 GBC?
+
+几乎不用你动手——交给你的 coding agent 就好。先看你是谁:
+
+- **你是人类** → [docs/for-humans.md](./docs/for-humans.md)
+- **你是 agent** → [docs/for-agents.md](./docs/for-agents.md)
+
+想亲自动手、或弄清每一步:[docs/manual.md](./docs/manual.md)(手动 / 详细文档)。
+
 ## 问题
 
 Coding agents（Cursor, Aider, Devin 等）的核心失败模式不是写错代码——写错可以重试。真正的问题是**静默地破坏已有代码的隐含假设**。
@@ -56,37 +65,46 @@ my-project/
 ### 核心概念
 
 - **Provider**：提供保证的源文件（如 `src/llm_client/client.py`）
-- **Target**：依赖该保证的文件（如 `src/conversation/manager.py`）
-- **Guarantee**：一条具体的行为承诺，对应一个测试文件路径和一段描述
+- **Consumer / Dependent**：依赖某保证的文件（如 `src/conversation/manager.py`）
+- **Guarantee**：一条**具名**（全局唯一 id）的行为承诺，对应一个测试 + 一段描述；**多个 consumer 可共享同一条保证**
 - **Executor**：定义如何运行测试的配置（命令模板、工作目录、环境变量等）
 
-一个 provider 可以对多个 target 提供保证，每个 target 可以注册多条 guarantee。
+依赖边有两级:免费的**符号依赖**（依赖签名/符号存在）与**具名保证依赖**（依赖具体行为）。后者**双向登记**——provider 的 `provides[id].dependents` ⇄ consumer 的 `depends_on[].guarantees`，由工具兜底同步。
 
 ### Meta 文件示例
 
-`client.py` 的元数据文件 `.gbc/src/llm_client/gbc.client.py.json`：
+每个源文件可有一个同名 `.json`，记两件事:它**提供**了哪些保证（`provides`）、它**依赖**了谁（`depends_on`）。
+
+`client.py`（provider）的 `.gbc/src/llm_client/gbc.client.py.json`：
 
 ```json
 {
-    "config": "pytest",
-    "guarantees": {
-        "src/conversation/manager.py": [
-            {
-                "guarantee_path": "tests/test_client_content_is_str.py",
-                "guarantee_desc": "manager 直接用 result['content'] 拼接对话历史，依赖 content 字段为 str",
-                "timeout_override": -1
-            }
-        ],
-        "src/api/handler.py": [
-            {
-                "guarantee_path": "tests/test_client_returns_dict.py",
-                "guarantee_desc": "handler 依赖 chat() 返回 dict 且包含 role 和 content 字段",
-                "timeout_override": -1
-            }
-        ]
+    "provides": {
+        "llm_client.client.chat.content_is_str": {
+            "desc": "chat() 返回的 result['content'] 是 str；manager 直接用它拼接对话历史",
+            "test": "tests/test_client_content_is_str.py::test_content_is_str",
+            "executor": "pytest",
+            "heavy": 0,
+            "dependents": ["src/conversation/manager.py"]
+        }
     }
 }
 ```
+
+`manager.py`（consumer）的 `.gbc/src/conversation/gbc.manager.py.json` 登记反向边：
+
+```json
+{
+    "depends_on": [
+        {
+            "symbol": "src/llm_client/client.py:chat",
+            "guarantees": ["llm_client.client.chat.content_is_str"]
+        }
+    ]
+}
+```
+
+保证 id 全局唯一（`<点分路径>.<符号>.<行为>`）；两个方向都由工具（CLI/MCP）双向写入，你不手编。
 
 ### Executor 配置示例
 
@@ -121,7 +139,7 @@ Executor 定义了如何运行测试。`{file}` 是占位符，运行时替换�
 修改 client.py
        │
        ▼
-gbc verify src/llm_client/client.py
+verify_provider(src/llm_client/client.py)
        │
        ├── 运行 tests/test_client_content_is_str.py  (for manager.py)
        ├── 运行 tests/test_client_returns_dict.py     (for handler.py)
@@ -133,14 +151,15 @@ gbc verify src/llm_client/client.py
 
 ### 与 Coding Agent 的集成
 
-GBC 不规定 agent 如何工作，只提供集成点：
+GBC 提供两组集成点，CLI 与 MCP 皆可：
 
-- **修改前**：`list` — agent 了解文件有哪些保证、谁注册的、为什么
-- **修改后**：`verify` — 运行所有 guarantee，门控修改是否可接受
+- **修改前**：`list_provides` / `list_depends_on` / `who_depends_on` — agent 了解文件有哪些保证、依赖了谁、谁依赖它
+- **登记**：`add_dependency` / `create_guarantee` — 把"我依赖你的某行为"显式登记（具名保证出生即跑测）
+- **修改后**：`verify_provider` / `verify_guarantee` — 运行保证，门控修改是否可接受
 
 上下文大小取决于当前文件的 guarantee 数量，**与项目整体规模无关**。
 
-GBC 计划提供 CLI 和 MCP 两种接口。
+GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent 工作流**——把 [docs/for-agents.md](./docs/for-agents.md) 交给你的 agent 即可上手。
 
 ## 和现有方案的对比
 
@@ -175,14 +194,15 @@ GBC 计划提供 CLI 和 MCP 两种接口。
 
 🚧 **早期开发阶段**
 
-- [x] 核心保证注册 / 验证 / 更新 / 注销机制
+- [x] 核心保证注册 / 验证 / 更新 / 注销机制（具名保证 id、多对一、退休保护、反查）
 - [x] 多语言 executor 配置
 - [x] 原子文件写入 + 备份机制
 - [x] CLI 接口
+- [x] MCP 接口
+- [x] 示例项目（dogfood:AIGameGen，进行中）
+- [x] 使用文档（[docs/](./docs/)）
 - [ ] 真正的测试一下 CLI 接口和核心代码
-- [ ] MCP 接口
 - [ ] 完整测试覆盖
-- [ ] 示例项目
 - [ ] PyPI 发布
 
 ## 联系

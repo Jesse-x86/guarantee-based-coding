@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GBC 意图树编辑器</title>
+  <style>
+    :root { --bd:#d0d0d8; --mut:#777; --accent:#3b6ea5; --dir:#2e7d32; }
+    * { box-sizing: border-box; }
+    body { margin:0; font:14px/1.5 system-ui, "Segoe UI", sans-serif; color:#222; }
+    header { display:flex; gap:8px; align-items:center; padding:8px 12px;
+             border-bottom:1px solid var(--bd); background:#fafafc; }
+    header input { flex:1; padding:5px 8px; font:inherit; border:1px solid var(--bd); border-radius:4px; }
+    button { font:inherit; padding:5px 10px; border:1px solid var(--bd); background:#fff;
+             border-radius:4px; cursor:pointer; }
+    button:hover { background:#f0f0f4; }
+    button.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+    button:disabled { opacity:.5; cursor:default; }
+    .layout { display:flex; height:calc(100vh - 49px); }
+    .tree { width:300px; overflow:auto; border-right:1px solid var(--bd); padding:8px; }
+    .editor { flex:1; overflow:auto; padding:16px 22px; }
+    .trow { display:flex; align-items:center; white-space:nowrap; }
+    .tog { width:16px; text-align:center; cursor:pointer; color:var(--mut); user-select:none; }
+    .tog.leaf { cursor:default; color:#ccc; }
+    .tlabel { cursor:pointer; padding:2px 6px; border-radius:4px; flex:1; }
+    .tlabel:hover { background:#eef; }
+    .tlabel.sel { background:#dde7f3; font-weight:600; }
+    .twrap { margin-left:14px; border-left:1px dotted #ccc; padding-left:6px; }
+    label { display:block; font-weight:600; margin:14px 0 4px; }
+    textarea { width:100%; font:inherit; padding:6px 8px; border:1px solid var(--bd);
+               border-radius:4px; resize:none; overflow:hidden; min-height:2.4em; }
+    .entry { border:1px solid var(--bd); border-radius:6px; padding:10px; margin:8px 0; background:#fcfcfe; }
+    .entry.ghost { opacity:.55; border-style:dashed; background:#f5f5f7; }
+    .entry .row { display:flex; gap:8px; align-items:center; }
+    .entry input.name { font:inherit; padding:4px 6px; border:1px solid var(--bd); border-radius:4px; }
+    .badge { font-size:12px; color:#fff; background:var(--dir); padding:1px 6px; border-radius:10px; }
+    .badge.file { background:#888; }
+    .mut { color:var(--mut); font-size:12px; }
+    .crumb { color:var(--mut); font-size:13px; margin-bottom:4px; }
+    .mirror-note { font-size:12px; color:var(--dir); margin-top:3px; }
+    .msg { margin-left:auto; color:var(--mut); }
+    .empty { padding:24px; color:#777; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+// ---- tiny DOM helper -------------------------------------------------------
+function el(tag, props, ...kids) {
+  const n = document.createElement(tag);
+  for (const k in (props || {})) {
+    if (k === "class") n.className = props[k];
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), props[k]);
+    else if (k === "value") n.value = props[k];
+    else if (k === "disabled") { if (props[k]) n.disabled = true; }
+    else n.setAttribute(k, props[k]);
+  }
+  for (const c of kids.flat()) {
+    if (c == null || c === false) continue;
+    n.append(c.nodeType ? c : document.createTextNode(String(c)));
+  }
+  return n;
+}
+function sizeTa(t) { t.style.height = "auto"; t.style.height = (t.scrollHeight + 2) + "px"; }
+function ta(props) {
+  return el("textarea", { ...props,
+    oninput: (ev) => { if (props.oninput) props.oninput(ev); sizeTa(ev.target); } });
+}
+
+// ---- state -----------------------------------------------------------------
+const state = { root: "", tree: null, sel: null, msg: "" };
+const collapsed = new Set();
+let _uid = 1;
+
+const HIST_KEY = "gbc_dir_history";
+const getHistory = () => { try { return JSON.parse(localStorage.getItem(HIST_KEY)) || []; } catch { return []; } };
+function pushHistory(p) {
+  if (!p) return;
+  let h = getHistory().filter(x => x !== p);
+  h.unshift(p);
+  localStorage.setItem(HIST_KEY, JSON.stringify(h.slice(0, 12)));
+}
+
+// entry kind derived purely from the name's trailing "/"
+const isDir = (e) => (e.name || "").trim().endsWith("/");
+const folderName = (e) => (e.name || "").trim().replace(/\/+$/, "");
+const bodyText = (e) => isDir(e) ? (e.child ? (e.child.intent || "") : "") : (e.desc || "");
+function childHasContent(e) {
+  const c = e.child;
+  if (!c) return false;
+  if ((c.intent || "").trim() || (c.constraints || "").trim()) return true;
+  return (c.entries || []).some(x => (x.name || "").trim() || bodyText(x).trim() || childHasContent(x));
+}
+// an entry is a "ghost" (grey / deletable) when it carries no content at all
+const isEmpty = (e) => !(e.name || "").trim() && !bodyText(e).trim() && !childHasContent(e);
+
+function assignIds(node) {
+  node._id = _uid++;
+  for (const e of node.entries) if (e.child) assignIds(e.child);
+}
+function findById(node, id, path) {
+  if (node._id === id) return { node, path };
+  for (const e of node.entries) {
+    if (isDir(e) && e.child) {
+      const r = findById(e.child, id, path ? path + "/" + folderName(e) : folderName(e));
+      if (r) return r;
+    }
+  }
+  return null;
+}
+function ensureChild(e) {
+  if (!e.child) e.child = { name: folderName(e), intent: "", constraints: "", entries: [], _id: _uid++ };
+}
+
+// ---- data ops --------------------------------------------------------------
+async function load() {
+  setMsg("加载中…");
+  try {
+    const r = await fetch("/api/tree?root=" + encodeURIComponent(state.root));
+    const t = await r.json();
+    if (!r.ok) throw new Error(t.error || r.statusText);
+    assignIds(t);
+    state.tree = t; state.sel = t._id; collapsed.clear();
+    pushHistory(state.root); setMsg("已加载"); render();
+  } catch (err) { setMsg("加载失败:" + err.message); }
+}
+async function save() {
+  setMsg("保存中…");
+  try {
+    const r = await fetch("/api/tree", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ root: state.root, tree: state.tree }),
+    });
+    const res = await r.json();
+    if (!r.ok) throw new Error(res.error || r.statusText);
+    pushHistory(state.root); setMsg("已写入 " + res.count + " 个 gbc.md"); render();
+  } catch (err) { setMsg("保存失败:" + err.message); }
+}
+function setMsg(m) { state.msg = m; const s = document.querySelector(".msg"); if (s) s.textContent = m; }
+
+// ---- sidebar tree ----------------------------------------------------------
+function treeView(node) {
+  const dirKids = node.entries.filter(e => isDir(e) && e.child);
+  const hasKids = dirKids.length > 0;
+  const open = !collapsed.has(node._id);
+  const toggle = el("span",
+    { class: "tog" + (hasKids ? "" : " leaf"),
+      onclick: () => { if (!hasKids) return; open ? collapsed.add(node._id) : collapsed.delete(node._id); render(); } },
+    hasKids ? (open ? "▾" : "▸") : "•");
+  const label = el("span",
+    { class: "tlabel" + (node._id === state.sel ? " sel" : ""),
+      onclick: () => { state.sel = node._id; render(); } },
+    node.name || "(root)");
+  const kids = (hasKids && open) ? el("div", { class: "twrap" }, dirKids.map(e => treeView(e.child))) : null;
+  return el("div", {}, el("div", { class: "trow" }, toggle, label), kids);
+}
+
+// ---- one entry row: self-managing, keeps focus on type-flip ----------------
+function entryRow(node, e, onGrow) {
+  const root = el("div", { class: "entry" });
+  const bodyWrap = el("div", {});
+  // All row elements are persistent — we NEVER detach nameInput, so typing "/"
+  // (which flips the kind) keeps focus and caret exactly where they are.
+  const badge = el("span", {});
+  const nameInput = el("input", { class: "name", value: e.name || "",
+    placeholder: "名称(结尾带 / = 文件夹)" });
+  const enterBtn = el("button",
+    { onclick: () => { ensureChild(e); state.sel = e.child._id; render(); } }, "进入 →");
+  const delBtn = el("button",
+    { onclick: () => { const i = node.entries.indexOf(e); if (i >= 0) node.entries.splice(i, 1); render(); } },
+    "删除");
+  const rowDiv = el("div", { class: "row" }, badge, nameInput, enterBtn, delBtn);
+
+  const paintGrey = () => root.classList.toggle("ghost", isEmpty(e));
+
+  function paintKind() {
+    const dir = isDir(e);
+    badge.className = "badge" + (dir ? "" : " file");
+    badge.textContent = dir ? "文件夹" : "文件";
+    enterBtn.style.display = dir ? "" : "none";
+
+    bodyWrap.innerHTML = "";                      // bodyWrap holds no focusable name field — safe
+    if (dir) {
+      ensureChild(e);
+      // carry typed text across a file -> folder flip so nothing is lost
+      if (!(e.child.intent || "").trim() && (e.desc || "").trim()) { e.child.intent = e.desc; e.desc = ""; }
+      bodyWrap.append(ta({ rows: 1, value: e.child.intent || "",
+        oninput: ev => { e.child.intent = ev.target.value; paintGrey(); onGrow(); } }));
+      bodyWrap.append(el("div", { class: "mirror-note" },
+        "↔ 同一字段:这就是 " + (folderName(e) || "该文件夹") + "/gbc.md 的意图,改这里=改那里"));
+    } else {
+      if (e.desc == null) e.desc = "";
+      // carry text back on a folder -> file flip
+      if (!e.desc.trim() && e.child && (e.child.intent || "").trim()) { e.desc = e.child.intent; }
+      bodyWrap.append(ta({ rows: 1, value: e.desc,
+        oninput: ev => { e.desc = ev.target.value; paintGrey(); onGrow(); } }));
+    }
+    requestAnimationFrame(() => bodyWrap.querySelectorAll("textarea").forEach(sizeTa));
+  }
+
+  nameInput.addEventListener("input", ev => {
+    const was = isDir(e);
+    e.name = ev.target.value;
+    if (isDir(e) !== was) paintKind();           // in-place: nameInput is untouched, focus stays
+    paintGrey(); onGrow();
+  });
+
+  root.append(rowDiv, bodyWrap);
+  paintKind(); paintGrey();
+  return root;
+}
+
+// ---- entries section: trailing ghost + prune-on-blur -----------------------
+function entriesSection(node) {
+  const container = el("div", {});
+  const ensureGhost = () => {
+    const last = node.entries[node.entries.length - 1];
+    if (!last || !isEmpty(last)) {
+      const g = { name: "", desc: "" };
+      node.entries.push(g);
+      container.append(entryRow(node, g, ensureGhost));
+    }
+  };
+  const rebuild = () => {
+    container.innerHTML = "";
+    node.entries.forEach(e => container.append(entryRow(node, e, ensureGhost)));
+    ensureGhost();
+  };
+  rebuild();
+  container.addEventListener("focusout", () => setTimeout(() => {
+    if (container.contains(document.activeElement)) return;   // still editing in here
+    const kept = node.entries.filter(e => !isEmpty(e));        // drop emptied rows
+    node.entries.length = 0; kept.forEach(e => node.entries.push(e));
+    rebuild();
+  }, 0));
+  return container;
+}
+
+// ---- editor panel ----------------------------------------------------------
+function editor(node, path) {
+  const segs = (path || "").split("/").filter(Boolean);
+  const myName = segs.length ? segs[segs.length - 1] : node.name;
+  return el("div", {},
+    el("div", { class: "crumb" }, path || "(根)"),
+    path ? el("div", { class: "mut" },
+      "↔ 此意图同时显示在父节点的 ## " + myName + "/ 条目里(单一源,双处投影)") : null,
+
+    el("label", {}, "意图 ", el("span", { class: "mut" }, "(# 意图)")),
+    ta({ rows: 1, value: node.intent || "", oninput: ev => { node.intent = ev.target.value; } }),
+
+    el("label", {}, "内部约束 ",
+      el("span", { class: "mut" }, "(# 内部约束 · 可选 · 不冒泡到父节点)")),
+    ta({ rows: 1, value: node.constraints || "", oninput: ev => { node.constraints = ev.target.value; } }),
+
+    el("label", {}, "子项 ",
+      el("span", { class: "mut" }, "(# 文件 段下的 ## · 名称结尾带 / 即文件夹;底部灰条输入即新增,清空失焦即删除)")),
+    entriesSection(node));
+}
+
+// ---- top-level render ------------------------------------------------------
+function render() {
+  const rootEl = document.getElementById("root");
+  rootEl.innerHTML = "";
+
+  const hist = getHistory();
+  rootEl.append(el("header", {},
+    el("input", { value: state.root, placeholder: ".gbc 目录的绝对路径", list: "histlist",
+      oninput: ev => { state.root = ev.target.value; } }),
+    el("datalist", { id: "histlist" }, hist.map(p => el("option", { value: p }))),
+    el("button", { onclick: load }, "加载"),
+    el("button", { class: "primary", disabled: !state.tree, onclick: save }, "保存"),
+    el("span", { class: "msg" }, state.msg)));
+
+  if (!state.tree) {
+    rootEl.append(el("div", { class: "empty" },
+      "输入一个 .gbc 目录路径点「加载」。路径不存在也行 —— 会给你一棵空树,保存时再创建(从零新建)。"));
+    return;
+  }
+  const found = findById(state.tree, state.sel, "");
+  rootEl.append(el("div", { class: "layout" },
+    el("div", { class: "tree" }, treeView(state.tree)),
+    el("div", { class: "editor" }, found ? editor(found.node, found.path) : null)));
+
+  requestAnimationFrame(() => document.querySelectorAll(".editor textarea").forEach(sizeTa));
+}
+
+// ---- init: prefer --root from backend, else most-recent history ------------
+(async function init() {
+  try {
+    const c = await (await fetch("/api/config")).json();
+    if (c.root) { state.root = c.root; render(); await load(); return; }
+  } catch { /* ignore */ }
+  const h = getHistory();
+  if (h.length) state.root = h[0];
+  render();
+})();
+  </script>
+</body>
+</html>
