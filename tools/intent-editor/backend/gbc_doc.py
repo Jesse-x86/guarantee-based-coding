@@ -25,8 +25,10 @@ import argparse
 import sys
 from pathlib import Path
 
-import gbc_format as gf
-from app import resolve_gbc, GBC_FILE
+# 让 `from app...` 解析到本仓主库包(而非目标项目的同名 app/):把 GBC 仓根放 sys.path 最前。
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from app.utils import gbc_md as gf  # noqa: E402  gbc.md 解析器单源(取代旧的本地 gbc_format)
+from server import resolve_gbc, GBC_FILE  # noqa: E402  路径解析复用同目录后端
 
 
 # ---- 路径与读写 -------------------------------------------------------------
