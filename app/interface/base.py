@@ -5,6 +5,7 @@ core 层是纯模型操作（不碰磁盘）；这里负责把「provider/consum
 函数。依赖登记是跨两个文件的双向写，这里用双文件 session 统一处理。
 """
 
+import re
 import shutil
 import subprocess
 from contextlib import contextmanager
@@ -289,6 +290,51 @@ def _disable_providers_under(rel: str) -> list[dict]:
     return disabled
 
 
+_MD_REF_RE = re.compile(r"\[\[([^\[\]]+)\]\]")  # gbc.md 散文里的引用标记 [[项目相对路径(:符号)]]
+
+
+def _rewrite_md_refs(transform) -> int:
+    """扫描所有 .gbc/**/gbc.md，对 ``[[...]]`` 标记内的引用套 transform 重写，返回改动计数。
+
+    约定:gbc.md 散文引用代码一律写成 ``[[项目相对路径]]`` 或 ``[[项目相对路径:符号]]``。
+    只动 ``[[ ]]`` 标记内的字符串、绝不碰 gbc.md 结构(# 意图/# 内部约束/# 文件)——
+    这让 refactor 把散文引用也一起修对,迁移不再留手动尾巴。"""
+    gbc_root = get_current_project() / ".gbc"
+    if not gbc_root.exists():
+        return 0
+    total = 0
+    for md in gbc_root.rglob(GBC_FILE):
+        text = md.read_text(encoding="utf-8")
+        counter = [0]
+
+        def _sub(m, _c=counter):
+            inner = m.group(1)
+            new_inner = transform(inner)
+            if new_inner != inner:
+                _c[0] += 1
+            return f"[[{new_inner}]]"
+
+        new_text = _MD_REF_RE.sub(_sub, text)
+        if counter[0]:
+            md.write_text(new_text, encoding="utf-8")
+            total += counter[0]
+    return total
+
+
+def _md_path_remap(inner: str, old_rel: str, new_rel: str) -> str:
+    """[[路径]] / [[路径:符号]] 的路径段做前缀重映射(符号段原样)。"""
+    path, sep, sym = inner.partition(":")
+    return _remap_prefix(path, old_rel, new_rel) + sep + sym
+
+
+def _md_symbol_remap(inner: str, provider_rel: str, old_symbol: str, new_symbol: str) -> str:
+    """[[provider:old_symbol]] 的符号段改名(路径恰为本 provider 时)。"""
+    path, sep, sym = inner.partition(":")
+    if sep and path == provider_rel and sym == old_symbol:
+        sym = new_symbol
+    return path + sep + sym
+
+
 def refactor_file(old: str, new: str, *, disable_guarantees: bool = True) -> dict:
     """重定位一个文件或目录子树，并把整张依赖图里指向它的路径引用一次性改对。
 
@@ -348,8 +394,11 @@ def refactor_file(old: str, new: str, *, disable_guarantees: bool = True) -> dic
         if old_stub.exists() and not new_stub.exists():
             _git_or_fs_move(old_stub, new_stub)
 
-    # 3. 全图重写路径引用 old → new
+    # 3. 全图重写路径引用 old → new（json 依赖图 + gbc.md 散文里的 [[...]] 标记）
     report["refs_rewritten"] = _rewrite_path_refs(old_rel, new_rel)
+    report["md_refs_rewritten"] = _rewrite_md_refs(
+        lambda inner: _md_path_remap(inner, old_rel, new_rel)
+    )
 
     # 4. 自动停用被移动方提供的保证（守边，待 AI 修测试后 enable）
     report["disabled"] = _disable_providers_under(new_rel) if disable_guarantees else []
@@ -450,11 +499,17 @@ def refactor_func(
                     g.disabled = True
                     disabled.append(item["new"])
 
+    # 4. gbc.md 散文里 [[provider:old_symbol]] 的符号段改名
+    md_refs = _rewrite_md_refs(
+        lambda inner: _md_symbol_remap(inner, provider_rel, old_symbol, new_symbol)
+    )
+
     return {
         "provider": provider_rel,
         "old_symbol": old_symbol,
         "new_symbol": new_symbol,
         "symbol_refs_rewritten": symbol_refs,
+        "md_refs_rewritten": md_refs,
         "ids_renamed": ids_renamed,
         "disabled": disabled,
         "next_steps": (

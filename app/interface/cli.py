@@ -307,7 +307,8 @@ def refactor_file_cmd(
         console.print(f"[green]✔[/green] {report['old']} → {report['new']}")
         console.print(
             f"  code={report['code_move']}  gbc={report['gbc_move']}  "
-            f"refs_rewritten={report['refs_rewritten']}  disabled={len(report['disabled'])}"
+            f"refs_rewritten={report['refs_rewritten']}  md_refs={report['md_refs_rewritten']}  "
+            f"disabled={len(report['disabled'])}"
         )
         if report["disabled"]:
             ids = ", ".join(d["guarantee"] for d in report["disabled"])
@@ -342,7 +343,7 @@ def refactor_func_cmd(
     try:
         rep = base.refactor_func(provider, old_symbol, new_symbol, disable_guarantees=not no_disable)
         console.print(f"[green]✔[/green] {provider}:{rep['old_symbol']} → {rep['new_symbol']}")
-        console.print(f"  symbol_refs={rep['symbol_refs_rewritten']}  ids_renamed={len(rep['ids_renamed'])}  disabled={len(rep['disabled'])}")
+        console.print(f"  symbol_refs={rep['symbol_refs_rewritten']}  md_refs={rep['md_refs_rewritten']}  ids_renamed={len(rep['ids_renamed'])}  disabled={len(rep['disabled'])}")
         console.print(f"[dim]{rep['next_steps']}[/dim]")
     except Exception as e:
         raise handle_error(e)
