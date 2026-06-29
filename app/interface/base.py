@@ -5,6 +5,8 @@ core 层是纯模型操作（不碰磁盘）；这里负责把「provider/consum
 函数。依赖登记是跨两个文件的双向写，这里用双文件 session 统一处理。
 """
 
+import shutil
+import subprocess
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator
@@ -203,6 +205,159 @@ def remove_dependency(consumer: str, provider: str, symbol: str, guarantee_id: s
 
     with dual_session(consumer, provider) as (cmeta, pmeta):
         gtee.remove_dependency(cmeta, consumer_rel, pmeta, provider_rel, symbol, guarantee_id)
+
+
+# ============================================================================
+# Refactor / 重定位：移动文件 + 全图重写路径引用（id 不动，路径无关）
+# ============================================================================
+
+def _git_or_fs_move(src: Path, dst: Path) -> str:
+    """把 src 移到 dst：优先 git mv（保历史），失败/非 git 则 shutil.move。懒建父目录。"""
+    project = get_current_project()
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        r = subprocess.run(
+            ["git", "mv", str(src), str(dst)],
+            cwd=project, capture_output=True, text=True,
+        )
+        if r.returncode == 0:
+            return "git"
+    except FileNotFoundError:
+        pass  # 没装 git
+    shutil.move(str(src), str(dst))
+    return "fs"
+
+
+def _remap_prefix(path: str, old_rel: str, new_rel: str) -> str:
+    """路径前缀重映射：path == old_rel（单文件）或 path 在 old_rel/ 下（目录子树）则改写。
+
+    一个函数同时覆盖「单文件移动」与「目录整体移动」——这正是 refactor_file 能既搬一个
+    文件也搬一整个文件夹的原因。其它路径原样返回。
+    """
+    if path == old_rel:
+        return new_rel
+    if path.startswith(old_rel + "/"):
+        return new_rel + path[len(old_rel):]
+    return path
+
+
+def _rewrite_path_refs(old_rel: str, new_rel: str) -> int:
+    """全图重写指向 old_rel(子树)的路径引用 → new_rel：consumer 的 depends_on.symbol
+    前缀、以及 provider 各保证 dependents 里的消费者路径。返回改写计数。id 一律不动。"""
+    count = 0
+    for src_rel, meta in list(_iter_all_metas()):
+        changed = False
+        for dep in meta.depends_on:
+            prov, sep, sym = dep.symbol.partition(":")
+            new_prov = _remap_prefix(prov, old_rel, new_rel)
+            if new_prov != prov:
+                dep.symbol = f"{new_prov}{sep}{sym}"
+                changed = True
+                count += 1
+        for guarantee in meta.provides.values():
+            for i, d in enumerate(guarantee.dependents):
+                nd = _remap_prefix(d, old_rel, new_rel)
+                if nd != d:
+                    guarantee.dependents[i] = nd
+                    changed = True
+                    count += 1
+        if changed:
+            _save_meta(meta, _resolve(src_rel))
+    return count
+
+
+def _disable_providers_under(rel: str) -> list[dict]:
+    """把 rel(子树)下所有文件提供的保证置为停用，返回 [{provider, guarantee}] 清单。
+
+    重定位后这些保证的测试多半因 import 失效而跑不过，先 disable 守住边(不撕依赖)，
+    待 AI 修好测试再逐个 enable 补跑门禁。已停用的跳过。
+    """
+    disabled: list[dict] = []
+    for src_rel, meta in list(_iter_all_metas()):
+        if src_rel != rel and not src_rel.startswith(rel + "/"):
+            continue
+        changed = False
+        for gid, guarantee in meta.provides.items():
+            if not guarantee.disabled:
+                guarantee.disabled = True
+                changed = True
+                disabled.append({"provider": src_rel, "guarantee": gid})
+        if changed:
+            _save_meta(meta, _resolve(src_rel))
+    return disabled
+
+
+def refactor_file(old: str, new: str, *, disable_guarantees: bool = True) -> dict:
+    """重定位一个文件或目录子树，并把整张依赖图里指向它的路径引用一次性改对。
+
+    GBC 负责的是「结构 + 元数据」：移动代码文件/目录 + 它的 .gbc 产物(json/.pyi)、
+    全图重写路径引用、并把被移动方提供的保证自动停用(测试此刻会因 import 失效跑不过)。
+    AI 负责的是「内容 + 验证」：修移动文件与其消费者的 import、搬测试文件并 update 选择器、
+    再对每条停用保证 enable_guarantee 补跑门禁。
+
+    移动是幂等的：old 在、new 不在 → GBC 来搬；old 已不在、new 已在 → 视作已搬过、
+    只重写引用(这让本工具能收拾「文件已手动搬走、只剩图引用过期」的残局)。
+    保证 id 一律不动——id 已是路径无关的 <symbol>.<behavior>，移动不该改它。
+
+    返回报告 dict：{old, new, code_move, gbc_move, refs_rewritten, disabled, next_steps}。
+    """
+    old_rel = _to_rel(old)
+    new_rel = _to_rel(new)
+    old_abs = _resolve(old)
+    new_abs = _resolve(new)
+    report: dict = {"old": old_rel, "new": new_rel}
+
+    # 1. 移动代码文件/目录（幂等）
+    if old_abs.exists() and not new_abs.exists():
+        report["code_move"] = _git_or_fs_move(old_abs, new_abs)
+    elif new_abs.exists() and not old_abs.exists():
+        report["code_move"] = "already"
+    elif old_abs.exists() and new_abs.exists():
+        raise IllegalFilePathError(new_abs)  # 两端都在，意图不明，拒绝
+    else:
+        report["code_move"] = "neither"  # 代码两端都不在，仅做图引用收尾
+
+    # 是否目录移动：从存在的那一端判断（幂等场景下 new 在）。
+    probe = new_abs if new_abs.exists() else old_abs
+    is_dir_move = probe.is_dir() if probe.exists() else (
+        (get_current_project() / ".gbc" / old_rel).is_dir()
+    )
+
+    # 2. 移动 .gbc 产物
+    if is_dir_move:
+        old_gbc = get_current_project() / ".gbc" / old_rel
+        new_gbc = get_current_project() / ".gbc" / new_rel
+        if old_gbc.exists() and not new_gbc.exists():
+            _git_or_fs_move(old_gbc, new_gbc)
+            report["gbc_move"] = "moved"
+        else:
+            report["gbc_move"] = "already" if new_gbc.exists() else "none"
+    else:
+        old_json = to_gbc_json_path(old_abs)
+        new_json = to_gbc_json_path(new_abs)
+        if old_json.exists() and not new_json.exists():
+            _git_or_fs_move(old_json, new_json)
+            report["gbc_move"] = "moved"
+        else:
+            report["gbc_move"] = "already" if new_json.exists() else "none"
+        # .pyi stub（若有）：同目录、<stem>.pyi
+        old_stub = old_json.parent / (old_abs.stem + ".pyi")
+        new_stub = new_json.parent / (new_abs.stem + ".pyi")
+        if old_stub.exists() and not new_stub.exists():
+            _git_or_fs_move(old_stub, new_stub)
+
+    # 3. 全图重写路径引用 old → new
+    report["refs_rewritten"] = _rewrite_path_refs(old_rel, new_rel)
+
+    # 4. 自动停用被移动方提供的保证（守边，待 AI 修测试后 enable）
+    report["disabled"] = _disable_providers_under(new_rel) if disable_guarantees else []
+
+    report["next_steps"] = (
+        "AI: fix imports in the moved file(s) and their consumers; move/rename test files and "
+        "`update_guarantee(test=...)` their selectors; then `enable_guarantee` each disabled id "
+        "(born-green re-runs at the new selector). id is unchanged — to rename ids use refactor_func."
+    )
+    return report
 
 
 # ============================================================================

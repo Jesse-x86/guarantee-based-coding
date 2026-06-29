@@ -286,6 +286,37 @@ def verify_single(
         raise handle_error(e)
 
 
+# ======== Refactor ========
+
+refactor_app = typer.Typer(help="重定位：移动文件/目录并修全图路径引用")
+app.add_typer(refactor_app, name="refactor")
+
+
+@refactor_app.command("file")
+def refactor_file_cmd(
+    old: str = typer.Argument(..., help="当前路径（文件或目录）"),
+    new: str = typer.Argument(..., help="目标路径"),
+    no_disable: bool = typer.Option(False, "--no-disable", help="不自动停用被移动方的保证(默认会停用)"),
+):
+    """移动文件/目录 + 它的 .gbc 产物，全图重写路径引用，并自动停用被移动方的保证。
+
+    id 不动(路径无关)。移动是幂等的：已手动搬走则只收尾图引用。改完逐个 enable。
+    """
+    try:
+        report = base.refactor_file(old, new, disable_guarantees=not no_disable)
+        console.print(f"[green]✔[/green] {report['old']} → {report['new']}")
+        console.print(
+            f"  code={report['code_move']}  gbc={report['gbc_move']}  "
+            f"refs_rewritten={report['refs_rewritten']}  disabled={len(report['disabled'])}"
+        )
+        if report["disabled"]:
+            ids = ", ".join(d["guarantee"] for d in report["disabled"])
+            console.print(f"[magenta]disabled (enable after fixing tests):[/magenta] {ids}")
+        console.print(f"[dim]{report['next_steps']}[/dim]")
+    except Exception as e:
+        raise handle_error(e)
+
+
 # ======== Tree ========
 
 @app.command("tree")

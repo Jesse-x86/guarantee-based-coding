@@ -201,6 +201,42 @@ def remove_dependency(provider: str, consumer: str, symbol: str, guarantee_id: s
         return _err(e)
 
 
+# ======== Refactor / 重定位 ========
+
+@mcp.tool()
+def refactor_file(old: str, new: str, disable_guarantees: bool = True) -> str:
+    """Relocate a file (or a whole directory subtree) and fix EVERY graph reference to it
+    in one shot — the move primitive the dependency graph lacked.
+
+    GBC does the structural + metadata part: moves the code file/dir + its .gbc artifacts
+    (json/.pyi) with `git mv` (history preserved), rewrites all path references graph-wide
+    (consumers' symbol path-prefix, providers' dependents entries), and auto-disables the
+    guarantees the moved file provides (their tests break on stale imports until fixed).
+    Guarantee IDS ARE NOT TOUCHED — ids are path-free (`<symbol>.<behavior>`), so a move
+    never changes them. To rename ids/symbols, use refactor_func.
+
+    Then YOU (the agent) do the content + verification part: fix imports in the moved file
+    and its consumers, move/rename test files and `update_guarantee(test=...)` their
+    selectors, then `enable_guarantee` each disabled id (born-green re-runs at the new path).
+
+    The move is idempotent: if the file was already moved by hand (old gone, new present),
+    GBC skips the move and just reconciles the stale graph references — so this also cleans
+    up a half-finished manual relocation.
+
+    Args:
+        old: Current path of the file or directory (project-relative)
+        new: Destination path
+        disable_guarantees: Auto-disable guarantees under the moved path (default True; set
+            False only if you know the tests still pass as-is)
+
+    Returns: JSON report {old, new, code_move, gbc_move, refs_rewritten, disabled, next_steps}
+    """
+    try:
+        return _ok(base.refactor_file(old, new, disable_guarantees=disable_guarantees))
+    except Exception as e:
+        return _err(e)
+
+
 # ======== 读 / 反查 ========
 
 @mcp.tool()
