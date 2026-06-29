@@ -22,6 +22,8 @@ from app.models.errors import (
     IllegalFilePathError,
     ExecutorConfigInvalidError,
     MetaNotFoundError,
+    GuaranteeNotFoundError,
+    GuaranteeDuplicatedError,
 )
 from app.models.meta import FileMeta, Guarantee, Dependency
 from app.models.verify import VerifyModel, VerifySummary
@@ -358,6 +360,108 @@ def refactor_file(old: str, new: str, *, disable_guarantees: bool = True) -> dic
         "(born-green re-runs at the new selector). id is unchanged — to rename ids use refactor_func."
     )
     return report
+
+
+def rename_guarantee(provider: str, old_id: str, new_id: str) -> dict:
+    """把一条保证的 id 改名 old_id → new_id，并同步全部依赖它的消费者(双向一致)。
+
+    id 是双边的：出现在 provider 的 provides 键、以及每个消费者 depends_on 的 guarantees 里。
+    本工具一次改对两边——provider 处换键(Guarantee 对象连同 disabled/dependents/test 原样保留)，
+    再沿 dependents 把每个消费者那条 guarantees 里的 old_id 换成 new_id。
+
+    纯 id 改名，不碰测试、不碰符号、不碰路径——用于「把带路径前缀的旧 id 归一成路径无关的
+    <symbol>.<behavior>」这类净化。被改名的保证若处于停用态，停用态原样保留。
+    """
+    provider_rel = _to_rel(provider)
+    with meta_session(provider) as pmeta:
+        guarantee = pmeta.provides.get(old_id)
+        if guarantee is None:
+            raise GuaranteeNotFoundError(target_file=provider_rel, guarantee_path=old_id)
+        if new_id != old_id and new_id in pmeta.provides:
+            raise GuaranteeDuplicatedError(target_file=provider_rel, guarantee_path=new_id)
+        del pmeta.provides[old_id]
+        pmeta.provides[new_id] = guarantee
+        dependents = list(guarantee.dependents)
+
+    updated: list[str] = []
+    for consumer_rel in dependents:
+        with meta_session(consumer_rel) as cmeta:
+            changed = False
+            for dep in cmeta.depends_on:
+                if dep.symbol.split(":", 1)[0] == provider_rel and old_id in dep.guarantees:
+                    dep.guarantees = [new_id if g == old_id else g for g in dep.guarantees]
+                    changed = True
+            if not changed:  # 反向边记了它、但正向边没有 → 不静默吞，交给 check 暴露
+                continue
+        updated.append(consumer_rel)
+    return {"provider": provider_rel, "old_id": old_id, "new_id": new_id, "consumers_updated": updated}
+
+
+def refactor_func(
+    provider: str, old_symbol: str, new_symbol: str, *, disable_guarantees: bool = True
+) -> dict:
+    """重命名 provider 上的一个符号 old_symbol → new_symbol，并修对全图里对它的引用。
+
+    GBC 做元数据部分：① 把消费者 depends_on 里 ``provider:old_symbol`` 的符号改成
+    ``provider:new_symbol``；② 按 id 约定 <symbol>.<behavior> 把该符号名下的保证 id
+    （``old_symbol`` 或 ``old_symbol.*``）改名到 new_symbol 名下（双向，复用 rename_guarantee）；
+    ③ 自动停用这些保证（测试还在调旧符号名、此刻会跑不过）。
+
+    GBC 不改源码里的符号定义（那是 AST 级内容编辑）——AI 负责把源码 `def old_symbol` 改名、
+    更新调用处与测试，再逐个 enable_guarantee 补跑门禁。路径不动；id 只换符号段。
+
+    返回报告 dict：{provider, old_symbol, new_symbol, symbol_refs_rewritten, ids_renamed, disabled}。
+    """
+    provider_rel = _to_rel(provider)
+    old_full = f"{provider_rel}:{old_symbol}"
+    new_full = f"{provider_rel}:{new_symbol}"
+
+    # 1. 消费者 depends_on 的符号字段改名
+    symbol_refs = 0
+    for src_rel, meta in list(_iter_all_metas()):
+        changed = False
+        for dep in meta.depends_on:
+            if dep.symbol == old_full:
+                dep.symbol = new_full
+                changed = True
+                symbol_refs += 1
+        if changed:
+            _save_meta(meta, _resolve(src_rel))
+
+    # 2. 该符号名下的保证 id 改名（old_symbol / old_symbol.* → new_symbol[...]）
+    with meta_session(provider, readonly=True) as pmeta:
+        affected = [
+            gid for gid in pmeta.provides
+            if gid == old_symbol or gid.startswith(old_symbol + ".")
+        ]
+    ids_renamed: list[dict] = []
+    for gid in affected:
+        new_gid = new_symbol + gid[len(old_symbol):]
+        rename_guarantee(provider, gid, new_gid)
+        ids_renamed.append({"old": gid, "new": new_gid})
+
+    # 3. 自动停用改名后的保证（源码符号未改、测试会跑不过，先守边）
+    disabled: list[str] = []
+    if disable_guarantees and ids_renamed:
+        with meta_session(provider) as pmeta:
+            for item in ids_renamed:
+                g = pmeta.provides.get(item["new"])
+                if g is not None and not g.disabled:
+                    g.disabled = True
+                    disabled.append(item["new"])
+
+    return {
+        "provider": provider_rel,
+        "old_symbol": old_symbol,
+        "new_symbol": new_symbol,
+        "symbol_refs_rewritten": symbol_refs,
+        "ids_renamed": ids_renamed,
+        "disabled": disabled,
+        "next_steps": (
+            "AI: rename the symbol in the source (def/usages) and in test files, then "
+            "`enable_guarantee` each renamed id (born-green re-runs once the symbol matches)."
+        ),
+    }
 
 
 # ============================================================================

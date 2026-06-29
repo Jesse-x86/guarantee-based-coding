@@ -237,6 +237,58 @@ def refactor_file(old: str, new: str, disable_guarantees: bool = True) -> str:
         return _err(e)
 
 
+@mcp.tool()
+def rename_guarantee(provider: str, old_id: str, new_id: str) -> str:
+    """Rename a guarantee id (old_id -> new_id), keeping both directions consistent.
+
+    The id lives in two places — the provider's provides key and every dependent consumer's
+    `guarantees` list. This rewrites both: the provider re-keys the guarantee (its object —
+    disabled flag, dependents, test — is preserved), then every consumer that depends on it
+    gets old_id swapped to new_id. Pure id rename: touches no test, no symbol, no path.
+
+    Use it to normalize legacy path-prefixed ids into path-free `<symbol>.<behavior>` form
+    (e.g. "core.maker.make_game.returns_html" -> "make_game.returns_html").
+
+    Args:
+        provider: Source file that provides the guarantee
+        old_id: Current guarantee id
+        new_id: New guarantee id (must be free on this provider)
+
+    Returns: JSON {provider, old_id, new_id, consumers_updated}
+    """
+    try:
+        return _ok(base.rename_guarantee(provider, old_id, new_id))
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def refactor_func(provider: str, old_symbol: str, new_symbol: str, disable_guarantees: bool = True) -> str:
+    """Rename a symbol on a provider (old_symbol -> new_symbol) and fix every graph reference.
+
+    GBC does the metadata part: rewrites consumers' `provider:old_symbol` dependency symbols to
+    `provider:new_symbol`, renames the guarantee ids under that symbol (`old_symbol` / `old_symbol.*`
+    -> `new_symbol[...]`, per the `<symbol>.<behavior>` convention, both directions), and auto-disables
+    those guarantees (their tests still call the old name and would fail).
+
+    GBC does NOT edit the symbol definition in source (that's an AST-level content edit). YOU rename
+    `def old_symbol` and its call sites + tests, then `enable_guarantee` each renamed id. Paths are
+    untouched; only the symbol segment of the id changes.
+
+    Args:
+        provider: Source file path
+        old_symbol: Current symbol name (e.g. "make_game")
+        new_symbol: New symbol name
+        disable_guarantees: Auto-disable affected guarantees (default True)
+
+    Returns: JSON {provider, old_symbol, new_symbol, symbol_refs_rewritten, ids_renamed, disabled, next_steps}
+    """
+    try:
+        return _ok(base.refactor_func(provider, old_symbol, new_symbol, disable_guarantees=disable_guarantees))
+    except Exception as e:
+        return _err(e)
+
+
 # ======== 读 / 反查 ========
 
 @mcp.tool()

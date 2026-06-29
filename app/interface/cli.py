@@ -317,6 +317,37 @@ def refactor_file_cmd(
         raise handle_error(e)
 
 
+@refactor_app.command("rename-id")
+def refactor_rename_id_cmd(
+    provider: str = typer.Argument(..., help="提供保证的源文件"),
+    old_id: str = typer.Argument(..., help="当前保证 id"),
+    new_id: str = typer.Argument(..., help="新保证 id"),
+):
+    """保证 id 改名(双向同步消费者)。用于把带路径前缀的旧 id 归一成 <symbol>.<behavior>。"""
+    try:
+        rep = base.rename_guarantee(provider, old_id, new_id)
+        console.print(f"[green]✔[/green] {rep['old_id']} → {rep['new_id']}  (consumers: {len(rep['consumers_updated'])})")
+    except Exception as e:
+        raise handle_error(e)
+
+
+@refactor_app.command("func")
+def refactor_func_cmd(
+    provider: str = typer.Argument(..., help="源文件"),
+    old_symbol: str = typer.Argument(..., help="当前符号名"),
+    new_symbol: str = typer.Argument(..., help="新符号名"),
+    no_disable: bool = typer.Option(False, "--no-disable", help="不自动停用受影响保证"),
+):
+    """符号改名:改消费者 symbol 字段 + 该符号名下的保证 id，自动停用。源码 def/调用处由 AI 改。"""
+    try:
+        rep = base.refactor_func(provider, old_symbol, new_symbol, disable_guarantees=not no_disable)
+        console.print(f"[green]✔[/green] {provider}:{rep['old_symbol']} → {rep['new_symbol']}")
+        console.print(f"  symbol_refs={rep['symbol_refs_rewritten']}  ids_renamed={len(rep['ids_renamed'])}  disabled={len(rep['disabled'])}")
+        console.print(f"[dim]{rep['next_steps']}[/dim]")
+    except Exception as e:
+        raise handle_error(e)
+
+
 # ======== Tree ========
 
 @app.command("tree")
