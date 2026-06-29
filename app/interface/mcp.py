@@ -42,22 +42,70 @@ def create_guarantee(
     executor: str,
     heavy: int = 0,
     timeout_override: int = -1,
+    disabled: bool = False,
 ) -> str:
     """Create a new named guarantee on a provider file. Born-green: the test is run
     immediately and creation is rejected if it fails.
 
+    Id convention: `<symbol>.<behavior>` (e.g. "make_game.returns_html", "store.roundtrip").
+    Do NOT encode the provider path in the id — the path is already carried by the
+    provider arg here and by the consumer's symbol field. Ids need only be unique
+    PER provider, not globally (every lookup is keyed by (provider, id)).
+
     Args:
         provider: Source file that provides this guarantee (e.g. "app/config/llm.py")
-        id: Semantic guarantee id, e.g. "config.llm.get_model.returns_loaded" (identity; not the test path)
+        id: Semantic guarantee id `<symbol>.<behavior>`, e.g. "get_model.returns_loaded" (identity, path-free)
         desc: What behavior is promised and why it matters
         test: Test selector passed to the executor ({file} substitution), e.g. "tests/test_x.py::test_y"
         executor: Executor config name that knows how to run the test
         heavy: Cost rank; 0 runs in batch, >=1 is skipped in batch verify (and reported)
         timeout_override: Per-guarantee timeout in seconds; -1 uses executor default
+        disabled: Create as a DISABLED placeholder, SKIPPING born-green — only for breaking
+            circular dependencies (register the id+edge before its test can pass yet). The
+            disabled guarantee is surfaced loudly by check_consistency until you enable it.
     """
     try:
-        base.create_guarantee(provider, id, desc, test, executor, heavy, timeout_override)
-        return "created"
+        base.create_guarantee(provider, id, desc, test, executor, heavy, timeout_override, disabled)
+        return "created" if not disabled else "created (disabled placeholder — enable it once the test passes)"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def disable_guarantee(provider: str, id: str) -> str:
+    """Temporarily disable a guarantee: its id and all edges (dependents/reverse edges)
+    are kept intact, but born-green and batch verify are SUSPENDED for it (not run, not
+    failed — reported as skipped/disabled). Disable is NOT retire: it deletes nothing and
+    touches no dependency. Use it to hold an edge across a refactor window or while a test
+    is under repair: disable → fix the test → enable to re-prove born-green.
+
+    A disabled guarantee is a hole in the born-green wall, so it stays LOUD: check_consistency
+    reports it (and anything depending on it) until you enable it back.
+
+    Args:
+        provider: Source file path
+        id: Guarantee id to disable
+    """
+    try:
+        base.disable_guarantee(provider, id)
+        return "disabled"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def enable_guarantee(provider: str, id: str) -> str:
+    """Re-enable a disabled guarantee: born-green is re-run NOW, and disabled is cleared
+    only if the test passes. If it fails, the guarantee STAYS disabled (enable is refused) —
+    a guarantee is never silently promoted back without proof.
+
+    Args:
+        provider: Source file path
+        id: Guarantee id to enable
+    """
+    try:
+        base.enable_guarantee(provider, id)
+        return "enabled"
     except Exception as e:
         return _err(e)
 
@@ -153,6 +201,94 @@ def remove_dependency(provider: str, consumer: str, symbol: str, guarantee_id: s
         return _err(e)
 
 
+# ======== Refactor / 重定位 ========
+
+@mcp.tool()
+def refactor_file(old: str, new: str, disable_guarantees: bool = True) -> str:
+    """Relocate a file (or a whole directory subtree) and fix EVERY graph reference to it
+    in one shot — the move primitive the dependency graph lacked.
+
+    GBC does the structural + metadata part: moves the code file/dir + its .gbc artifacts
+    (json/.pyi) with `git mv` (history preserved), rewrites all path references graph-wide
+    (consumers' symbol path-prefix, providers' dependents entries), and auto-disables the
+    guarantees the moved file provides (their tests break on stale imports until fixed).
+    Guarantee IDS ARE NOT TOUCHED — ids are path-free (`<symbol>.<behavior>`), so a move
+    never changes them. To rename ids/symbols, use refactor_func.
+
+    Then YOU (the agent) do the content + verification part: fix imports in the moved file
+    and its consumers, move/rename test files and `update_guarantee(test=...)` their
+    selectors, then `enable_guarantee` each disabled id (born-green re-runs at the new path).
+
+    The move is idempotent: if the file was already moved by hand (old gone, new present),
+    GBC skips the move and just reconciles the stale graph references — so this also cleans
+    up a half-finished manual relocation.
+
+    Args:
+        old: Current path of the file or directory (project-relative)
+        new: Destination path
+        disable_guarantees: Auto-disable guarantees under the moved path (default True; set
+            False only if you know the tests still pass as-is)
+
+    Returns: JSON report {old, new, code_move, gbc_move, refs_rewritten, disabled, next_steps}
+    """
+    try:
+        return _ok(base.refactor_file(old, new, disable_guarantees=disable_guarantees))
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def rename_guarantee(provider: str, old_id: str, new_id: str) -> str:
+    """Rename a guarantee id (old_id -> new_id), keeping both directions consistent.
+
+    The id lives in two places — the provider's provides key and every dependent consumer's
+    `guarantees` list. This rewrites both: the provider re-keys the guarantee (its object —
+    disabled flag, dependents, test — is preserved), then every consumer that depends on it
+    gets old_id swapped to new_id. Pure id rename: touches no test, no symbol, no path.
+
+    Use it to normalize legacy path-prefixed ids into path-free `<symbol>.<behavior>` form
+    (e.g. "core.maker.make_game.returns_html" -> "make_game.returns_html").
+
+    Args:
+        provider: Source file that provides the guarantee
+        old_id: Current guarantee id
+        new_id: New guarantee id (must be free on this provider)
+
+    Returns: JSON {provider, old_id, new_id, consumers_updated}
+    """
+    try:
+        return _ok(base.rename_guarantee(provider, old_id, new_id))
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def refactor_func(provider: str, old_symbol: str, new_symbol: str, disable_guarantees: bool = True) -> str:
+    """Rename a symbol on a provider (old_symbol -> new_symbol) and fix every graph reference.
+
+    GBC does the metadata part: rewrites consumers' `provider:old_symbol` dependency symbols to
+    `provider:new_symbol`, renames the guarantee ids under that symbol (`old_symbol` / `old_symbol.*`
+    -> `new_symbol[...]`, per the `<symbol>.<behavior>` convention, both directions), and auto-disables
+    those guarantees (their tests still call the old name and would fail).
+
+    GBC does NOT edit the symbol definition in source (that's an AST-level content edit). YOU rename
+    `def old_symbol` and its call sites + tests, then `enable_guarantee` each renamed id. Paths are
+    untouched; only the symbol segment of the id changes.
+
+    Args:
+        provider: Source file path
+        old_symbol: Current symbol name (e.g. "make_game")
+        new_symbol: New symbol name
+        disable_guarantees: Auto-disable affected guarantees (default True)
+
+    Returns: JSON {provider, old_symbol, new_symbol, symbol_refs_rewritten, ids_renamed, disabled, next_steps}
+    """
+    try:
+        return _ok(base.refactor_func(provider, old_symbol, new_symbol, disable_guarantees=disable_guarantees))
+    except Exception as e:
+        return _err(e)
+
+
 # ======== 读 / 反查 ========
 
 @mcp.tool()
@@ -217,17 +353,26 @@ def tree(detail: bool = False, gaps: bool = False) -> str:
             are depended-upon yet have no gbc.md file entry.
     """
     try:
-        return _ok(base.render_tree(detail=detail, gaps=gaps))
+        # 文档型工具：直接返回原始文本(不经 _ok 的 json.dumps)，让 MCP 当文本块发出，
+        # 换行是字面换行、零转义开销。是「工具返回 JSON 字符串」约定的有意例外。
+        return base.render_tree(detail=detail, gaps=gaps)
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
 def check_consistency() -> str:
-    """Global lint of the .gbc graph: report dangling guarantee refs and broken
-    bidirectional edges (dangling_guarantee / missing_reverse / missing_forward).
+    """Global lint of the .gbc graph. Reports two classes, distinguished by `type`:
 
-    Returns: JSON array of violation objects (empty array = consistent)
+    Errors (graph inconsistency): dangling_guarantee / missing_reverse / missing_forward.
+    Disabled notices (loud, not errors): disabled_guarantee (a guarantee with born-green
+    suspended) / depends_on_disabled (a consumer relying on a disabled guarantee).
+
+    The list is empty ONLY when fully consistent AND nothing is disabled — so any disabled
+    guarantee keeps this non-empty until it's enabled back. Filter by `type` to separate
+    hard errors from disabled notices.
+
+    Returns: JSON array of objects (empty array = consistent and nothing disabled)
     """
     try:
         return _ok(base.check_consistency())

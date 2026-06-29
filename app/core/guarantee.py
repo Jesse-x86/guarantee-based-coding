@@ -62,8 +62,14 @@ def create_guarantee(
     executor_name: str,
     heavy: int = 0,
     timeout_override: int = -1,
+    disabled: bool = False,
 ) -> Guarantee:
-    """在 provider 上新建一条具名保证。出生即绿：当场跑测试，不过则拒绝。"""
+    """在 provider 上新建一条具名保证。
+
+    默认出生即绿：当场跑测试，不过则拒绝。``disabled=True`` 则**跳过门禁**新建一条停用
+    占位保证(用于循环依赖 bootstrap：测试还过不了时先占住 id 与边，待两边就绪再 enable)。
+    停用保证是 born-green 的逃生口，必须靠 check_consistency 响亮报出、别让它静默留存。
+    """
     if gid in provider_meta.provides:
         raise GuaranteeDuplicatedError(target_file=provider, guarantee_path=gid)
 
@@ -74,8 +80,10 @@ def create_guarantee(
         timeout_override=timeout_override,
         heavy=heavy,
         dependents=[],
+        disabled=disabled,
     )
-    _gate(provider, gid, guarantee)  # 先验证后落入模型
+    if not disabled:
+        _gate(provider, gid, guarantee)  # 先验证后落入模型；停用占位则不验证
     provider_meta.provides[gid] = guarantee
     return guarantee
 
@@ -114,9 +122,37 @@ def update_guarantee(
     if timeout_override is not None:
         guarantee.timeout_override = timeout_override
 
-    if runner_changed:
+    # 停用态下「换测试只换不跑」：runner 变了也不重证门禁——门禁等到 enable 时再补。
+    if runner_changed and not guarantee.disabled:
         _gate(provider, gid, guarantee)
 
+    return guarantee
+
+
+def disable_guarantee(provider_meta: FileMeta, provider: str, gid: str) -> Guarantee:
+    """停用一条保证：置 disabled=True，id 与全部边(dependents/反向边)原样保留。
+
+    幂等：已停用再调无副作用。停用 ≠ 退休——它不删任何东西、不动依赖关系，只是让门禁与
+    批量 verify 暂缓执行它。用于重构窗口/在修保证：先 disable 守住边，改完测试再 enable。
+    """
+    guarantee = provider_meta.provides.get(gid)
+    if guarantee is None:
+        raise GuaranteeNotFoundError(target_file=provider, guarantee_path=gid)
+    guarantee.disabled = True
+    return guarantee
+
+
+def enable_guarantee(provider_meta: FileMeta, provider: str, gid: str) -> Guarantee:
+    """恢复一条停用的保证：当场补跑门禁(born-green)，过了才真正置 disabled=False。
+
+    门禁不过则抛 GuaranteeTestFailedError 且**保持 disabled 不变**(enable 失败=仍停用)，
+    绝不把一条没验证过的保证悄悄转正。幂等：对已启用的保证调用 = 重证一次门禁。
+    """
+    guarantee = provider_meta.provides.get(gid)
+    if guarantee is None:
+        raise GuaranteeNotFoundError(target_file=provider, guarantee_path=gid)
+    _gate(provider, gid, guarantee)  # 不过则抛错，下面这行不执行 ⇒ 仍是 disabled
+    guarantee.disabled = False
     return guarantee
 
 
@@ -254,6 +290,12 @@ def verify_provider(
     """
     summary = VerifySummary()
     for gid, guarantee in provider_meta.provides.items():
+        if guarantee.disabled:
+            # 停用 = 缺席的另一种：不跑、不染红，进 skipped 并标 reason=disabled 响亮报出。
+            summary.skipped.append(
+                SkippedGuarantee(id=gid, heavy=guarantee.heavy, reason="disabled")
+            )
+            continue
         if guarantee.heavy > auto_run_max_heavy:
             summary.skipped.append(SkippedGuarantee(id=gid, heavy=guarantee.heavy))
             continue

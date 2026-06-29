@@ -1,30 +1,37 @@
-# GBC 手动文档:手动接入 + 在 GBC 下干活
+# GBC Manual: Manual Setup + Working Under GBC
 
-> **这是 GBC 的手动 / 详细文档。** 想**自动**接入,让你的 agent 按 [for-agents.md](./for-agents.md) 安装并
-> 运行 `setup-gbc` skill——它会交互式地把下面 §1–5 替你做掉。本文给的是**自己一步步手动装**(§1–5)、
-> 以及**接入后怎么在 GBC 下安全干活**(§6–8)的完整参考。
+> **This is GBC's manual / detailed reference.** If you want **automatic** setup, have your agent
+> install per [for-agents.md](./for-agents.md) and run the `setup-gbc` skill — it does §1–5 below
+> for you interactively. This document is the full reference for **installing by hand, step by
+> step** (§1–5), and for **how to work safely under GBC once you're set up** (§6–8).
 >
-> 全文假定在对一个 agent 说话——人类也可照读,或直接交给你信赖的 agent。下面按"正常情况下/推荐"写;
-> 什么该 agent 自己做、什么留给人类拍板,按你和人类商定的权限分配调整。
+> The whole thing is written as if talking to an agent — a human can read it the same way, or hand
+> it straight to an agent you trust. It's written for the "normal / recommended" case; adjust what
+> the agent does itself versus what is left for a human to decide according to the permission split
+> you and your human have agreed on.
 
-GBC 让"改代码会不会弄坏别处"从猜测变成可机械验证的布尔条件:依赖被显式登记成**保证(guarantee)**,
-每条保证背后是一个窄测试;你改完跑保证,全绿=安全,有红=精确告诉你破坏了谁。
+GBC turns "will this change break something elsewhere?" from a guess into a mechanically verifiable
+boolean: dependencies are explicitly registered as **guarantees**, each guarantee is backed by a
+narrow test; you make your change, run the guarantees, and all-green = safe, any-red = a precise
+report of who you broke.
 
 ---
 
-## 1. 安装
+## 1. Install
 
-GBC 用它**自己的** Python 环境跑(和当前工作项目环境分开)。在 GBC 仓里:
+GBC runs in **its own** Python environment (separate from the project you're currently working on).
+From the GBC repo:
 
 ```bash
 pip install -r requirements.txt   # typer[all] / pydantic / mcp
 ```
 
-> 正常情况下装环境这步推荐交人类执行;装好后继续。
+> In the normal case, installing the environment is best left to a human; once it's installed,
+> continue.
 
-## 2. 接 MCP(你的保证侧工具)
+## 2. Wire up MCP (your guarantee-side tools)
 
-在**当前工作项目根**放一个 `.mcp.json`:
+Put a `.mcp.json` at the **root of the project you're working on**:
 
 ```json
 {
@@ -37,38 +44,43 @@ pip install -r requirements.txt   # typer[all] / pydantic / mcp
 }
 ```
 
-- `command` = 第 1 步装了依赖的解释器。
-- `args[0]` = `serve.py` 绝对路径;`args[1]` = **当前工作项目根绝对路径**(必须 argv 传,不能靠环境变量)。
-- 重启 agent 后,工具以 `mcp__gbc__*` 出现。
-- WSL 调 Windows Python 有跨平台坑(路径/编码),已被 `serve.py` 兜掉——细节见
-  [integrate-mcp.md](./integrate-mcp.md)。
+- `command` = the interpreter you installed the dependencies into in step 1.
+- `args[0]` = absolute path to `serve.py`; `args[1]` = **absolute path to the working project root**
+  (must be passed as argv, not via an environment variable).
+- After restarting the agent, the tools appear as `mcp__gbc__*`.
+- Calling Windows Python from WSL has cross-platform pitfalls (paths/encoding); `serve.py` already
+  handles them — see [integrate-mcp.md](./integrate-mcp.md) for details.
 
-## 3. 定义一个 executor(怎么跑测试)
+## 3. Define an executor (how tests are run)
 
-建任何保证前,先告诉 GBC 用什么命令跑测试。调 `upsert_executor`:
+Before creating any guarantee, tell GBC what command runs tests. Call `upsert_executor`:
 
 ```jsonc
 // config_name: "pytest"
 // config_data:
 {
-  "command": ["python", "-m", "pytest", "{file}", "-x", "-q"],  // {file} 替换成测试选择器
+  "command": ["python", "-m", "pytest", "{file}", "-x", "-q"],  // {file} is replaced with the test selector
   "cwd": "/abs/path/to/your-project",
   "timeout": 30,
   "env_ops": [{"key": "PYTHONPATH", "action": "prepend", "value": "/abs/path/to/your-project"}]
 }
 ```
 
-换语言只换 `command`(如 `["npx","jest","{file}"]`)。`env_ops` 动作:`set`/`append`/`prepend`/`remove`。
+To switch languages, just swap `command` (e.g. `["npx","jest","{file}"]`). `env_ops` actions:
+`set` / `append` / `prepend` / `remove`.
 
-## 4. 把意图 CLI 包成 skill(你改意图的唯一入口)
+## 4. Wrap the intent CLI as a skill (your only entry for changing intent)
 
-每个文件夹的意图存在 `.gbc/<path>/gbc.md`,分三段:**`# 意图`**(是什么、为什么)、**`# 内部约束`**
-(义务与规则:需要什么、必须或禁止做什么)、**`# 文件`**(子文件夹与文件各一句)。它的结构,以及父子文档
-之间的一致性,都由程序来保证——所以请**始终经 GBC 自带的意图 CLI(`gbc_doc.py`)来编辑,不要手改 gbc.md**,
-这样这些约束工具会替你守住。三段各写什么、以及 spec-first 的细节,见
-[intent-editor-and-skills.md](./intent-editor-and-skills.md)。下面把这个 CLI 包成一个薄 skill:
+Each folder's intent lives in `.gbc/<path>/gbc.md`, in three sections: **`# 意图` (Intent)** (what
+it is, why), **`# 内部约束` (Internal constraints)** (obligations and rules: what it needs, what it
+must or must not do), and **`# 文件` (Files)** (one line each for subfolders and files). Its
+structure, and the consistency between parent and child documents, are kept by a program — so
+**always edit through GBC's own intent CLI (`gbc_doc.py`); don't hand-edit gbc.md**, so the
+constraint tooling guards them for you. What goes in each of the three sections, plus the spec-first
+details, are in [intent-editor-and-skills.md](./intent-editor-and-skills.md). Below, wrap that CLI
+as a thin skill:
 
-**wrapper**(钉死解释器 + 项目根,其余透传):
+**wrapper** (pins the interpreter + project root, passes the rest through):
 
 ```bash
 #!/usr/bin/env bash
@@ -77,98 +89,131 @@ exec /abs/path/to/python \
   --root /abs/path/to/your-project "$@"
 ```
 
-**SKILL.md**(让你知道何时用它):
+**SKILL.md** (so you know when to use it):
 
 ```markdown
 ---
 name: gbc-doc
-description: 读/写 .gbc 意图文档(gbc.md)的唯一合规入口。查看/新建/改/体检 gbc.md 时用本 skill —— NEVER 手编 gbc.md。
+description: The only compliant entry for reading/writing .gbc intent docs (gbc.md). Use this skill to view/create/change/lint gbc.md — NEVER hand-edit gbc.md.
 ---
-调用:`bash /abs/path/to/gbc-doc.sh <命令> [参数...]`
-命令:show / set-intent / set-constraints / set-file / rm-entry / check / sync / migrate
-（命令面见第 6 节;人类做架构时也可跑 `python gbc_doc.py` 的 web 编辑器,见 intent-editor-and-skills.md）
+Invoke: `bash /abs/path/to/gbc-doc.sh <command> [args...]`
+Commands: show / set-intent / set-constraints / set-file / rm-entry / check / sync / migrate
+(command surface in §6; for architecture work a human can also run `python gbc_doc.py`'s web editor — see intent-editor-and-skills.md)
 ```
 
-## 5. 冒烟:确认接通
+**Reference code with `[[project-relative-path]]`.** When gbc.md prose points at a code file or
+symbol, write it as `[[app/core/models/game.py]]` or `[[app/core/models/game.py:GameSpec]]` — a path
+from the repo root, wrapped in `[[ ]]`. Don't use `../` relative paths: a relative ref breaks when
+either side moves and reads differently from each referrer, whereas a `[[ ]]` ref is one canonical
+string per target that the `refactor_file` / `refactor_func` tools rewrite automatically when the
+target moves. (Data directories, HTTP routes, and ADR links don't need `[[ ]]`.)
 
-调一发只读工具:
+## 5. Smoke test: confirm it's connected
 
-- `check_consistency()` → 返回 `[]` 即 `.gbc` 图一致(空项目也是 `[]`)。
-- `list_provides("<某源文件相对路径>")` → 返回该文件已登记的保证(没有则 `{}`)。
+Call a read-only tool or two:
 
-> 路径参数一律用**相对项目根**的 posix 路径(`app/core/maker/maker.py`),不是绝对路径。
-> 接不通先回查第 2 步。
+- `check_consistency()` → returns `[]` when the `.gbc` graph is consistent (an empty project is also
+  `[]`).
+- `list_provides("<relative path of some source file>")` → returns the guarantees registered for
+  that file (or `{}` if none).
 
----
-
-## 6. 工具速查
-
-**保证侧(gbc MCP,`mcp__gbc__*`):**
-
-| 工具 | 干什么 |
-|------|--------|
-| `add_dependency(provider, consumer, symbol[, guarantee_id])` | 登记依赖。给 `guarantee_id`=行为依赖(自动写反向边);不给=免费符号依赖 |
-| `create_guarantee(provider, id, desc, test, executor[, heavy])` | 新建具名保证。**出生即跑测,失败拒绝创建** |
-| `update_guarantee` / `retire_guarantee` | 改 / 退休。退休对仍有 dependents 的保证**拒绝** |
-| `verify_guarantee(provider, id)` / `verify_provider(provider)` | 跑单条 / 跑某文件全部保证(门禁) |
-| `who_depends_on(provider[, symbol, guarantee_id])` | 反查谁依赖我(取代 grep) |
-| `list_provides(provider)` / `list_depends_on(consumer)` | 看我提供的保证 / 我声明的依赖 |
-| `check_consistency()` | 全图体检:悬空引用、双向边漂移 |
-
-**意图侧(gbc-doc skill → `gbc_doc.py`):**
-
-| 命令 | 干什么 |
-|------|--------|
-| `show <folder>` | 看某文件夹意图/约束/条目 |
-| `set-intent <folder> "<text>"` | 设意图,自动单源投影到父条目 |
-| `set-constraints <folder> "<text>"` / `set-file <folder> <name> "<desc>"` | 设内部约束 / 新增改文件条目 |
-| `rm-entry <folder> <name>` | 删一个文档条目(不删盘上文件) |
-| `check` / `sync` | 一致性体检 / 确定性修复父子漂移 |
-
-`<folder>` 用项目相对路径,根用 `""` 或 `.`。
+> Path arguments are always **project-root-relative** posix paths (`app/core/maker/maker.py`), not
+> absolute paths. If it's not connecting, go back and re-check step 2.
 
 ---
 
-## 7. 在 GBC 下改代码:工作流
+## 6. Tool quick-reference
 
-**两层契约。** ① **意图**(gbc.md):架构真相、最高契约、**人类持有人类批**;你只能起草。
-② **保证**(guarantee):某文件当前提供、有下游依赖的**具名行为**;你可演进,但破坏=必须让所有 dependents 修。
+**Guarantee side (gbc MCP, `mcp__gbc__*`):**
 
-**每次改动分两相,顺序很要紧——别一想完架构就直接动代码:**
+| Tool | What it does |
+|------|--------------|
+| `add_dependency(provider, consumer, symbol[, guarantee_id])` | Register a dependency. Passing `guarantee_id` = a behavior dependency (auto-writes the reverse edge); omitting it = a free symbol dependency |
+| `create_guarantee(provider, id, desc, test, executor[, heavy, disabled])` | Create a named guarantee. **Born-green: runs the test at creation and refuses if it fails.** Pass `disabled` to create it suspended |
+| `update_guarantee` / `retire_guarantee` | Change / retire. Retiring a guarantee that still has dependents is **refused** |
+| `refactor_file(old, new)` | Move a file/dir + its `.gbc` metadata; rewrite every path reference graph-wide (dependency edges, reverse `dependents`, and `[[ ]]` prose refs in gbc.md); auto-disable the moved file's guarantees. Idempotent — reconciles an already-moved file. |
+| `refactor_func(provider, old_symbol, new_symbol)` | Rename a symbol: rewrite consumers' dependency symbols + the guarantee ids under it + `[[path:symbol]]` prose refs; auto-disable. You rename the symbol in source yourself. |
+| `rename_guarantee(provider, old_id, new_id)` | Rename a guarantee id, both directions (provider key + every consumer). |
+| `disable_guarantee(provider, id)` / `enable_guarantee(provider, id)` | Suspend / resume born-green for a guarantee while keeping its id and edges. `enable` re-runs born-green and refuses if it still fails. Disabled guarantees stay loud in `check_consistency` (`disabled_guarantee` / `depends_on_disabled`). |
+| `verify_guarantee(provider, id)` / `verify_provider(provider)` | Run one / run all of a file's guarantees (the gate) |
+| `who_depends_on(provider[, symbol, guarantee_id])` | Reverse-lookup who depends on me (replaces grep) |
+| `list_provides(provider)` / `list_depends_on(consumer)` | See the guarantees I provide / the dependencies I declare |
+| `check_consistency()` | Whole-graph lint: dangling references, two-way edge drift |
 
-1. **架构相(先草案、谈定才落库)**:把本次改动涉及的**全部** gbc.md 增量先作为**草案**(文本)交人类
-   讨论修改;**谈定后**才经 gbc-doc skill 落库、跑 `check` 确认干净。skill 只落已批准内容。
-   **已落库的 gbc.md = 你实现的 spec。**(意图归人类拍板是 GBC 的设计;正常情况下推荐这么走。)
-2. **实现相(机器门控)**:按依赖**拓扑序**实现(先做被依赖者)。每个文件:
-   - 读已批 gbc.md + 依赖方接口 → 写实现。
-   - 想清"我依赖了它的哪些**行为**":
-     - 只依赖签名/符号存在 → `add_dependency(provider, consumer, symbol)`(免费)。
-     - 依赖具体**行为**(非空、异常语义……)→ 命中已有保证就 `add_dependency(..., guarantee_id=...)` 复用;
-       没有就**先写一个_窄_测试**,再 `create_guarantee(...)`。
-   - 跑 `verify_provider` / `verify_guarantee`,全绿才算这步成立。
-   - 若实现中发现**意图本身**要改 → 回架构相重新起草谈定,别偷偷偏离。
+**Intent side (gbc-doc skill → `gbc_doc.py`):**
 
-**窄测试有个小纪律**:只断言**承诺**,别断言**实现**。写 `assert r is not None`,而不是 `== 某个具体值`;
-写 `with pytest.raises(X)`,而不是去较真报错文案。**宁可偏窄一点**——偶尔漏报可以接受,但误报会让人慢慢
-不再信任整个系统,那才是真正要避免的。
+| Command | What it does |
+|---------|--------------|
+| `show <folder>` | View a folder's intent / constraints / entries |
+| `set-intent <folder> "<text>"` | Set intent, auto single-source projected to the parent entry |
+| `set-constraints <folder> "<text>"` / `set-file <folder> <name> "<desc>"` | Set internal constraints / add or change a file entry |
+| `rm-entry <folder> <name>` | Remove a doc entry (does not delete the file on disk) |
+| `check` / `sync` | Consistency lint / deterministically repair parent-child drift |
+
+`<folder>` uses a project-relative path; use `""` or `.` for the root.
 
 ---
 
-## 8. 几个容易踩的坑
+## 7. Working under GBC: the workflow
 
-提前知道这些,能少走弯路:
+**Two layers of contract.** ① **Intent** (gbc.md): architectural truth, the highest contract,
+**owned and approved by a human**; you can only draft it. ② **Guarantee**: a **named behavior** a
+file currently provides and that has downstream dependents; you may evolve it, but breaking it =
+you must make every dependent fix.
 
-| 容易踩的 | 换成这样 |
+**Reference code with `[[project-relative-path]]`.** When gbc.md prose points at a code file or
+symbol, write it as `[[app/core/models/game.py]]` or `[[app/core/models/game.py:GameSpec]]` — a path
+from the repo root, wrapped in `[[ ]]`. Don't use `../` relative paths: a relative ref breaks when
+either side moves and reads differently from each referrer, whereas a `[[ ]]` ref is one canonical
+string per target that the `refactor_file` / `refactor_func` tools rewrite automatically when the
+target moves. (Data directories, HTTP routes, and ADR links don't need `[[ ]]`.) Guarantee ids
+follow the same spirit but are path-free: `<symbol>.<behavior>` (e.g. `make_game.returns_html`),
+unique per provider.
+
+**Each change has two phases, and the order matters — don't jump straight to code the moment you've
+thought through the architecture:**
+
+1. **Architecture phase (draft first, only land once settled).** Take the **entire** gbc.md delta
+   this change involves as a **draft** (text) and hand it to a human to discuss and revise; only
+   **once it's settled** land it through the gbc-doc skill and run `check` to confirm it's clean.
+   The skill only lands approved content. **Landed gbc.md = the spec you implement.** (Intent being
+   a human's call is by GBC's design; in the normal case this is the recommended flow.)
+2. **Implementation phase (machine-gated).** Implement in dependency **topological order** (do the
+   depended-upon first). For each file:
+   - Read the approved gbc.md + the interfaces you depend on → write the implementation.
+   - Work out "which of its **behaviors** do I depend on":
+     - Only depend on the signature / symbol existing → `add_dependency(provider, consumer, symbol)`
+       (free).
+     - Depend on a concrete **behavior** (non-empty, exception semantics…) → if it hits an existing
+       guarantee, `add_dependency(..., guarantee_id=...)` to reuse it; if not, **write a _narrow_
+       test first**, then `create_guarantee(...)`.
+   - Run `verify_provider` / `verify_guarantee`; this step holds only when it's all green.
+   - If mid-implementation you find the **intent itself** needs to change → go back to the
+     architecture phase, re-draft and settle, don't silently drift.
+
+**One small discipline for narrow tests:** assert the **promise**, not the **implementation**. Write
+`assert r is not None`, not `== some exact value`; write `with pytest.raises(X)`, not a fight over
+the exact error message. **Lean narrow** — an occasional missed alarm is acceptable, but a false
+alarm gradually erodes trust in the whole system, and that's what you really want to avoid.
+
+---
+
+## 8. A few easy traps
+
+Knowing these up front saves you some detours:
+
+| Easy trap | Do this instead |
 |---|---|
-| 手编 `.gbc/**` 的 `gbc.md` 或 `*.json` | gbc.md 走 gbc-doc skill;依赖/保证走 gbc MCP |
-| 想完架构直接写代码 | 先草拟 gbc.md → 人批 → 再按拓扑序实现 |
-| 测试断言具体返回值(`== "<html>..."`) | 断承诺:非空 / 类型 / 抛错 |
-| 给所有依赖都建具名保证 | 默认免费符号依赖;**只**对行为依赖升级,且懒创建 |
-| 退休还有 dependents 的保证 | 先迁移/修好 dependents(`retire` 会拒绝) |
-| 用绝对路径调工具 | 一律相对项目根的 posix 路径 |
-| 一次改一堆文件 | 按拓扑序、一步一个文件,每步跑保证 |
+| Hand-editing `gbc.md` or `*.json` under `.gbc/**` | gbc.md goes through the gbc-doc skill; dependencies/guarantees go through gbc MCP |
+| Jumping to code right after thinking through the architecture | Draft gbc.md first → human approves → then implement in topological order |
+| Tests asserting an exact return value (`== "<html>..."`) | Assert the promise: non-empty / type / raises |
+| Naming a guarantee for every dependency | Default to free symbol dependencies; **only** upgrade behavior dependencies, and lazily |
+| Retiring a guarantee that still has dependents | Migrate/fix the dependents first (`retire` will refuse) |
+| Calling tools with absolute paths | Always project-root-relative posix paths |
+| Changing a pile of files at once | Topological order, one file per step, run guarantees each step |
+| Hand-fixing references after moving a file or renaming a symbol | Use `refactor_file` / `refactor_func` — they rewrite the json graph AND the `[[ ]]` prose refs in gbc.md in one shot (and `refactor_file` is idempotent) |
 
 ---
 
-更细的接入(跨平台、自研客户端)见 [integrate-mcp.md](./integrate-mcp.md);意图编辑器与 skill 范例见
-[intent-editor-and-skills.md](./intent-editor-and-skills.md)。
+For deeper setup (cross-platform, custom clients) see [integrate-mcp.md](./integrate-mcp.md); for the
+intent editor and skill examples see [intent-editor-and-skills.md](./intent-editor-and-skills.md).

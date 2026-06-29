@@ -41,6 +41,15 @@ class Guarantee(BaseModel):
     # 这是反向边；非空即代表「还有人靠着它」，退休保护据此拒绝删除。
     dependents: list[str] = Field(default_factory=list)
 
+    # 临时停用：True 时保证的 id 与全部边（dependents/反向边）原样保留，但「出生即绿」
+    # 门禁与批量 verify 都对它**暂缓执行**——不跑、不判失败、进 skipped(reason=disabled)。
+    # 用途：① 重构窗口(refactor 期间测试会暂时跑不过，先 disable 守住边，改完再 enable
+    #       重跑门禁)；② 循环依赖 bootstrap(测试还过不了时先占位注册)；③ 暂停在修的保证。
+    # 三者本质都是「留住 id+边，但此刻先不强制测试」。disabled 是 born-green 墙上的一个
+    # 洞，因此它必须**永远是响的**：check_consistency 始终把 disabled 保证及「依赖了
+    # disabled 保证」的边报出来(non-empty)，tree 用 ⊘ 标记——藏不住，才不会悄悄烂掉。
+    disabled: bool = False
+
 
 class Dependency(BaseModel):
     """本文件（作为 consumer）声明的一条依赖边。
