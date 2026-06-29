@@ -1,23 +1,51 @@
-## 在 GBC 下工作(推荐)
+## Working under GBC (recommended)
 
-下面是一套**推荐**的工作方式,不是硬性规定。**具体哪些改动需要你的人类过目、你能自主到什么程度,
-请你和你的人类自己商定**——这里只给一个合理的默认。本项目的测试执行器名为 **`{{EXECUTOR_NAME}}`**。
+What follows is a **recommended** way of working, not a hard rule. **You and your human decide
+which changes need their sign-off and how autonomous you can be** — this is just a sensible
+default. This project's test executor is named **`{{EXECUTOR_NAME}}`**.
 
-**两层契约**
+**Two layers of contract**
 
-- **意图(gbc.md)**:架构层面的真相,通常由人类把关。建议改动它时经 `gbc-doc` 入口,让结构与父子
-  一致性由程序替你守住。
-- **保证(guarantee)**:某个文件当前提供、且有人依赖的具名行为。它可以演进;一旦你打算破坏它,记得
-  通知所有依赖方一起改。
+- **Intent (gbc.md)** — architectural truth, usually owned by your human. When you change it, go
+  through the `gbc-doc` entry so the structure and parent/child consistency are kept by a program,
+  not by hand.
+- **Guarantee** — a named behavior a file currently provides and others depend on. It may evolve;
+  the moment you intend to break one, tell every dependent so they can fix in step.
 
-**推荐的节奏:先把意图理顺,再写实现**
+**The rhythm: settle intent first, then implement**
 
-1. 动手写代码前,先把这次涉及到的意图(gbc.md)想清楚、和你的人类对齐;落定之后,它就是你实现的依据。
-2. 然后按依赖顺序实现:读已定的意图与接口 → 写实现 → 想清你依赖了对方的哪些行为,用 GBC 的工具把依赖
-   和保证登记上(具体怎么调,看工具自己的描述)→ 跑一遍受影响的保证。若中途发现意图本身需要改,就回到
-   第 1 步重新对齐,而不是默默偏离。
+1. Before writing code, work out the intent (gbc.md) this change touches and align with your human;
+   once it's settled, it *is* the spec you implement against.
+2. Then implement in dependency order: read the settled intent + interfaces → write the
+   implementation → work out which of the other side's *behaviors* you rely on, and register the
+   dependency/guarantee with GBC's tools (see each tool's own description for how) → run the
+   affected guarantees. If you discover the intent itself needs to change mid-way, go back to
+   step 1 and re-align rather than silently drifting.
 
-**一点小经验**:窄测试只断言**承诺**、不咬死**实现**——`assert r is not None` 通常胜过 `== 某个具体值`。
-偏窄一点,比误报更让人安心。
+**Reference files with `[[project-relative-path]]`.** When gbc.md prose points at a code file or
+symbol, write it as `[[app/core/models/game.py]]` or `[[app/core/models/game.py:GameSpec]]` — a
+path from the repo root, wrapped in `[[ ]]`. Don't use `../` relative paths: a relative ref breaks
+when either side moves and reads differently from each referrer, whereas a `[[ ]]` ref is one
+canonical string per target that the refactor tools rewrite automatically when the target moves.
+(Data directories, HTTP routes, and ADR links don't need `[[ ]]`.)
 
-更完整的说明,见 GBC 工具仓的 `docs/manual.md`。
+**Moving or renaming? Use the refactor tools — never hand-fix the graph.** Relocating a file or
+renaming a symbol desyncs every path-addressed reference (dependency edges, reverse `dependents`,
+`[[ ]]` prose refs). `refactor_file(old, new)` moves a file/dir + its `.gbc` metadata and rewrites
+all of them in one shot (and auto-disables the moved file's guarantees until you fix their tests);
+`refactor_func` / `rename_guarantee` do the same for symbol / id renames. After a refactor: fix
+imports, move the test files and `update_guarantee(test=...)`, then `enable_guarantee` each disabled
+id. `refactor_file` is idempotent — if you already moved the file by hand, it just reconciles the
+stale references.
+
+**Stuck mid-refactor or on a circular dependency? `disable_guarantee` is the escape hatch.** It
+keeps a guarantee's id and edges while suspending born-green for it, so you don't have to tear down
+dependencies to make a multi-step change. `enable_guarantee` re-runs born-green and refuses if it
+still fails. Disabled guarantees stay **loud** — `check_consistency` reports them until you enable
+them back, so they can't rot silently.
+
+**One small habit.** Narrow tests assert the **promise**, not the **implementation** —
+`assert r is not None` usually beats `== some exact value`. Lean narrow; a false alarm costs more
+trust than a missed one.
+
+For the fuller picture, see the GBC tool repo's `docs/manual.md`.

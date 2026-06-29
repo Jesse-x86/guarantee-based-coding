@@ -1,31 +1,36 @@
-# 把 GBC 接进来(写给 Agent)
+# Wiring GBC in (for Agents)
 
-你好。读到这里,说明你正在一个项目里工作,而你的人类想用上 GBC——很高兴你来帮他们接上它。
-过程不复杂,大致两步:先把 GBC 这个工具准备好,之后每个项目接入一次。
+Hi. If you're reading this, you're working inside a project and your human wants to use GBC — glad
+you're here to wire it up for them. It's not much: first get the GBC tool ready, then onboard each
+project once.
 
-先认清两个角色,后面会一直用到:
+Two roles you'll use throughout:
 
-- **当前工作项目** —— 你此刻正在其中工作的项目,要接入 GBC 的地方。
-- **GBC 工具仓** —— `guarantee-based-coding` 这个工具本身所在的仓库;`serve.py`、各种模板、以及
-  `setup-gbc` skill 都在这儿。你去读它、指向它。
+- **The working project** — the project you're in right now, where GBC gets wired in.
+- **The GBC tool repo** — the `guarantee-based-coding` repo itself; `serve.py`, the templates, and
+  the `setup-gbc` skill all live here. You read from it and point at it.
 
-## ① 第一次:把 GBC 工具准备好
+## ① First time: get the GBC tool ready
 
-只做这一次,之后所有项目复用。这一步只和 **GBC 工具仓**打交道。
+Do this once; every project reuses it. This step only touches the **GBC tool repo**.
 
-1. **找到 GBC 工具仓。** 不确定它在哪,就问你的人类要路径。
-2. **把它的依赖装好。** 仓里带了一份 `requirements.txt`——在一个合适的 Python 环境里装上它即可。
-   用哪个环境、以什么方式安装,按你和你的人类的惯例来。
-3. **装上 `setup-gbc` skill。** 它就在 GBC 工具仓的 `skills/setup-gbc/` 下;按你平时安装 skill 的方式
-   装好。之后每次给项目接入,都会用到它。
+1. **Find the GBC tool repo.** If you're not sure where it is, ask your human for the path.
+2. **Install its dependencies.** It ships a `requirements.txt` — install it into a suitable Python
+   environment. Which environment and how is up to you and your human's conventions.
+3. **Install the `setup-gbc` skill.** It's under the GBC tool repo's `skills/setup-gbc/`; install it
+   the way you install skills. You'll use it every time you onboard a project.
 
-这三步做完一次就够了。
+Once done, these three are good for all projects.
 
-## ② 每个项目:运行 setup-gbc 接入
+## ② Each project: run setup-gbc to onboard
 
-在**当前工作项目**里运行 `setup-gbc` skill,它会带你把 GBC 接进来。整套通常一次会话内就能做完。
+Run the `setup-gbc` skill inside the **working project** and it walks you through wiring GBC in —
+usually within one session. It registers the gbc MCP server, a test executor, a `gbc-doc` intent
+skill, and drops GBC's operating rules into the project's instruction file (those rules cover the
+conventions you'll follow, including how to write references and how to move/rename code safely).
 
-> 为什么每个项目都要做一次?GBC 要指向当前工作项目,测试执行器也跟着这个项目的环境和语言走——
-> 换了项目自然要重配。这也是它被做成一个随时可重跑的 skill,而不是一次性安装的原因。
+> Why once per project? GBC points at the working project, and the test executor follows that
+> project's environment and language — switch projects and it naturally needs reconfiguring. That's
+> why it's a re-runnable skill rather than a one-time install.
 
-接入完成后,想了解在 GBC 下怎么安全地改代码,[manual.md](./manual.md) 讲得很完整。
+Once onboarded, [manual.md](./manual.md) covers how to change code safely under GBC in full.

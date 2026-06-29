@@ -1,36 +1,47 @@
 ---
 name: gbc-doc
-description: 编辑本项目 .gbc 意图文档(gbc.md)的推荐入口。查看 / 新建 / 修改 / 体检 gbc.md 时用它——经它来改,gbc.md 的结构与父子文档一致性会由程序替你守住,不必手动盯。
+description: Recommended entry point for editing this project's .gbc intent docs (gbc.md). Use it to view / create / change / lint gbc.md — going through it keeps gbc.md's structure and parent/child consistency for you, so you don't have to track them by hand.
 ---
 
-# gbc-doc:gbc.md 的编辑入口
+# gbc-doc: the entry point for editing gbc.md
 
-经这个入口来改 `gbc.md`,它的三段结构和父子文档同步都由程序保证,你不用手动维护。
-**是否把它作为唯一入口、哪些改动要让人类过目,你和你的人类商量着定**——这里只是把"安全编辑"这件事
-准备好。
+Change `gbc.md` through this entry and its three-section structure + parent/child sync are kept by
+a program — you don't maintain them by hand. **Whether to treat it as the only entry, and which
+changes need your human's review, is for you and your human to settle** — this just makes "safe
+editing" available.
 
-## 调用
+## Invocation
 
 ```bash
-bash {{WRAPPER_PATH}} <命令> [参数...]
+bash {{WRAPPER_PATH}} <command> [args...]
 ```
 
-`<folder>` 用项目相对路径(如 `app/core/maker`),根用 `""` 或 `.`。
+`<folder>` is a project-relative path (e.g. `app/core/maker`); use `""` or `.` for the root.
 
-## 命令
+## Commands
 
-| 命令 | 作用 |
-|------|------|
-| `show <folder>` | 看意图 / 约束 / 条目 |
-| `set-intent <folder> "<text>"` | 设意图;自动单源投影到父条目 |
-| `set-constraints <folder> "<text>"` / `set-file <folder> <name> "<desc>"` | 设内部约束 / 新增改文件条目 |
-| `rm-entry <folder> <name>` | 删一个文档条目(不删盘上文件) |
-| `check` / `sync` | 一致性体检 / 确定性修复父子漂移 |
+| Command | What it does |
+|---------|--------------|
+| `show <folder>` | View intent / constraints / entries |
+| `set-intent <folder> "<text>"` | Set intent; auto-projects (single source) to the parent entry |
+| `set-constraints <folder> "<text>"` / `set-file <folder> <name> "<desc>"` | Set internal constraints / add or change a file entry |
+| `rm-entry <folder> <name>` | Remove a doc entry (does not delete the file on disk) |
+| `check` / `sync` | Consistency lint / deterministically repair parent-child drift |
 
-## 怎么写 gbc.md(三段分工)
+## How to write gbc.md (three sections)
 
-- **`# 意图`** = 是什么、为什么存在(角色 / 目的)。概念就地讲清或留链接,别留下未定义的术语。
-- **`# 内部约束`** = 需要什么、必须或禁止做什么(义务与规则)。判断标准是"这是身份(→意图)还是规则(→约束)"。
-- **`# 文件`** = 子文件夹(名末带 `/`)与代码文件,各一句角色描述。
+- **`# 意图` (Intent)** = what this folder/file is and why it exists (role / purpose). Explain
+  concepts inline or link them; don't leave undefined terms.
+- **`# 内部约束` (Internal constraints)** = what it needs and what it must / must not do
+  (obligations and rules). The test is "is this identity (→ intent) or a rule (→ constraints)".
+- **`# 文件` (Files)** = subfolders (name ends in `/`) and code files, one line of role each.
 
-建议先把意图理顺、和人类对齐,再据此实现。更完整的说明见 GBC 工具仓的 `docs/intent-editor-and-skills.md`。
+**Reference code with `[[project-relative-path]]`.** When prose points at a code file or symbol,
+write `[[app/core/models/game.py]]` or `[[app/core/models/game.py:GameSpec]]` — a path from the
+repo root, in `[[ ]]`. Don't use `../` relative paths: they break when either side moves and read
+differently from each referrer, whereas a `[[ ]]` ref is one canonical string per target that the
+`refactor_file` / `refactor_func` tools rewrite automatically when the target moves. (Data dirs,
+HTTP routes, and ADR links don't need `[[ ]]`.)
+
+Settle the intent and align with your human first, then implement against it. Fuller guidance is in
+the GBC tool repo's `docs/intent-editor-and-skills.md`.
