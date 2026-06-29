@@ -74,11 +74,15 @@ def guarantee_create(
     desc: str = typer.Argument(..., help="保证描述"),
     heavy: int = typer.Option(0, "--heavy", "-H", help="成本秩；>=1 批量跳过"),
     timeout: int = typer.Option(-1, "--timeout", "-t", help="超时覆写，-1 用默认"),
+    disabled: bool = typer.Option(False, "--disabled", help="建成停用占位(跳过门禁)——仅用于打破循环依赖，事后须 enable"),
 ):
-    """新建一条保证。出生即绿：当场跑测试，不过则拒绝。"""
+    """新建一条保证。出生即绿：当场跑测试，不过则拒绝。--disabled 则跳过门禁建占位。"""
     try:
-        base.create_guarantee(provider, id, desc, test, executor, heavy, timeout)
-        console.print(f"[green]✔[/green] Created [bold]{id}[/bold] on [bold]{provider}[/bold]")
+        base.create_guarantee(provider, id, desc, test, executor, heavy, timeout, disabled)
+        if disabled:
+            console.print(f"[yellow]✔[/yellow] Created [bold]{id}[/bold] [DISABLED placeholder] — enable it once the test passes")
+        else:
+            console.print(f"[green]✔[/green] Created [bold]{id}[/bold] on [bold]{provider}[/bold]")
     except Exception as e:
         raise handle_error(e)
 
@@ -117,6 +121,32 @@ def guarantee_retire(
         raise handle_error(e)
 
 
+@guarantee_app.command("disable")
+def guarantee_disable(
+    provider: str = typer.Argument(..., help="源文件"),
+    id: str = typer.Argument(..., help="要停用的保证 id"),
+):
+    """停用一条保证：保留 id 与全部边，暂缓门禁/批量 verify。停用 ≠ 退休，不删任何东西。"""
+    try:
+        base.disable_guarantee(provider, id)
+        console.print(f"[yellow]✔[/yellow] Disabled [bold]{id}[/bold] — edges kept; enable to re-prove")
+    except Exception as e:
+        raise handle_error(e)
+
+
+@guarantee_app.command("enable")
+def guarantee_enable(
+    provider: str = typer.Argument(..., help="源文件"),
+    id: str = typer.Argument(..., help="要恢复的保证 id"),
+):
+    """恢复一条停用保证：当场补跑门禁(born-green)，过了才转正；不过则保持停用。"""
+    try:
+        base.enable_guarantee(provider, id)
+        console.print(f"[green]✔[/green] Enabled [bold]{id}[/bold]")
+    except Exception as e:
+        raise handle_error(e)
+
+
 @guarantee_app.command("list")
 def guarantee_list(
     provider: str = typer.Argument(..., help="源文件"),
@@ -129,11 +159,13 @@ def guarantee_list(
             return
         table = Table(title=f"Provides → {provider}")
         table.add_column("id", style="cyan", no_wrap=True)
+        table.add_column("state", justify="center")
         table.add_column("heavy", justify="center")
         table.add_column("dependents", justify="center")
         table.add_column("desc", style="white")
         for gid, g in data.items():
-            table.add_row(gid, str(g.heavy), str(len(g.dependents)), g.desc)
+            state = "[magenta]DISABLED[/magenta]" if g.disabled else "[green]on[/green]"
+            table.add_row(gid, state, str(g.heavy), str(len(g.dependents)), g.desc)
         console.print(table)
     except Exception as e:
         raise handle_error(e)
@@ -220,9 +252,14 @@ def verify_provider(
         console.print(f"{light}  passed={len(s.passed)} failed={len(s.failed)} skipped={len(s.skipped)}")
         if s.failed:
             console.print(f"[red]failed:[/red] {', '.join(s.failed)}")
-        if s.skipped:
-            tags = ", ".join(f"{sk.id}(heavy={sk.heavy})" for sk in s.skipped)
-            console.print(f"[yellow]{len(s.skipped)} heavy skipped:[/yellow] {tags}")
+        disabled = [sk for sk in s.skipped if sk.reason == "disabled"]
+        heavy_sk = [sk for sk in s.skipped if sk.reason != "disabled"]
+        if heavy_sk:
+            tags = ", ".join(f"{sk.id}(heavy={sk.heavy})" for sk in heavy_sk)
+            console.print(f"[yellow]{len(heavy_sk)} heavy skipped:[/yellow] {tags}")
+        if disabled:
+            tags = ", ".join(sk.id for sk in disabled)
+            console.print(f"[magenta]{len(disabled)} DISABLED (born-green suspended):[/magenta] {tags}")
     except Exception as e:
         raise handle_error(e)
 
@@ -268,14 +305,21 @@ def tree_cmd(
 
 @doctor_app.command("check")
 def doctor_check():
-    """全局一致性体检：悬空引用 + 双向边漂移。"""
+    """全局一致性体检：悬空引用 + 双向边漂移 + 停用保证(响亮报出)。"""
     try:
         violations = base.check_consistency()
         if not violations:
             console.print("[green]✔ consistent[/green]")
             return
-        console.print(f"[red]✘ {len(violations)} violation(s):[/red]")
-        console.print_json(json.dumps(violations, ensure_ascii=False))
+        disabled_types = {"disabled_guarantee", "depends_on_disabled"}
+        errors = [v for v in violations if v["type"] not in disabled_types]
+        notices = [v for v in violations if v["type"] in disabled_types]
+        if errors:
+            console.print(f"[red]✘ {len(errors)} error(s):[/red]")
+            console.print_json(json.dumps(errors, ensure_ascii=False))
+        if notices:
+            console.print(f"[magenta]⊘ {len(notices)} disabled notice(s) (not errors, but loud until enabled):[/magenta]")
+            console.print_json(json.dumps(notices, ensure_ascii=False))
     except Exception as e:
         raise handle_error(e)
 

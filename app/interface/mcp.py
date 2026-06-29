@@ -42,22 +42,70 @@ def create_guarantee(
     executor: str,
     heavy: int = 0,
     timeout_override: int = -1,
+    disabled: bool = False,
 ) -> str:
     """Create a new named guarantee on a provider file. Born-green: the test is run
     immediately and creation is rejected if it fails.
 
+    Id convention: `<symbol>.<behavior>` (e.g. "make_game.returns_html", "store.roundtrip").
+    Do NOT encode the provider path in the id — the path is already carried by the
+    provider arg here and by the consumer's symbol field. Ids need only be unique
+    PER provider, not globally (every lookup is keyed by (provider, id)).
+
     Args:
         provider: Source file that provides this guarantee (e.g. "app/config/llm.py")
-        id: Semantic guarantee id, e.g. "config.llm.get_model.returns_loaded" (identity; not the test path)
+        id: Semantic guarantee id `<symbol>.<behavior>`, e.g. "get_model.returns_loaded" (identity, path-free)
         desc: What behavior is promised and why it matters
         test: Test selector passed to the executor ({file} substitution), e.g. "tests/test_x.py::test_y"
         executor: Executor config name that knows how to run the test
         heavy: Cost rank; 0 runs in batch, >=1 is skipped in batch verify (and reported)
         timeout_override: Per-guarantee timeout in seconds; -1 uses executor default
+        disabled: Create as a DISABLED placeholder, SKIPPING born-green — only for breaking
+            circular dependencies (register the id+edge before its test can pass yet). The
+            disabled guarantee is surfaced loudly by check_consistency until you enable it.
     """
     try:
-        base.create_guarantee(provider, id, desc, test, executor, heavy, timeout_override)
-        return "created"
+        base.create_guarantee(provider, id, desc, test, executor, heavy, timeout_override, disabled)
+        return "created" if not disabled else "created (disabled placeholder — enable it once the test passes)"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def disable_guarantee(provider: str, id: str) -> str:
+    """Temporarily disable a guarantee: its id and all edges (dependents/reverse edges)
+    are kept intact, but born-green and batch verify are SUSPENDED for it (not run, not
+    failed — reported as skipped/disabled). Disable is NOT retire: it deletes nothing and
+    touches no dependency. Use it to hold an edge across a refactor window or while a test
+    is under repair: disable → fix the test → enable to re-prove born-green.
+
+    A disabled guarantee is a hole in the born-green wall, so it stays LOUD: check_consistency
+    reports it (and anything depending on it) until you enable it back.
+
+    Args:
+        provider: Source file path
+        id: Guarantee id to disable
+    """
+    try:
+        base.disable_guarantee(provider, id)
+        return "disabled"
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def enable_guarantee(provider: str, id: str) -> str:
+    """Re-enable a disabled guarantee: born-green is re-run NOW, and disabled is cleared
+    only if the test passes. If it fails, the guarantee STAYS disabled (enable is refused) —
+    a guarantee is never silently promoted back without proof.
+
+    Args:
+        provider: Source file path
+        id: Guarantee id to enable
+    """
+    try:
+        base.enable_guarantee(provider, id)
+        return "enabled"
     except Exception as e:
         return _err(e)
 
@@ -226,10 +274,17 @@ def tree(detail: bool = False, gaps: bool = False) -> str:
 
 @mcp.tool()
 def check_consistency() -> str:
-    """Global lint of the .gbc graph: report dangling guarantee refs and broken
-    bidirectional edges (dangling_guarantee / missing_reverse / missing_forward).
+    """Global lint of the .gbc graph. Reports two classes, distinguished by `type`:
 
-    Returns: JSON array of violation objects (empty array = consistent)
+    Errors (graph inconsistency): dangling_guarantee / missing_reverse / missing_forward.
+    Disabled notices (loud, not errors): disabled_guarantee (a guarantee with born-green
+    suspended) / depends_on_disabled (a consumer relying on a disabled guarantee).
+
+    The list is empty ONLY when fully consistent AND nothing is disabled — so any disabled
+    guarantee keeps this non-empty until it's enabled back. Filter by `type` to separate
+    hard errors from disabled notices.
+
+    Returns: JSON array of objects (empty array = consistent and nothing disabled)
     """
     try:
         return _ok(base.check_consistency())

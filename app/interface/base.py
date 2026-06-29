@@ -125,14 +125,27 @@ def create_guarantee(
     executor_name: str,
     heavy: int = 0,
     timeout_override: int = -1,
+    disabled: bool = False,
 ) -> None:
     provider_rel = _to_rel(provider)
     with meta_session(provider, create_if_missing=True) as meta:
         gtee.create_guarantee(
             meta, provider_rel, gid,
             desc=desc, test=test, executor_name=executor_name,
-            heavy=heavy, timeout_override=timeout_override,
+            heavy=heavy, timeout_override=timeout_override, disabled=disabled,
         )
+
+
+def disable_guarantee(provider: str, gid: str) -> None:
+    provider_rel = _to_rel(provider)
+    with meta_session(provider) as meta:
+        gtee.disable_guarantee(meta, provider_rel, gid)
+
+
+def enable_guarantee(provider: str, gid: str) -> None:
+    provider_rel = _to_rel(provider)
+    with meta_session(provider) as meta:
+        gtee.enable_guarantee(meta, provider_rel, gid)
 
 
 def update_guarantee(
@@ -246,20 +259,29 @@ def who_depends_on(
 
 
 def check_consistency() -> list[dict]:
-    """全局一致性体检：扫描 .gbc 树，报告悬空引用与双向边漂移。
+    """全局一致性体检：扫描 .gbc 树，报告悬空引用、双向边漂移、以及停用保证。
 
-    检查项：
+    检查项（错误，破坏图一致性）：
       - dangling_guarantee : 某 consumer 依赖了一个 provider 上不存在的保证 id。
       - missing_reverse    : consumer 挂了 gid，但 provider 的 dependents 里没有该 consumer。
       - missing_forward    : provider 的 dependents 列了某 consumer，但 consumer 没有对应依赖边。
+
+    停用提示（非错误，但**必须响亮**——disabled 是 born-green 的逃生口，不能静默留存）：
+      - disabled_guarantee : 某 provider 上有一条停用保证(门禁暂缓，待 enable 重证)。
+      - depends_on_disabled: 某 consumer 依赖的保证当前处于停用态(= 依赖了一个未验证的承诺)。
+
+    只要存在停用保证，返回列表就**非空**——意即「在所有 disabled 被 enable 回去之前，
+    check 永远不干净」，逼着停用态被收掉而非烂在那。调用方可按 type 区分错误与提示。
     """
-    # 先建 provides 索引：(provider_rel, gid) -> dependents
+    # 先建 provides 索引：(provider_rel, gid) -> dependents；并记停用态。
     provides_index: dict[tuple[str, str], list[str]] = {}
+    disabled_index: dict[tuple[str, str], bool] = {}
     metas: dict[str, FileMeta] = {}
     for src_rel, meta in _iter_all_metas():
         metas[src_rel] = meta
         for gid, guarantee in meta.provides.items():
             provides_index[(src_rel, gid)] = guarantee.dependents
+            disabled_index[(src_rel, gid)] = guarantee.disabled
 
     violations: list[dict] = []
 
@@ -300,6 +322,26 @@ def check_consistency() -> list[dict]:
                     "guarantee": gid,
                 })
 
+    # 停用提示（响亮，非错误）：每条停用保证报一次；每条「依赖了停用保证」的边再报一次。
+    for (provider_rel, gid), is_disabled in disabled_index.items():
+        if is_disabled:
+            violations.append({
+                "type": "disabled_guarantee",
+                "provider": provider_rel,
+                "guarantee": gid,
+            })
+    for consumer_rel, meta in metas.items():
+        for dep in meta.depends_on:
+            provider_rel = dep.symbol.split(":", 1)[0]
+            for gid in dep.guarantees:
+                if disabled_index.get((provider_rel, gid)):
+                    violations.append({
+                        "type": "depends_on_disabled",
+                        "consumer": consumer_rel,
+                        "provider": provider_rel,
+                        "guarantee": gid,
+                    })
+
     return violations
 
 
@@ -334,7 +376,7 @@ def upsert_executor(config_name: str, config_data: dict) -> None:
 # 全树渲染：把 .gbc 整合成一份 AI 可读的依赖树
 # ============================================================================
 
-_TREE_LEGEND = "图例: 📁 文件夹 / 📄 文件 / → 依赖<provider:符号> [保证] / ⊕ 提供<保证> ← 被依赖"
+_TREE_LEGEND = "图例: 📁 文件夹 / 📄 文件 / → 依赖<provider:符号> [保证] / ⊕ 提供<保证> ← 被依赖 / ⊘ 停用保证(门禁暂缓)"
 
 
 def _tree_read_doc(gbc_root: Path, rel: str) -> gbc_md.ParsedDoc:
@@ -366,7 +408,10 @@ def _tree_render_file(rel: str, entry: gbc_md.Entry, metas: dict[str, FileMeta],
         lines.append(f"{inner}→ {dep.symbol}{tag}")
     for gid, g in meta.provides.items():
         tail = f"  ← {', '.join(g.dependents)}" if g.dependents else ""
-        lines.append(f"{inner}⊕ {gid}{tail}")
+        # 停用保证用 ⊘ + [DISABLED] 醒目标记(对比启用的 ⊕)，让它在树里藏不住。
+        mark = "⊘" if g.disabled else "⊕"
+        flag = " [DISABLED]" if g.disabled else ""
+        lines.append(f"{inner}{mark} {gid}{flag}{tail}")
         if detail:  # 2a：展开保证的承诺/测试/成本秩
             if g.desc:
                 lines.append(f"{inner}   {_tree_block(g.desc, inner + '   ')}")
