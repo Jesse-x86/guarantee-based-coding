@@ -84,6 +84,24 @@ def render_gbc_result(returncode: int, stdout: str, stderr: str) -> None:
         console.print(Text(stderr.rstrip(), style="red"))
 
 
+def render_file(file: str, content: str, language: str, desc: str, *, highlight: str | None = None) -> None:
+    """渲染一个文件的源代码（带语法高亮）。"""
+    console.print()
+    title_text = f"📄 {file}"
+    if highlight:
+        title_text += f"  —  {highlight}"
+    body = Panel(
+        Syntax(content, language, theme="monokai", line_numbers=True),
+        title=title_text,
+        title_align="left",
+        border_style="blue",
+        padding=(0, 1),
+    )
+    console.print(body)
+    if desc:
+        console.print(f"[dim italic]  {desc}[/dim italic]")
+
+
 def divider() -> None:
     """步骤分隔线。"""
     console.print()

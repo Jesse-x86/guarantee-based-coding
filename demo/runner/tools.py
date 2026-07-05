@@ -1,18 +1,17 @@
-"""模拟 LLM 工具：say / edit（带 diff） / gbc。"""
+"""模拟 LLM 工具：say / edit（带 diff） / gbc（通过 MCP）。"""
 
-import os
-import subprocess
-import sys
-import time
+import json
 from pathlib import Path
-from typing import List
+from typing import Any
 
 from .display import (
     say_bubble,
     render_diff,
     render_gbc_start,
     render_gbc_result,
+    render_file,
 )
+from .mcp_client import McpClient
 
 
 def tool_say(text: str) -> None:
@@ -20,12 +19,23 @@ def tool_say(text: str) -> None:
     say_bubble(text)
 
 
-def tool_edit(workspace: Path, file: str, edits: List[dict], desc: str) -> None:
-    """模拟 LLM 的精确编辑工具。
+def tool_show(workspace: Path, file: str, desc: str, *, highlight: str | None = None) -> None:
+    """展示一个文件的内容（带语法高亮）。
 
-    对每个 edit 做 oldText → newText 替换（只替换第一次出现），
-    并渲染彩色 unified diff 让用户看到改了什么。
+    highlight: 可选的高亮行号或关键词（在面板标题中标注，不实际高亮代码）。
     """
+    path = workspace / file
+    if not path.exists():
+        from rich.console import Console
+        Console().print(f"[dim]（{file} 不存在）[/dim]")
+        return
+    content = path.read_text(encoding="utf-8")
+    lang = _guess_language(file)
+    render_file(file, content, lang, desc, highlight=highlight)
+
+
+def tool_edit(workspace: Path, file: str, edits: list[dict], desc: str) -> None:
+    """模拟 LLM 的精确编辑工具（oldText → newText 替换 + unified diff）。"""
     path = workspace / file
     if not path.exists():
         raise FileNotFoundError(f"编辑目标不存在: {path}")
@@ -38,58 +48,103 @@ def tool_edit(workspace: Path, file: str, edits: List[dict], desc: str) -> None:
         new_text = e["newText"]
         if old_text not in current:
             raise ValueError(
-                f"oldText 未在 {file} 中找到。\n"
-                f"  查找内容: {old_text[:80]}..."
+                f"oldText 未在 {file} 中找到。"
             )
         current = current.replace(old_text, new_text, 1)
 
-    # 渲染 diff
     render_diff(
         file,
         original.splitlines(keepends=True),
         current.splitlines(keepends=True),
         desc,
     )
-
-    # 写回
     path.write_text(current, encoding="utf-8")
 
 
-def tool_gbc(gbc_root: Path, workspace: Path, cmd: List[str], desc: str) -> dict:
-    """模拟 LLM 调用 GBC CLI。
+def tool_gbc(
+    mcp: McpClient,
+    tool: str,
+    args: dict[str, Any],
+    desc: str,
+) -> dict[str, Any]:
+    """通过 MCP 调用 GBC 工具。
 
-    gbc_root 是 GBC 工具仓根目录（app/ 所在位置）。
-    workspace 是 demo 工作区（GBC_PROJECT_PATH 指向它）。
-    cmd 是 typer 子命令参数列表。
+    Args:
+        mcp: McpClient 实例
+        tool: MCP 工具名（如 "create_guarantee", "verify_provider"）
+        args: 工具的关键字参数
+        desc: 人类可读的描述
 
-    返回 {"returncode": int, "stdout": str, "stderr": str}。
+    Returns:
+        {"returncode": int, "stdout": str, "stderr": str}
     """
-    render_gbc_start(cmd, desc)
+    render_gbc_start([tool], desc)
 
-    env = os.environ.copy()
-    env["GBC_PROJECT_PATH"] = str(workspace)
-    env["PYTHONPATH"] = str(gbc_root / "app") + (
-        ":" + env.get("PYTHONPATH", "") if env.get("PYTHONPATH") else ""
-    )
+    try:
+        result_text = mcp.call_tool(tool, args)
+        # 解析结果——MCP 工具返回的文本可能是 JSON error
+        try:
+            parsed = json.loads(result_text)
+            if isinstance(parsed, dict) and "error" in parsed:
+                render_gbc_result(1, "", parsed["error"])
+                return {"returncode": 1, "stdout": "", "stderr": str(parsed["error"])}
+        except (json.JSONDecodeError, TypeError):
+            pass
 
-    full_cmd = [
-        sys.executable,
-        "-m", "app.interface.cli",
-        *cmd,
-    ]
+        # verify_provider 的返回是 JSON 对象，提取 green 状态和摘要
+        stdout = result_text
+        if tool == "verify_provider":
+            try:
+                vdata = json.loads(result_text)
+                passed = len(vdata.get("passed", []))
+                failed = len(vdata.get("failed", []))
+                skipped = len(vdata.get("skipped", []))
+                green = vdata.get("green", failed == 0)
+                stdout = (
+                    f"{'GREEN' if green else 'RED'}  "
+                    f"passed={passed} failed={failed} skipped={skipped}"
+                )
+                if failed:
+                    stdout += f"\nfailed: {', '.join(vdata['failed'])}"
+                    # 展示失败的测试原始输出
+                    results = vdata.get("results", {})
+                    for gid in vdata["failed"]:
+                        r = results.get(gid, {})
+                        detail = (r.get("stderr", "") + "\n" + r.get("stdout", "")).strip()
+                        if detail:
+                            # 截断过长的输出，保留关键部分
+                            lines = detail.splitlines()
+                            if len(lines) > 15:
+                                detail = "\n".join(lines[-12:])
+                                detail = f"...(省略前 {len(lines) - 12} 行)\n{detail}"
+                            stdout += f"\n\n── {gid} ──\n{detail}"
+            except (json.JSONDecodeError, TypeError):
+                pass
 
-    proc = subprocess.run(
-        full_cmd,
-        cwd=str(gbc_root),
-        env=env,
-        capture_output=True,
-        text=True,
-        stdin=subprocess.DEVNULL,
-    )
+        returncode = 0
+        # 检查 stdout 中是否有 RED，或有 failed
+        if tool == "verify_provider" and "RED" in stdout:
+            returncode = 1
 
-    render_gbc_result(proc.returncode, proc.stdout, proc.stderr)
+        render_gbc_result(returncode, stdout, "")
+        return {"returncode": returncode, "stdout": stdout, "stderr": ""}
+    except Exception as e:
+        render_gbc_result(1, "", str(e))
+        return {"returncode": 1, "stdout": "", "stderr": str(e)}
+
+
+def _guess_language(filename: str) -> str:
+    """从扩展名猜语言，给 Rich Syntax 用。"""
+    ext = Path(filename).suffix.lower()
     return {
-        "returncode": proc.returncode,
-        "stdout": proc.stdout,
-        "stderr": proc.stderr,
-    }
+        ".py": "python",
+        ".js": "javascript",
+        ".ts": "typescript",
+        ".json": "json",
+        ".md": "markdown",
+        ".yaml": "yaml",
+        ".yml": "yaml",
+        ".toml": "toml",
+        ".sh": "bash",
+        ".sql": "sql",
+    }.get(ext, "text")

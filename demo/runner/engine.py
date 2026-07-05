@@ -1,4 +1,4 @@
-"""执行引擎：读 JSON 剧本 → 搭建 workspace → 逐步执行。"""
+"""执行引擎：读 JSON 剧本 → 搭建 workspace → 启动 MCP → 逐步执行。"""
 
 import json
 import os
@@ -8,7 +8,8 @@ import time
 from pathlib import Path
 
 from .display import divider, title
-from .tools import tool_say, tool_edit, tool_gbc
+from .mcp_client import McpClient
+from .tools import tool_say, tool_edit, tool_gbc, tool_show
 
 
 def _copy_tree_content(src: Path, dst: Path) -> None:
@@ -24,22 +25,20 @@ def _copy_tree_content(src: Path, dst: Path) -> None:
 
 
 class ScenarioRunner:
-    """读取并执行一个演示剧本。"""
+    """读取并执行一个演示剧本。通过 MCP server 与 GBC 通信。"""
 
     def __init__(self, demo_root: Path, gbc_root: Path):
         self.demo_root = demo_root
         self.gbc_root = gbc_root
         self.workspace = demo_root / "workspace"
+        self._mcp: McpClient | None = None
 
     # ==================================================================
     # 公共入口
     # ==================================================================
 
     def run(self, scenario_name: str) -> dict:
-        """运行指定 scenario，返回执行结果摘要。
-
-        自动注册 demo-pytest executor（幂等，不删除——留在 GBC 仓 executors.json 里）。
-        """
+        """运行指定 scenario。"""
         scenario_dir = self.demo_root / "scenarios" / scenario_name
         if not scenario_dir.is_dir():
             raise FileNotFoundError(f"Scenario 不存在: {scenario_dir}")
@@ -52,11 +51,31 @@ class ScenarioRunner:
         # 1. 搭建 workspace
         self._setup_workspace(scenario)
 
-        # 2. 注册临时 executor（幂等，不删除）
-        self._register_demo_executor()
+        # 2. 启动 MCP server
+        self._start_mcp()
 
-        # 3. 逐步执行
-        return self._run_steps(scenario)
+        try:
+            # 3. 注册 executor（幂等）
+            self._register_demo_executor()
+
+            # 4. 逐步执行
+            return self._run_steps(scenario)
+        finally:
+            self._stop_mcp()
+
+    # ==================================================================
+    # MCP 生命周期
+    # ==================================================================
+
+    def _start_mcp(self) -> None:
+        """启动 GBC MCP server，通过 stdio 通信。"""
+        serve_py = str(self.gbc_root / "serve.py")
+        self._mcp = McpClient([sys.executable, serve_py, str(self.workspace)])
+
+    def _stop_mcp(self) -> None:
+        if self._mcp:
+            self._mcp.close()
+            self._mcp = None
 
     # ==================================================================
     # Workspace
@@ -82,7 +101,7 @@ class ScenarioRunner:
             else:
                 shutil.copyfile(str(item), str(dst))
 
-        # tests（覆盖同名）
+        # tests
         scenario_tests = scenario_dir / "tests"
         if scenario_tests.is_dir():
             dst_tests = self.workspace / "tests"
@@ -118,7 +137,8 @@ class ScenarioRunner:
             "gbc_verifies": [
                 r
                 for r in results
-                if r.get("type") == "gbc" and "verify" in str(r.get("cmd", []))
+                if r.get("type") == "gbc"
+                and r.get("tool") == "verify_provider"
             ],
         }
 
@@ -128,6 +148,15 @@ class ScenarioRunner:
         if typ == "say":
             tool_say(step["text"])
             return {"type": "say", "ok": True}
+
+        elif typ == "show":
+            tool_show(
+                self.workspace,
+                step["file"],
+                step.get("desc", ""),
+                highlight=step.get("highlight"),
+            )
+            return {"type": "show", "ok": True}
 
         elif typ == "edit":
             tool_edit(
@@ -139,15 +168,18 @@ class ScenarioRunner:
             return {"type": "edit", "ok": True}
 
         elif typ == "gbc":
+            assert self._mcp is not None
+            tool_name = step.get("tool", step.get("cmd", [""])[0] if step.get("cmd") else "")
+            tool_args = step.get("args", {})
             info = tool_gbc(
-                self.gbc_root,
-                self.workspace,
-                step["cmd"],
+                self._mcp,
+                tool_name,
+                tool_args,
                 step.get("desc", ""),
             )
             return {
                 "type": "gbc",
-                "cmd": step["cmd"],
+                "tool": tool_name,
                 "returncode": info["returncode"],
                 "stdout": info["stdout"],
             }
@@ -156,44 +188,27 @@ class ScenarioRunner:
             raise ValueError(f"未知 step 类型: {typ}")
 
     # ==================================================================
-    # Executor 注册（幂等，不删除）
+    # Executor 注册（通过 MCP）
     # ==================================================================
 
     def _register_demo_executor(self) -> None:
-        """通过 GBC CLI 注册 demo-pytest executor（幂等，重复调用无副作用）。
-
-        sys.executable 自动适配当前 Python（跨平台）；cwd 指向 workspace。
-        """
-        import subprocess
-
-        config_json = json.dumps({
-            "command": [
-                sys.executable,
-                "-m", "pytest",
-                "{file}", "-x", "-q",
-            ],
-            "cwd": str(self.workspace),
-            "timeout": 30,
-            "env_ops": [
-                {"key": "PYTHONPATH", "action": "prepend", "value": str(self.workspace)},
-            ],
+        """通过 MCP 注册 demo-pytest executor（幂等）。"""
+        assert self._mcp is not None
+        self._mcp.call_tool("upsert_executor", {
+            "config_name": "demo-pytest",
+            "config_data": {
+                "command": [
+                    sys.executable,
+                    "-m", "pytest",
+                    "{file}", "-x", "-q",
+                ],
+                "cwd": str(self.workspace),
+                "timeout": 30,
+                "env_ops": [
+                    {"key": "PYTHONPATH", "action": "prepend", "value": str(self.workspace)},
+                ],
+            },
         })
-
-        # 直接调 subprocess（走 GBC 的 CLI，不引入 import 依赖）
-        env = os.environ.copy()
-        app_dir = str(self.gbc_root / "app")
-        env["PYTHONPATH"] = app_dir + (
-            ":" + env.get("PYTHONPATH", "") if env.get("PYTHONPATH") else ""
-        )
-        subprocess.run(
-            [sys.executable, "-m", "app.interface.cli",
-             "executor", "upsert", "demo-pytest",
-             "--json", config_json],
-            cwd=str(self.gbc_root),
-            env=env,
-            capture_output=True,
-            stdin=subprocess.DEVNULL,
-        )
 
     # ==================================================================
     # 工具

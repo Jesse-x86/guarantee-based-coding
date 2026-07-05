@@ -6,23 +6,20 @@
   python demo/run_demo.py run config-service-strong  # 直接跑指定剧本
   python demo/run_demo.py list                        # 仅列出所有剧本
 
-依赖：pip install -r requirements.txt
+依赖：pip install -r demo/requirements.txt
 """
 
 import json
 import sys
 from pathlib import Path
 
-# 确保 GBC 的 app/ 在 path 中
+# 项目根
 _gbc_root = Path(__file__).resolve().parent.parent
-_app_dir = str(_gbc_root / "app")
-if _app_dir not in sys.path:
-    sys.path.insert(0, _app_dir)
 sys.path.insert(0, str(_gbc_root))
 
 
 def _find_scenarios() -> list[dict]:
-    """扫描 demo/scenarios/ 下所有有效剧本，返回 [{name, project, desc, steps}]。"""
+    """扫描 demo/scenarios/ 下所有有效剧本。"""
     scenarios_dir = _gbc_root / "demo" / "scenarios"
     found: list[dict] = []
     if not scenarios_dir.is_dir():
@@ -45,7 +42,7 @@ def _find_scenarios() -> list[dict]:
 
 
 def _interactive_menu() -> None:
-    """弹出一个 Rich 表格菜单，用户选号执行。"""
+    """弹出 Rich 表格菜单，用户选号执行。"""
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
@@ -80,21 +77,19 @@ def _interactive_menu() -> None:
     console.print(table)
     console.print()
 
-    # 选号
+    n = len(scenarios)
     while True:
         try:
             choice = console.input(
-                "[bold cyan]输入序号运行[/bold cyan] [dim](1-{})[/dim] [bold cyan]或 q 退出:[/bold cyan] ".format(
-                    len(scenarios)
-                )
+                f"[bold cyan]输入序号运行[/bold cyan] [dim](1-{n})[/dim] [bold cyan]或 q 退出:[/bold cyan] "
             ).strip()
             if choice.lower() in ("q", "quit", "exit", ""):
                 console.print("[dim]退出。[/dim]")
                 return
             idx = int(choice) - 1
-            if 0 <= idx < len(scenarios):
+            if 0 <= idx < n:
                 break
-            console.print(f"[red]请输入 1 到 {len(scenarios)} 之间的数字。[/red]")
+            console.print(f"[red]请输入 1 到 {n} 之间的数字。[/red]")
         except ValueError:
             console.print("[red]请输入数字。[/red]")
         except (KeyboardInterrupt, EOFError):
@@ -136,7 +131,7 @@ def _print_summary(result: dict) -> None:
         elif "RED" in stdout:
             console.print("[bold green]🛡️  最终验证失败 — 门禁成功拦截了回归！[/bold green]")
         else:
-            console.print(f"[bold yellow]⚠️  无法判定验证结果。[/bold yellow]")
+            console.print("[bold yellow]⚠️  无法判定验证结果。[/bold yellow]")
     console.print()
 
 
@@ -146,10 +141,8 @@ def _print_summary(result: dict) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) == 1:
-        # 无参数 → 交互菜单
         _interactive_menu()
     elif sys.argv[1] == "list":
-        # 纯列表
         from rich.console import Console
         from rich.table import Table
         console = Console()
@@ -160,7 +153,6 @@ if __name__ == "__main__":
             table.add_row(s["name"], s["desc"])
         console.print(table)
     elif sys.argv[1] == "run" and len(sys.argv) >= 3:
-        # run <name>
         _run(sys.argv[2])
     else:
         print("用法: python demo/run_demo.py                  # 交互菜单")
