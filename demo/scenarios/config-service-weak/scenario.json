@@ -1,0 +1,71 @@
+{
+  "name": "弱测试：拦不住 None 回归",
+  "project": "config-service",
+  "delay": 1.5,
+  "steps": [
+    {
+      "type": "say",
+      "text": "我来为 config_loader 登记一条保证：「get_config() 永不为 None」。"
+    },
+    {
+      "type": "gbc",
+      "desc": "登记保证",
+      "cmd": [
+        "guarantee", "create",
+        "config_loader.py",
+        "config_loader.get_config.never_none",
+        "tests/test_never_none.py::test_get_config_never_returns_none",
+        "demo-pytest",
+        "get_config(key) 永远返回 str，绝不返回 None。server.py 的 start_server() 直接 int(val) 信任这一点。"
+      ]
+    },
+    {
+      "type": "say",
+      "text": "出生即绿！测试通过。现在登记 server.py 对 config_loader.py 的依赖。"
+    },
+    {
+      "type": "gbc",
+      "desc": "登记依赖",
+      "cmd": [
+        "dep", "add",
+        "server.py",
+        "config_loader.py",
+        "get_config",
+        "--guarantee", "config_loader.get_config.never_none"
+      ]
+    },
+    {
+      "type": "gbc",
+      "desc": "初始验证（应该全绿）",
+      "cmd": ["verify", "provider", "config_loader.py"]
+    },
+    {
+      "type": "say",
+      "text": "现在，我要「简化」get_config() ——去掉 .get() 的默认值参数。这样找不到 key 时就返回 None 了。\n\n这是一次非常典型的「看起来无害」的改动。"
+    },
+    {
+      "type": "edit",
+      "file": "config_loader.py",
+      "desc": "「简化」: 去掉 .get() 的默认值参数",
+      "edits": [
+        {
+          "oldText": "        # 关键行：.get() 的第二个参数 \"\" 保证「永不为 None」\n        return self._config.get(key, \"\")",
+          "newText": "        # 「简化」：去掉默认值 —— 找不到 key 时返回 None\n        return self._config.get(key)"
+        }
+      ]
+    },
+    {
+      "type": "say",
+      "text": "改动完毕。来看看 GBC 会不会拦住我…"
+    },
+    {
+      "type": "gbc",
+      "desc": "门禁验证",
+      "cmd": ["verify", "provider", "config_loader.py"]
+    },
+    {
+      "type": "say",
+      "text": "💔 看到了吗？测试通过了！GBC 没有拦住。\n\n因为弱测试只测了 productive path（get_config(\"port\")），port 在字典里所以永远是 str。它没有测 missing key 的分支——那个分支才返回了 None。\n\n测试的强度 = 你安全网的强度。GBC 跑的是你的测试，测试没覆盖的分支，GBC 也无能为力。"
+    }
+  ]
+}

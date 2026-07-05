@@ -1,0 +1,71 @@
+{
+  "name": "强测试：成功拦截 None 回归",
+  "project": "config-service",
+  "delay": 1.5,
+  "steps": [
+    {
+      "type": "say",
+      "text": "我来为 config_loader 登记一条保证：「get_config() 永不为 None」。\n\n这次用的是强测试——同时覆盖 productive path 和 missing key path。"
+    },
+    {
+      "type": "gbc",
+      "desc": "登记保证",
+      "cmd": [
+        "guarantee", "create",
+        "config_loader.py",
+        "config_loader.get_config.never_none",
+        "tests/test_never_none.py::test_get_config_never_returns_none",
+        "demo-pytest",
+        "get_config(key) 永远返回 str，绝不返回 None。测试同时断言 get_config(\"port\") 和 get_config(\"nonexistent\") 都不为 None。"
+      ]
+    },
+    {
+      "type": "say",
+      "text": "出生即绿！两条断言都通过了。现在登记 server.py 对 config_loader.py 的依赖。"
+    },
+    {
+      "type": "gbc",
+      "desc": "登记依赖",
+      "cmd": [
+        "dep", "add",
+        "server.py",
+        "config_loader.py",
+        "get_config",
+        "--guarantee", "config_loader.get_config.never_none"
+      ]
+    },
+    {
+      "type": "gbc",
+      "desc": "初始验证（应该全绿）",
+      "cmd": ["verify", "provider", "config_loader.py"]
+    },
+    {
+      "type": "say",
+      "text": "现在，同样「简化」get_config() ——去掉 .get() 的默认值参数。找不到 key 时就返回 None。"
+    },
+    {
+      "type": "edit",
+      "file": "config_loader.py",
+      "desc": "「简化」: 去掉 .get() 的默认值参数",
+      "edits": [
+        {
+          "oldText": "        # 关键行：.get() 的第二个参数 \"\" 保证「永不为 None」\n        return self._config.get(key, \"\")",
+          "newText": "        # 「简化」：去掉默认值 —— 找不到 key 时返回 None\n        return self._config.get(key)"
+        }
+      ]
+    },
+    {
+      "type": "say",
+      "text": "改动完毕。来看看 GBC 会不会拦住我…"
+    },
+    {
+      "type": "gbc",
+      "desc": "门禁验证",
+      "cmd": ["verify", "provider", "config_loader.py"]
+    },
+    {
+      "type": "say",
+      "text": "🎉 拦住了！测试失败了：get_config(\"nonexistent\") 现在返回 None，强测试的第二条断言抓住了它。\n\n这就是 GBC 的价值：不是祈祷 AI 理解你的代码，而是用测试定义行为边界，用门禁强制执行。测试覆盖了 edge path → 门禁才能拦住 edge path 的回归。"
+    }
+  ]
+}
