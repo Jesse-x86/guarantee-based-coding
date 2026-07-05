@@ -161,6 +161,27 @@ Context size depends on the number of guarantees for the current file, **not on 
 
 GBC offers **both CLI and MCP** interfaces, plus a **recommended agent workflow** — just hand [docs/for-agents.md](./docs/for-agents.md) to your agent to get started.
 
+## 🎬 Demo
+
+The project includes an interactive Demo Runner that contrasts "weak test vs strong test" with real GBC gating:
+
+```bash
+pip install -r demo/requirements.txt
+python demo/run_demo.py
+```
+
+Select a scenario from the menu:
+
+| Scenario | What it demonstrates |
+|----------|---------------------|
+| `config-service-bad-test` | **Born-green rejection** — a buggy test is refused at registration |
+| `config-service-strong` | **Gate intercepts** — strong test covers all paths, shows RED after break |
+| `config-service-weak` | **Gate misses** — weak test covers only one path, stays GREEN after break |
+
+Each scenario walks through: source code → test code → guarantee registration → simulated breaking change → gating result. Everything is live (the Runner launches GBC MCP server and runs real pytest).
+
+See [demo/](./demo/) for details.
+
 ## Comparison with Existing Approaches
 
 | | Context Optimization (Cursor, Aider) | Full Agent (Devin, OpenHands) | GBC |
@@ -190,20 +211,19 @@ Technically, guarantees are test files. The conceptual differences:
 - **Real-time gating**: Not a post-hoc CI check, but a precondition enforced at modification time
 - **User-managed**: GBC doesn't manage the test files themselves, only metadata and execution
 
-## Current Status
+## Roadmap
 
-🚧 **Early development**
+🚧 **Current: Python prototype validation**
 
 - [x] Core guarantee register / verify / update / unregister mechanism (named guarantee ids, many-to-one, retire protection, reverse lookup)
 - [x] Multi-language executor configuration
 - [x] Atomic file writing with backup rotation
 - [x] CLI interface
 - [x] MCP interface
-- [x] Example project (dogfood: AIGameGen, in progress)
+- [x] Demo Runner (interactive demo system, contrasts weak vs strong test gating)
 - [x] Usage docs ([docs/](./docs/))
-- [ ] Actually test the CLI interface and core code
 - [ ] Full test coverage
-- [ ] PyPI release
+- [ ] **TypeScript rewrite**, publish to npm
 
 ## Contact
 
