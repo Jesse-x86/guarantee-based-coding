@@ -180,6 +180,8 @@ Select a scenario from the menu:
 
 Each scenario walks through: source code → test code → guarantee registration → simulated breaking change → gating result. Everything is live (the Runner launches GBC MCP server and runs real pytest).
 
+> 💡 **Better with your agent**: If you already use a coding agent (Cursor, Pi, Claude Code, etc.), just hand it [demo/EXAMPLE.md](./demo/EXAMPLE.md) and say "follow this". Your agent will **operate GBC tools itself** — editing code, running gates, explaining as it goes — while you watch the live walkthrough.
+
 See [demo/](./demo/) for details.
 
 ## Comparison with Existing Approaches

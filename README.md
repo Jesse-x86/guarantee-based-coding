@@ -180,6 +180,8 @@ python demo/run_demo.py
 
 每个剧本会逐步展示：源码 → 测试代码 → 登记保证 → 模拟破坏性修改 → 门禁结果，全部是真实执行（Runner 通过 MCP 启动 GBC server 真正跑 pytest）。
 
+> 💡 **更自然的体验**：如果你已经有一个 coding agent（Cursor、Pi、Claude Code 等），直接把 [demo/EXAMPLE.md](./demo/EXAMPLE.md) 交给它，对它说「按这个走一遍」——你的 agent 会**亲自**操作 GBC 工具，一边改代码一边跑门禁，你在旁边看着它一步步演示。
+
 详见 [demo/](./demo/) 目录。
 
 ## 和现有方案的对比

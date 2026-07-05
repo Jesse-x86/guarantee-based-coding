@@ -16,3 +16,6 @@ Demo Runner 独立依赖（rich + typer）。不依赖 GBC 主库——Runner �
 
 ## run_demo.py
 一键入口脚本：无参数弹出交互菜单，支持 list 和 run <name> 子命令。自行处理 sys.path，不需要用户设环境变量。纯 Python，全平台通用。
+
+## EXAMPLE.md
+交互式演示教程：给 agent 的指令，让它带着用户在 workspace 里逐步演示 GBC 的三条核心机制——强测试门禁拦截（RED）、弱测试门禁失效（GREEN）、出生即绿拒绝错误测试。每个步骤要求 agent 暂停解释，不等用户确认不继续。配合 demo/projects/ 和 demo/scenarios/ 的素材使用。
