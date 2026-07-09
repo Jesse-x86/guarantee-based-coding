@@ -1,6 +1,6 @@
 # Guarantee-Based Coding (GBC)
 
-**与其让 AI 更聪明地理解代码，不如让代码更笨也能被安全修改。**
+**与其指望 AI 更聪明，不如让再笨的 agent 也改不坏你的代码。**
 
 **English version: [README_EN.md](./README_EN.md)**
 

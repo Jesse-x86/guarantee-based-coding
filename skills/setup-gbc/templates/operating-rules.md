@@ -48,4 +48,4 @@ them back, so they can't rot silently.
 `assert r is not None` usually beats `== some exact value`. Lean narrow; a false alarm costs more
 trust than a missed one.
 
-For the fuller picture, see the GBC tool repo's `docs/manual.md`.
+For the fuller picture, see the GBC tool repo's `docs/manual_EN.md`.

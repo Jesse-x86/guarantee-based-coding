@@ -1,88 +1,90 @@
-# The intent-tree editor, the CLI, and wrapping the CLI as your own skill
+# 意图树编辑器、CLI,以及把 CLI 包装成你自己的 skill
 
-> Entry points: [for-agents.md](./for-agents.md) (for agents) / [for-humans.md](./for-humans.md) (for humans). This page expands the "wrap the intent CLI as a skill" step from the [manual.md](./manual.md) (web editor, full command surface, SKILL.md example).
+**English version: [intent-editor-and-skills_EN.md](./intent-editor-and-skills_EN.md)**
 
-GBC has two tracks with different permissions:
+> 入口:[for-agents.md](./for-agents.md)(面向 agent)/ [for-humans.md](./for-humans.md)(面向人类)。本页展开 [manual.md](./manual.md) 中「把意图 CLI 包装成 skill」这一步(Web 编辑器、完整命令面、SKILL.md 示例)。
 
-- **Guarantees** — agents self-serve CRUD through MCP, machine-gated. See [integrate-mcp.md](./integrate-mcp.md).
-- **Intent** — architectural truth held by humans, stored in each folder's `gbc.md`. Agents may only "draft"; humans approve.
+GBC 有两条权限不同的轨道:
 
-This page covers the second track: how intent docs are edited (web editor / CLI), and how to **wrap a skill around the CLI** so your agent has a single compliant entry for changing intent instead of hand-editing `gbc.md`.
+- **保证(Guarantees)** — agent 通过 MCP 自助 CRUD,机器门控。见 [integrate-mcp.md](./integrate-mcp.md)。
+- **意图(Intent)** — 人类持有的架构真相,存在每个文件夹的 `gbc.md` 里。agent 只能「起草」,由人类审批。
 
-## Why not let agents hand-edit gbc.md
+本页覆盖第二条轨道:意图文档怎么编辑(Web 编辑器 / CLI),以及怎么**围绕 CLI 包装一个 skill**,让你的 agent 有一个单一合规入口来改意图,而不是手工编辑 `gbc.md`。
 
-`gbc.md` has structure (`## entries` under `# 意图` / `# 内部约束` / `# 文件`) and one layer of **deliberate duplication**: a subfolder's intent is written both in its own `gbc.md`'s `# 意图` and in the **parent** folder's `gbc.md` `## sub/` entry. The duplication serves the context locality of the agents writing code, but **maintaining two copies by hand inevitably drifts**.
+## 为什么不让 agent 手工编辑 gbc.md
 
-Whether the structure is correct and whether parent and child stay in sync is a class of deterministic, recurring constraint — safest handed to a program, rather than relying on the agent to remember every time. The tool treats the tree as the **single source of truth**: you write a node's intent once, and on save the tool projects it to both places.
+`gbc.md` 有结构(`# 意图` / `# 内部约束` / `# 文件` 三段之下各有 `## entries`),并且带一层**刻意的重复**:一个子文件夹的意图既写在它自己的 `gbc.md` 的 `# 意图` 里,也写在**父**文件夹 `gbc.md` 的 `## sub/` 条目里。这层重复服务于写代码的 agent 的上下文就近性(context locality),但**靠手工维护两份副本必然漂移(drift)**。
 
-Humans make the architectural judgments, the tool handles the mechanical maintenance — consistent with GBC's philosophy.
+结构是否正确、父子是否保持同步,是一类确定性、重复出现的约束——最稳妥的做法是交给程序,而不是指望 agent 每次都记得。工具把整棵树当作**单一事实源(single source of truth)**:你只写一次某个节点的意图,保存时工具会把它投影(project)到两处。
 
-## How to write gbc.md (three sections + spec-first)
+人类做架构判断,工具处理机械维护——与 GBC 的哲学一致。
 
-Each `gbc.md` has three sections, each with one job:
+## 怎么写 gbc.md(三段式 + spec-first)
 
-- **`# 意图` (Intent)** = what this folder/file **is and why it exists** (role / purpose). **Explain concepts inline or leave a link** (see ADR-0001) — don't leave undefined terms.
+每个 `gbc.md` 有三段,各司一职:
 
-  **Reference code with `[[project-relative-path]]`.** When prose points at a code file or symbol, write it as `[[app/core/models/game.py]]` or `[[app/core/models/game.py:GameSpec]]` — a path from the repo root, wrapped in `[[ ]]`. Don't use `../` relative paths: a relative ref breaks when either side moves and reads differently from each referrer, whereas a `[[ ]]` ref is one canonical string per target that the `refactor_file` / `refactor_func` tools rewrite automatically when the target moves. (Data directories, HTTP routes, and ADR links don't need `[[ ]]`.)
-- **`# 内部约束` (Internal constraints)** = what it **needs, and what it must / must not do** (obligations and rules: what state it holds, what it consumes, what must happen before what, what it must never touch). "What it needs, what it should do" goes here — don't pile it into intent.
-  > Constraints **live only locally and don't bubble up to the parent**, but that's ≠ "kept secret from outsiders": the test is "**identity (→ intent) or a rule (→ constraints)**". A rule still belongs in constraints even if outsiders must obey it (e.g. "outsiders may only depend on this module's interface"), as long as it's a rule and not a reason for existing.
-- **`# 文件` (Files)** = subfolders (name ends in `/`) plus this folder's code files, each with a one-line role description (same rule: explain the concept or leave a link).
+- **`# 意图`(Intent)** = 这个文件夹/文件**是什么、为什么存在**(角色 / 目的)。**就地解释概念或留一个链接**(见 ADR-0001)——别留下未定义的术语。
 
-**spec-first**: before dispatching a subagent / writing code, use the skill to write the above first, self-review or send for review, and implement against the already-written gbc.md — **intent always precedes code**. When creating/moving a folder or file, **register its `# 文件` / intent entry here first** too; don't backfill it after the code is written.
+  **用 `[[项目相对路径]]` 引用代码。**当散文指向某个代码文件或符号时,写成 `[[app/core/models/game.py]]` 或 `[[app/core/models/game.py:GameSpec]]`——从仓库根算起的路径,用 `[[ ]]` 包起来。别用 `../` 相对路径:相对引用在任一侧移动时会失效,而且从不同引用方看读起来还不一样;而 `[[ ]]` 引用对每个目标是一个规范字符串,当目标移动时 `refactor_file` / `refactor_func` 工具会自动重写它。(数据目录、HTTP 路由、ADR 链接不需要 `[[ ]]`。)
+- **`# 内部约束`(Internal constraints)** = 它**需要什么、必须做/必须不做什么**(义务与规则:它持有什么状态、消费什么、什么必须先于什么发生、什么绝不能碰)。「它需要什么、它该做什么」放这里——别一股脑塞进意图。
+  > 约束**只在本地存在、不向上冒泡到父级**,但这 ≠「对外人保密」:判据是「**身份(→ 意图)还是规则(→ 约束)**」。即便外人必须遵守,一条规则仍然属于约束(比如「外人只能依赖本模块的接口」),只要它是一条规则而不是存在的理由。
+- **`# 文件`(Files)** = 子文件夹(名字以 `/` 结尾)加上本文件夹的代码文件,每个配一行角色描述(同样的规则:解释概念或留链接)。
 
-## Usage 1: the web intent-tree editor
+**spec-first(先写规格)**:在派 subagent / 写代码之前,先用 skill 把上面这些写好,自审或送审,再对着已写好的 gbc.md 去实现——**意图永远先于代码**。创建/移动文件夹或文件时,也要**先在这里登记它的 `# 文件` / 意图条目**;别等代码写完再补。
 
-Pure standard library, zero dependencies. Good for humans doing architecture who want to edit the whole tree visually.
+## 用法 1:Web 意图树编辑器
+
+纯标准库,零依赖。适合做架构、想可视化编辑整棵树的人类。
 
 ```bash
 cd tools/intent-editor/backend
-python3 app.py                          # 127.0.0.1:8765, path box left blank
-python3 app.py --root /path/to/.gbc     # prefilled and auto-loaded
-# also --port / --host
+python3 server.py                          # 127.0.0.1:8765,路径框留空
+python3 server.py --root /path/to/.gbc     # 预填并自动加载
+# 还有 --port / --host
 ```
 
-Open http://localhost:8765 in a browser.
+在浏览器打开 http://localhost:8765。
 
-- **Load**: type a `.gbc` directory in the path box and click "Load". The path need not exist — you get an empty tree, and "Save" creates the directories and files from scratch.
-- **Editing children**: a name ending in `/` is a subfolder (toggles live), otherwise it's a file. A blank grey child row sits at the bottom permanently; start typing and it becomes real; clear both the name and description of a row and blur to delete it.
-- **Save only writes, never deletes**: removing an entry = it's no longer generated, but the old file on disk must be cleaned up by hand / via git. Use `git diff` to review what was written back.
+- **Load**:在路径框里输入一个 `.gbc` 目录,点「Load」。路径无需已存在——你会得到一棵空树,点「Save」会从零创建目录和文件。
+- **编辑子项**:名字以 `/` 结尾是子文件夹(实时切换),否则是文件。底部永远有一行空白的灰色子项;开始打字它就变成真的;把某行的名字和描述都清空再失焦即删除该行。
+- **Save 只写、从不删**:移除一个条目 = 它不再被生成,但磁盘上的旧文件必须手工 / 通过 git 清理。用 `git diff` 检查回写了什么。
 
-## Usage 2: the intent CLI (`gbc_doc.py`)
+## 用法 2:意图 CLI(`gbc_doc.py`)
 
-For agents / scripts to call. Located at `tools/intent-editor/backend/gbc_doc.py`.
+供 agent / 脚本调用。位于 `tools/intent-editor/backend/gbc_doc.py`。
 
 ```
-python gbc_doc.py --root <project dir or its .gbc dir> <command> [args...]
+python gbc_doc.py --root <项目目录或其 .gbc 目录> <command> [args...]
 ```
 
-`<folder>` is a **project-relative path** (e.g. `app/core/maker`); use `""` or `.` for the root.
+`<folder>` 是**项目相对路径**(如 `app/core/maker`);用 `""` 或 `.` 表示根。
 
-| Command | What it does |
+| Command | 作用 |
 |------|------|
-| `show <folder>` | View a folder's intent / constraints / entries |
-| `set-intent <folder> "<text>"` | Set intent; **auto single-source projects** to the parent doc's `## <name>/` entry |
-| `set-constraints <folder> "<text>"` | Set `# 内部约束` (lives only locally, doesn't bubble up to the parent) |
-| `set-file <folder> <name> "<desc>"` | Add/change a **file** entry (name has no `/`) |
-| `rm-entry <folder> <name>` | Remove an entry from the doc (only edits the doc, doesn't delete the file on disk — left for git review) |
-| `check` | Whole-tree consistency lint: `DRIFT`/`ORPHAN` = errors (exit code 1); `STUB` = hint (normal for leaf folders) |
-| `sync` | Deterministically repair `DRIFT`/`ORPHAN`: re-project child intent into the parent entry (touches only the parent, not the child) |
-| `migrate` | Parse→serialize-rewrite every gbc.md, upgrading to the new format with the `# 文件` section |
+| `show <folder>` | 查看一个文件夹的意图 / 约束 / 条目 |
+| `set-intent <folder> "<text>"` | 设置意图;**自动单一事实源投影**到父文档的 `## <name>/` 条目 |
+| `set-constraints <folder> "<text>"` | 设置 `# 内部约束`(只在本地存在,不向上冒泡到父级) |
+| `set-file <folder> <name> "<desc>"` | 增加/修改一个**文件**条目(name 不含 `/`) |
+| `rm-entry <folder> <name>` | 从文档移除一个条目(只改文档,不删磁盘上的文件——留给 git review) |
+| `check` | 全树一致性 lint:`DRIFT`/`ORPHAN` = 错误(exit code 1);`STUB` = 提示(叶子文件夹正常会有) |
+| `sync` | 确定性修复 `DRIFT`/`ORPHAN`:把子意图重新投影进父条目(只动父,不动子) |
+| `migrate` | 逐个 gbc.md 解析→序列化重写,升级到带 `# 文件` 段的新格式 |
 
-Key points:
+要点:
 
-- **Creating a subfolder** only needs `set-intent` on it; the parent entry is **auto-registered** — don't manually add `## xxx/` to the parent doc.
-- A subfolder's intent is the **single source of truth**; the description in the parent doc is a projection, so don't edit it separately in the parent doc (it gets overwritten by `sync`).
-- After editing, run `check` to confirm it's clean (no errors). All changes **still need human approval** (review `git diff`): the CLI only guarantees "the edit is structurally correct and parent/child are in sync" — it doesn't replace review.
+- **创建子文件夹**只需对它 `set-intent`;父条目会**自动登记**——别手工往父文档加 `## xxx/`。
+- 子文件夹的意图是**单一事实源**;父文档里的描述是投影,所以别在父文档里单独改它(会被 `sync` 覆盖)。
+- 编辑后跑 `check` 确认干净(无错误)。所有改动**仍需人类审批**(看 `git diff`):CLI 只保证「改动结构正确、父子同步」——它不替代审查。
 
-## Wrap the CLI as your own skill
+## 把 CLI 包装成你自己的 skill
 
-If your agent framework supports "skills / custom commands" (like Claude Code's skills), the best practice is to **wrap this CLI as a skill** as the agent's **single entry** for changing intent, and hard-code "NEVER hand-edit gbc.md" in the skill description. That way, when the agent wants to change intent it only ever goes through this deterministic program.
+如果你的 agent 框架支持「skills / 自定义命令」(像 Claude Code 的 skills),最佳实践是**把这个 CLI 包装成一个 skill**,作为 agent 改意图的**单一入口**,并在 skill 描述里硬写「NEVER 手工编辑 gbc.md」。这样一来,agent 想改意图时永远只走这个确定性程序。
 
-A skill = two things: **a thin wrapper script** + **a SKILL.md** (when to use it, the command surface).
+一个 skill = 两样东西:**一个薄包装脚本(wrapper)** + **一个 SKILL.md**(何时用、命令面)。
 
-### 1) The thin wrapper script
+### 1)薄包装脚本
 
-The wrapper does just three things: **pin the interpreter, pin `--root`, and pass the rest through**. Here is a real, working example (WSL calling a Windows conda python to change intent for some project):
+包装脚本只做三件事:**钉死解释器、钉死 `--root`、把其余透传**。这是一个真实可用的例子(WSL 调用 Windows conda python 去改某项目的意图):
 
 ```bash
 #!/usr/bin/env bash
@@ -95,13 +97,13 @@ exec /mnt/c/Users/<you>/miniconda3/envs/<env>/python.exe \
   "$@"
 ```
 
-- The interpreter + `--root` are hard-coded in the wrapper → when the agent calls it, it only supplies the command and args, and can't pick the wrong environment or project root.
-- `"$@"` passes through → all of `gbc_doc.py`'s subcommands (`show`/`set-intent`/`check`/…) are usable as-is.
-- On a single platform (pure Linux / Windows), just swap the interpreter and paths for native absolute paths — the logic is unchanged.
+- 解释器 + `--root` 在包装脚本里硬编码 → agent 调用时只提供命令和参数,选不错环境或项目根。
+- `"$@"` 透传 → `gbc_doc.py` 的所有子命令(`show`/`set-intent`/`check`/…)都能原样使用。
+- 在单一平台上(纯 Linux / Windows),只需把解释器和路径换成原生绝对路径——逻辑不变。
 
-### 2) SKILL.md
+### 2)SKILL.md
 
-The "when to use it + how to use it" for the agent to read. Claude Code's skills use YAML frontmatter to declare `name`/`description` (the description decides when the agent auto-selects it); the body gives the invocation + command table + rules. Skeleton:
+给 agent 读的「何时用 + 怎么用」。Claude Code 的 skills 用 YAML frontmatter 声明 `name`/`description`(description 决定 agent 何时自动选它);正文给出调用方式 + 命令表 + 规则。骨架:
 
 ```markdown
 ---
@@ -127,9 +129,9 @@ bash /abs/path/to/gbc-doc.sh <command> [args...]
 - All gbc.md changes still need human approval (review the diff). This skill only guarantees structural correctness and parent/child sync — it doesn't replace review.
 ```
 
-### Likewise: you can wrap the "guarantee side" CLI too
+### 同理:保证侧的 CLI 也能包装
 
-Besides the intent-side `gbc_doc.py`, GBC also has a **core guarantee CLI** `app/interface/cli.py` (a typer implementation, one-to-one with the MCP tools), with subcommands: `guarantee` / `dep` / `verify` / `doctor` / `executor`. Run it as a module from the tool repo root:
+除了意图侧的 `gbc_doc.py`,GBC 还有一个**核心保证 CLI** `app/interface/cli.py`(一个 typer 实现,与 MCP 工具一一对应),子命令有:`guarantee` / `dep` / `verify` / `doctor` / `executor`。从工具仓库根把它当模块跑:
 
 ```bash
 python -m app.interface.cli verify provider <source file>
@@ -137,4 +139,4 @@ python -m app.interface.cli guarantee list <source file>
 python -m app.interface.cli dep who <source file>
 ```
 
-If your agent doesn't go through MCP and prefers the command line, you can wrap it as a skill the same way with the wrapper + SKILL.md pattern above. Whether to use MCP or the CLI on the guarantee side depends on your agent; on the intent side, always going through `gbc_doc.py` (the skill) is recommended, so there's "only one door for changing intent".
+如果你的 agent 不走 MCP、更偏好命令行,你可以用上面同样的 wrapper + SKILL.md 模式把它包装成 skill。保证侧用 MCP 还是 CLI 取决于你的 agent;意图侧则推荐永远走 `gbc_doc.py`(那个 skill),这样「改意图只有一扇门」。

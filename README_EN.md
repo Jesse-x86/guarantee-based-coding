@@ -1,6 +1,6 @@
 # Guarantee-Based Coding (GBC)
 
-**Instead of making AI smarter at understanding code, make code safe to modify even without full understanding.**
+**Instead of betting on a smarter AI, make your code so even a dumb agent can't break it.**
 
 **中文版: [README.md](./README.md)**
 
@@ -8,10 +8,10 @@
 
 You'll barely lift a finger — hand it to your coding agent. Pick whoever you are:
 
-- **You're a human** → [docs/for-humans.md](./docs/for-humans.md)
+- **You're a human** → [docs/for-humans_EN.md](./docs/for-humans_EN.md)
 - **You're an agent** → [docs/for-agents.md](./docs/for-agents.md)
 
-Prefer to do it by hand, or to understand each step: [docs/manual.md](./docs/manual.md) (the manual / detailed reference).
+Prefer to do it by hand, or to understand each step: [docs/manual_EN.md](./docs/manual_EN.md) (the manual / detailed reference).
 
 ## The Problem
 
