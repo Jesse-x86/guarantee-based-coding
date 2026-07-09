@@ -1,5 +1,7 @@
 # 把 GBC 接到你自己的 Agent(MCP)
 
+**English version: [integrate-mcp_EN.md](./integrate-mcp_EN.md)**
+
 > 入口见 [for-agents.md](./for-agents.md)(给 agent)/ [for-humans.md](./for-humans.md)(给人类)。本文是手动文档 [manual.md](./manual.md) 中「接 MCP」一步的展开(跨平台、自研客户端、工具清单)。
 
 GBC 的保证能力(创建/验证保证、登记/反查依赖、一致性体检)通过一个 **MCP server** 暴露。

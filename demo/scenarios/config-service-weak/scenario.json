@@ -1,0 +1,105 @@
+{
+  "name": "弱测试：拦不住 None 回归",
+  "project": "config-service",
+  "delay": 1.5,
+  "steps": [
+    {
+      "type": "say",
+      "text": "这是一个简单的配置服务项目。先看看代码。"
+    },
+    {
+      "type": "show",
+      "file": "config_loader.py",
+      "highlight": "第17行：.get(key, \"\") — 找不到 key 返回空字符串",
+      "desc": "Provider：和强测试版一样的源码。.get(key, \"\") 保证永不为 None。"
+    },
+    {
+      "type": "show",
+      "file": "server.py",
+      "highlight": "第17行：int(port) — 信任 get_config() 的返回值",
+      "desc": "Consumer：int(get_config(\"port\")) 不检查 None。下游依赖「永不为 None」的行为。"
+    },
+    {
+      "type": "show",
+      "file": "tests/test_never_none.py",
+      "highlight": "只有第14行一个断言",
+      "desc": "弱测试：只断言 get_config(\"port\") is not None。port 在字典里，永远是 str。\n\n没有测 get_config(\"nonexistent\") —— missing key 分支完全没有被测试覆盖。"
+    },
+    {
+      "type": "say",
+      "text": "现在登记保证——GBC 跑测试，「出生即绿」。因为 port 在字典里，测试通过。"
+    },
+    {
+      "type": "gbc",
+      "tool": "create_guarantee",
+      "desc": "登记保证 + 跑测试",
+      "args": {
+        "provider": "config_loader.py",
+        "id": "config_loader.get_config.never_none",
+        "desc": "get_config(key) 永远返回 str，绝不返回 None。",
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
+        "executor": "demo-pytest"
+      }
+    },
+    {
+      "type": "say",
+      "text": "测试通过。登记 server.py → config_loader.py 的依赖。"
+    },
+    {
+      "type": "gbc",
+      "tool": "add_dependency",
+      "desc": "登记依赖",
+      "args": {
+        "provider": "config_loader.py",
+        "consumer": "server.py",
+        "symbol": "get_config",
+        "guarantee_id": "config_loader.get_config.never_none"
+      }
+    },
+    {
+      "type": "gbc",
+      "tool": "verify_provider",
+      "desc": "初始验证 — 全绿",
+      "args": {
+        "provider": "config_loader.py"
+      }
+    },
+    {
+      "type": "say",
+      "text": "现在做同样的改动：把 .get(key, \"\") 的默认值去掉。找不到 key 时返回 None。"
+    },
+    {
+      "type": "edit",
+      "file": "config_loader.py",
+      "desc": "「简化」：去掉 .get() 的默认值 — 找不到 key 时返回 None",
+      "edits": [
+        {
+          "oldText": "        # 关键行：.get() 的第二个参数 \"\" 保证「永不为 None」\n        return self._config.get(key, \"\")",
+          "newText": "        # 「简化」：去掉默认值 —— 找不到 key 时返回 None\n        return self._config.get(key)"
+        }
+      ]
+    },
+    {
+      "type": "show",
+      "file": "config_loader.py",
+      "highlight": "第17行：.get(key) — 默认值被删了",
+      "desc": "改动后：和强测试版同样的破坏。对存在的 key 没影响，找不到的 key 返回 None。"
+    },
+    {
+      "type": "say",
+      "text": "来看看 GBC 能不能拦住它…"
+    },
+    {
+      "type": "gbc",
+      "tool": "verify_provider",
+      "desc": "门禁验证 — 能拦住吗？",
+      "args": {
+        "provider": "config_loader.py"
+      }
+    },
+    {
+      "type": "say",
+      "text": "💔 拦不住！测试仍然通过（GREEN）。\n\n因为弱测试只测了 get_config(\"port\")。port 一直在字典里，不管有没有默认值都返回 \"8080\"。missing key 分支（get_config(\"nonexistent\") 返回 None）根本没有被测试覆盖到。\n\nGBC 跑的是你的测试。测试没测到的分支 = 门禁看不见的死角。\n\n对比强测试版（python demo/run_demo.py run config-service-strong），多一行 assert get_config(\"nonexistent\") is not None 就能抓住这个回归。"
+    }
+  ]
+}

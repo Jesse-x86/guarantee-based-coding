@@ -35,8 +35,10 @@ def _gate(provider: str, gid: str, guarantee: Guarantee) -> None:
     """出生即绿门禁：跑测试，不过就抛 GuaranteeTestFailedError。"""
     result = _run_test(guarantee)
     if result.return_code != 0:
+        # pytest 将断言错误输出到 stdout，stderr 通常是 warnings
+        details = (result.stderr or "") + "\n" + (result.stdout or "")
         raise GuaranteeTestFailedError(
-            target_file=provider, guarantee_path=gid, failure_info=result.stderr or ""
+            target_file=provider, guarantee_path=gid, failure_info=details.strip()
         )
 
 

@@ -1,41 +1,24 @@
-# GBC 意图树编辑器
+# GBC 意图树编辑器 / Intent-Tree Editor
 
-GBC 意图文件(`.gbc/<path>/gbc.md`)里存在**刻意的重复**:一个子文件夹的意图既写在它自己
-`gbc.md` 的 `# 意图`,又写在父文件夹 `gbc.md` 的 `## sub/` 条目里。重复是为了写代码的 subagent
-的上下文局部性,但手维护两份会漂移。
+把 GBC 意图树(`.gbc/<path>/gbc.md`)当**单一事实源**来可视化编辑:一个节点的意图只写一次,保存时工具同步投影到父/子两处,免去手维护双份导致的漂移。人做架构判断,工具担机械维护——与 GBC 哲学一致。
 
-这个编辑器把树当作**单一事实源**:你对一个节点的意图只写一次,保存时工具同时生成到两个位置。
-人架构、工具担维护劳动 —— 与 GBC 哲学一致。将来可整坨挪进 GBC 仓库做 `tools/intent-editor/`。
+Visually edit the GBC intent tree (`.gbc/<path>/gbc.md`) as a **single source of truth**: write a node's intent once, and on save the tool projects it into both the parent and child docs — no hand-maintained duplication, no drift. Humans make the architectural calls; the tool handles the mechanical upkeep.
 
-## 跑起来
-
-纯标准库(gbc.md 解析复用主库 `app/utils/gbc_md`,需在本仓内运行):
+## 跑起来 / Run
 
 ```bash
 cd backend
-python3 server.py                       # 127.0.0.1:8765,路径框留空
-python3 server.py --root /path/to/.gbc  # 预填并自动加载该目录
-# 另可加 --port / --host
+python3 server.py                       # 127.0.0.1:8765
+python3 server.py --root /path/to/.gbc  # 预填并自动加载 / prefill & auto-load
+# 另可加 / also: --port / --host
 ```
 
-浏览器开 http://localhost:8765 。
+浏览器打开 / open http://localhost:8765 。
 
-- **加载**:在路径框填一个 `.gbc` 目录路径点「加载」。**路径不存在也行** —— 会得到一棵空树,
-  「保存」时再创建目录和文件(从零新建)。
-- **历史**:用过的目录记在浏览器 localStorage,路径框有下拉补全。
-- **子项编辑**:名称结尾带 `/` 即文件夹(实时切换),否则文件。底部常驻一条灰色空白子项,
-  一输入就转正;把某条的名称+说明都清空再失焦,它变灰即删除。
+## 完整文档 / Full docs
 
-## 格式
+Web 编辑器用法、意图 CLI(`gbc_doc.py`)、把 CLI 包成 skill、以及 gbc.md 三段式写法,见 /
+For web-editor usage, the intent CLI (`gbc_doc.py`), wrapping it as a skill, and how to write gbc.md, see:
 
-- `# 意图` / `# 内部约束` / `# 文件` —— 三个 H1 段(意图 / 可选内部约束 / 条目清单)。
-- `# 文件` 下的 `## name` —— H2 子项;结尾带 `/` 是子文件夹,不带是文件。
-- 子文件夹条目的描述 == 该子文件夹自己的 `# 意图`(单一源)。约束只活在本地,不冒泡到父节点。
-- 三段各写什么(意图=身份、内部约束=义务与规则、文件=条目)+ spec-first:见
-  [docs/intent-editor-and-skills.md](../../docs/intent-editor-and-skills.md)。
-
-## 范围(v1)
-
-- 读真树 → 编辑(意图 / 约束 / 子项) → 写回 gbc.md 往返。
-- 「谁依赖我」依赖关系暂不纳入树。
-- 保存只**写**,不删盘上文件;删条目=不再生成它,旧文件需手工/经 git 清理。用 `git diff` 复核写回结果。
+- 中文:[../../docs/intent-editor-and-skills.md](../../docs/intent-editor-and-skills.md)
+- English: [../../docs/intent-editor-and-skills_EN.md](../../docs/intent-editor-and-skills_EN.md)

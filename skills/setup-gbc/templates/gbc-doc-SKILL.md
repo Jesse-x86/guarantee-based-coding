@@ -44,4 +44,4 @@ differently from each referrer, whereas a `[[ ]]` ref is one canonical string pe
 HTTP routes, and ADR links don't need `[[ ]]`.)
 
 Settle the intent and align with your human first, then implement against it. Fuller guidance is in
-the GBC tool repo's `docs/intent-editor-and-skills.md`.
+the GBC tool repo's `docs/intent-editor-and-skills_EN.md`.

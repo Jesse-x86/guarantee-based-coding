@@ -1,6 +1,6 @@
 # Guarantee-Based Coding (GBC)
 
-**与其让 AI 更聪明地理解代码，不如让代码更笨也能被安全修改。**
+**与其指望 AI 更聪明，不如让再笨的 agent 也改不坏你的代码。**
 
 **English version: [README_EN.md](./README_EN.md)**
 
@@ -161,6 +161,29 @@ GBC 提供两组集成点，CLI 与 MCP 皆可：
 
 GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent 工作流**——把 [docs/for-agents.md](./docs/for-agents.md) 交给你的 agent 即可上手。
 
+## 🎬 演示
+
+项目内置了一个交互式 Demo Runner，用真实的 GBC 门禁演示「弱测试 vs 强测试」的对比效果：
+
+```bash
+pip install -r demo/requirements.txt
+python demo/run_demo.py
+```
+
+弹出菜单后选择要运行的剧本：
+
+| 剧本 | 演示什么 |
+|------|----------|
+| `config-service-bad-test` | **出生即绿拒之门外**——测试有 bug，登记时当场被拒 |
+| `config-service-strong` | **门禁成功拦截**——强测试覆盖所有路径，改坏后亮 RED |
+| `config-service-weak` | **门禁没拦住**——弱测试只测一条路径，改坏后仍是 GREEN |
+
+每个剧本会逐步展示：源码 → 测试代码 → 登记保证 → 模拟破坏性修改 → 门禁结果，全部是真实执行（Runner 通过 MCP 启动 GBC server 真正跑 pytest）。
+
+> 💡 **更自然的体验**：如果你已经有一个 coding agent（Cursor、Pi、Claude Code 等），直接把 [demo/EXAMPLE.md](./demo/EXAMPLE.md) 交给它，对它说「按这个走一遍」——你的 agent 会**亲自**操作 GBC 工具，一边改代码一边跑门禁，你在旁边看着它一步步演示。
+
+详见 [demo/](./demo/) 目录。
+
 ## 和现有方案的对比
 
 | | 上下文优化方案 (Cursor, Aider) | 完整 Agent 方案 (Devin, OpenHands) | GBC |
@@ -190,20 +213,19 @@ GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent
 - **实时门控**：不是 CI 里事后跑的，而是 agent 修改代码时的准入条件
 - **用户自管**：GBC 不管理测试文件本身，只管理元数据和运行
 
-## 当前状态
+## 路线图
 
-🚧 **早期开发阶段**
+🚧 **当前：Python 原型验证**
 
 - [x] 核心保证注册 / 验证 / 更新 / 注销机制（具名保证 id、多对一、退休保护、反查）
 - [x] 多语言 executor 配置
 - [x] 原子文件写入 + 备份机制
 - [x] CLI 接口
 - [x] MCP 接口
-- [x] 示例项目（dogfood:AIGameGen，进行中）
+- [x] Demo Runner（交互式演示系统，对比弱测试 vs 强测试的门禁效果）
 - [x] 使用文档（[docs/](./docs/)）
-- [ ] 真正的测试一下 CLI 接口和核心代码
 - [ ] 完整测试覆盖
-- [ ] PyPI 发布
+- [ ] **TypeScript 重写**，发布到 npm
 
 ## 联系
 

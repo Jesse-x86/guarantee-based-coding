@@ -33,4 +33,32 @@ conventions you'll follow, including how to write references and how to move/ren
 > project's environment and language — switch projects and it naturally needs reconfiguring. That's
 > why it's a re-runnable skill rather than a one-time install.
 
-Once onboarded, [manual.md](./manual.md) covers how to change code safely under GBC in full.
+## ③ Before you touch code: don't let guarantees rot into fake safety
+
+Setup wires the tools in — it can't stop you from making them lie. A guarantee only
+protects what it can actually catch, and a handful of moves quietly turn it into theater.
+The full trap list is in [manual.md §7–8](./manual_EN.md), and [demo/EXAMPLE.md](../demo/EXAMPLE.md)
+walks a runnable version of exactly this — its *strong* vs *weak* scenarios show one guarantee
+catching, then silently missing, the same non-null→null break. These three are worth carrying
+in your head from day one, because they're the ones that fail *silently*:
+
+- **A guarantee test must be able to go red.** The deadliest failure isn't a missing test —
+  it's a test whose fixture only ever walks the happy path, so it stays green even after the
+  behavior breaks. A "non-empty" guarantee whose fixture can never produce empty is guarding
+  nothing. Give the fixture a way to produce the bad value (empty / None / exception /
+  duplicate) and confirm the test actually goes red when the promise is violated. Narrow ≠ soft.
+- **Promote the behavior you actually depend on.** Non-null, non-empty, raises-on-X, ordering,
+  idempotence — these are behavior, not signature, and a free symbol dependency has no test
+  guarding them. The classic silent crash: an upstream weakens "non-null" to "maybe null" and a
+  downstream hits a NoneType — because non-null was never named. (Still default to free symbol
+  deps; just don't leave a *behavioral* one unnamed.)
+- **When a guarantee goes red, restore it or announce it — never loosen the test.** Relaxing or
+  retiring a test to turn red green silently downgrades a real guarantee into fake safety.
+  Breaking is allowed; breaking quietly is not — a red means either put the behavior back, or
+  make every dependent adapt.
+
+Smell test, every time you register a dependency or a guarantee: *"If the behavior I care about
+broke right now, would a test actually go red?"* If no, you have a symbol dependency pretending
+to be a guarantee, or a happy-path fixture pretending to be a test. Fix that first.
+
+Once onboarded, [manual.md](./manual_EN.md) covers how to change code safely under GBC in full.
