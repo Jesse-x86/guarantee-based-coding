@@ -36,6 +36,21 @@ bash {{WRAPPER_PATH}} <command> [args...]
   (obligations and rules). The test is "is this identity (→ intent) or a rule (→ constraints)".
 - **`# 文件` (Files)** = subfolders (name ends in `/`) and code files, one line of role each.
 
+The three sections are **visibility scopes** — when intent-vs-constraints is unclear, ask "who needs
+to know this?": intent = what an outsider needs (public contract); constraints = what all internal
+files coordinate on and outsiders don't (package-private); a file entry = what only that file needs
+(private). Use it mainly to catch **internal detail leaking up into intent** — impl base
+(Pydantic vs dataclass), disk layout, internal mechanism belong in constraints/file entries, not intent.
+
+**Write the current state + prohibitions, never a diff against the past.** gbc.md is the *current*
+contract. Keep out: **stage/version words** (`MVP`/`v0`/`for now` — stage is a global fact, lives in
+one place, not per folder); **roadmap/wishes** (`will grow into…`, `leaves room to swap the backend`
+— delete or move to an ADR; re-tensing `will X` → `aims to X` is lipstick); **migration narration**
+(`no longer uses X`, `changed to Y` — either a ghost → delete and state the present, or a regression
+guard → rewrite as a positive `never X` prohibition). The *only* legitimate past-reference is an
+**explicitly labeled historical note** (`historical fact` / `legacy-compat`), labeled so it isn't
+misread as current.
+
 **Reference code with `[[project-relative-path]]`.** When prose points at a code file or symbol,
 write `[[app/core/models/game.py]]` or `[[app/core/models/game.py:GameSpec]]` — a path from the
 repo root, in `[[ ]]`. Don't use `../` relative paths: they break when either side moves and read
