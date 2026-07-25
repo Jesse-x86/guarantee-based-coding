@@ -160,11 +160,12 @@ Call a read-only tool or two:
 
 **Role default (top-level agent).** These manuals and the operating rules that `setup-gbc`
 injects assume **you are the top-level agent**: preferred default is plan → align intent →
-dispatch subagents (each brief carries sliced gbc.md **intent and internal constraints**) →
-gate via GBC tools (MCP by default — do not hand-run the underlying test runner). Planning and
-implementation in one agent is fine for small changes; day-to-day coding is not the default role
-of the top-level agent. Projects onboarded via `setup-gbc` get the full write-up in their
-instruction file — treat that block as the living workflow.
+dispatch subagents (each brief carries sliced gbc.md **intent and internal constraints**, a
+**writable target file**, and **read-only everywhere else**) → subagent self-verifies → **you**
+run the final gate via GBC tools (MCP by default — do not hand-run the underlying test runner).
+Planning and implementation in one agent is fine for small changes; day-to-day coding is not the
+default role of the top-level agent. Projects onboarded via `setup-gbc` get the full write-up in
+their instruction file — treat that block as the living workflow.
 
 **Two layers of contract.** ① **Intent** (gbc.md): architectural truth, the highest contract,
 **owned and approved by a human**; you can only draft it. ② **Guarantee**: a **named behavior** a
@@ -183,23 +184,29 @@ unique per provider.
 **Each change has two phases, and the order matters — don't jump straight to code the moment you've
 thought through the architecture:**
 
-1. **Architecture phase (draft first, only land once settled).** Take the **entire** gbc.md delta
-   this change involves as a **draft** (text) and hand it to a human to discuss and revise; only
-   **once it's settled** land it through the gbc-doc skill and run `check` to confirm it's clean.
-   The skill only lands approved content. **Landed gbc.md = the spec you implement.** (Intent being
-   a human's call is by GBC's design; in the normal case this is the recommended flow.)
-2. **Implementation phase (machine-gated).** Implement in dependency **topological order** (do the
-   depended-upon first). For each file:
-   - Read the approved gbc.md + the interfaces you depend on → write the implementation.
-   - Work out "which of its **behaviors** do I depend on":
-     - Only depend on the signature / symbol existing → `add_dependency(provider, consumer, symbol)`
-       (free).
-     - Depend on a concrete **behavior** (non-empty, exception semantics…) → if it hits an existing
-       guarantee, `add_dependency(..., guarantee_id=...)` to reuse it; if not, **write a _narrow_
-       test first**, then `create_guarantee(...)`.
-   - Run `verify_provider` / `verify_guarantee`; this step holds only when it's all green.
-   - If mid-implementation you find the **intent itself** needs to change → go back to the
-     architecture phase, re-draft and settle, don't silently drift.
+1. **Architecture phase (draft first; default install requires explicit human approval).** On a
+   new human demand, take the **entire** gbc.md delta as a **draft** (text), check it with the
+   human, and land it through gbc-doc **only after explicit approval**; then `check` that it is
+   clean. **Landed gbc.md = the spec you implement.** Setup ships this confirmation rule **in**
+   the operating rules / instruction block by default. If the human dislikes the friction, they
+   may ask the agent to **delete that line** from the instruction file — afterward the agent
+   simply does **not see** a rule that forces intent confirmation, and may act more on its own.
+   That is allowed; with no human watching intent landings, **silent architectural drift risk rises**.
+   While the line is still present, do not invent a private bypass: either the instruction contains
+   the rule (confirm) or the human removed it (absent).
+2. **Implementation phase (machine-gated).** Prefer one **subagent per target file** (writable
+   writable list in the brief; everything else **read-only**). Topological order (depended-upon
+   first). Implementing agent:
+   - Read the approved scope (brief / gbc.md) + interfaces → write the implementation.
+   - Behaviors you depend on or newly expose: free `add_dependency` for signature-only; for real
+     behavior, **proactively write a narrow test and `create_guarantee` / attach** (reuse when
+     possible). Unregistered behavioral deps = not done.
+   - **Self-verify** with `verify_provider` / `verify_guarantee` via GBC tools only (not the bare
+     runner).
+   - Intent wrong mid-flight → stop, return to architecture phase; no silent drift.
+3. **Final acceptance (top-level).** After subagents return, the top-level / architecture agent
+   runs affected guarantees again via GBC tools. Do not skip this just because a subagent reported
+   green.
 
 **One small discipline for narrow tests:** assert the **promise**, not the **implementation**. Write
 `assert r is not None`, not `== some exact value`; write `with pytest.raises(X)`, not a fight over
@@ -215,7 +222,10 @@ Knowing these up front saves you some detours:
 | Easy trap | Do this instead |
 |---|---|
 | Hand-editing `gbc.md` or `*.json` under `.gbc/**` | gbc.md goes through the gbc-doc skill; dependencies/guarantees go through gbc MCP |
-| Jumping to code right after thinking through the architecture | Draft gbc.md first → human approves → then implement in topological order |
+| Jumping to code right after thinking through the architecture | Draft gbc.md → human approves (default) → topological implement; drop the confirm line only if the human asks to remove it from instructions |
+| Subagent rewrites half the tree "while here" | Brief lists writable target file(s); all else read-only |
+| Skipping top-level verify because the subagent said green | Subagent self-verifies; top-level still final-gates |
+| Landing gbc.md without a human look (while confirm rule is still in instructions) | Explicit approval first; or human deleted the confirm rule on purpose |
 | Tests asserting an exact return value (`== "<html>..."`) | Assert the promise: non-empty / type / raises |
 | Naming a guarantee for every dependency | Default to free symbol dependencies; **only** upgrade behavior dependencies, and lazily |
 | Retiring a guarantee that still has dependents | Migrate/fix the dependents first (`retire` will refuse) |

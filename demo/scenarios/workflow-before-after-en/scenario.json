@@ -1,0 +1,75 @@
+{
+  "name": "Before vs after setup: solo-agent drift vs rules-injected planning",
+  "project": "workflow-mini",
+  "delay": 1.2,
+  "steps": [
+    {
+      "type": "say",
+      "text": "A workflow scenario — listen for how the agent *thinks* and *acts*.\n\nMini project: `llm_client/` is for model calls only; `config/` is for settings I/O.\nOne human demand:\n\n> \"Chat needs an API key — wire it up.\"\n\nFirst: the common path *before* GBC — one main agent that just codes."
+    },
+    {
+      "type": "show",
+      "file": "llm_client/client.py",
+      "highlight": "only a chat() stub today",
+      "desc": "As-is: LLM client, no config reads."
+    },
+    {
+      "type": "say",
+      "text": "[Before · main agent] On it. Chat needs a key… keys usually live in the env. Fastest is to read it next to client — one less file to open."
+    },
+    {
+      "type": "say",
+      "text": "[Before · main agent] (imagined edit — we do not really patch the tree)\nI'd drop this into `llm_client/client.py`:\n\n  import os\n  def chat(prompt):\n      key = os.environ[\"OPENAI_API_KEY\"]  # drive-by env read\n      ...\n\nNobody made me check what this folder is allowed to own. If chat runs, I ship.\n\nOutcome: config I/O quietly landed in the LLM package — architecture convention broken while everything still looked green."
+    },
+    {
+      "type": "say",
+      "text": "— cut — same demand, project already onboarded with setup-gbc —"
+    },
+    {
+      "type": "show",
+      "file": "instruction-excerpt.md",
+      "highlight": "excerpt setup-gbc injects into the instruction file",
+      "desc": "System / project instructions now carry GBC operating rules: top-level plans, intent confirm by default, subagent single-file write / else read-only, guarantees via GBC register + accept."
+    },
+    {
+      "type": "say",
+      "text": "[After · top-level] Instructions say I plan by default — I do not open `client.py` first.\nRead the relevant `.gbc/**/gbc.md` files for `llm_client` and `config`."
+    },
+    {
+      "type": "show",
+      "file": ".gbc/llm_client/gbc.md",
+      "highlight": "constraint: no config I/O here",
+      "desc": "Intent layer already forbids config/secret loading inside the LLM folder."
+    },
+    {
+      "type": "show",
+      "file": ".gbc/config/gbc.md",
+      "highlight": "config reads live here",
+      "desc": "Settings and secrets belong under config/."
+    },
+    {
+      "type": "say",
+      "text": "[After · top-level] No gbc.md edit required — key loading already belongs in config; chat should take a key argument.\nIf we *did* need to change gbc.md, default install says: draft → **explicit human approval** → only then gbc-doc land.\n(That confirm line ships in instructions. If the human finds it noisy and asks me to **delete** it, afterward I simply **do not see** a must-confirm rule — more autonomy, higher silent-drift risk.)\nThis task leaves gbc.md alone; skip landing and dispatch."
+    },
+    {
+      "type": "say",
+      "text": "[After · top-level → subagent brief]\n\n```\nWritable: config/settings.py\nRead-only: llm_client/** and everything else (read OK, no drive-by rewrites)\nSliced from gbc.md:\n  - config: settings/secrets load here; no LLM calls\n  - llm_client: LLM calls only; no config I/O; callers inject secrets\nTask: implement load_api_key() -> str (non-empty); narrow test + create_guarantee; self-verify via GBC tools\nForbidden: os.environ inside llm_client\nexecutor: the name registered for this project; never bare pytest\n```\n\nOptional second brief: writable `llm_client/client.py` only — chat takes api_key; config stays read-only."
+    },
+    {
+      "type": "say",
+      "text": "[After · subagent · config] Brief received. Only `settings.py`. Implement `load_api_key()`, add `tests/test_load_api_key.py` (non-empty / errors if missing), then MCP `create_guarantee` + in-scope `verify_*`. Hand back."
+    },
+    {
+      "type": "say",
+      "text": "[After · subagent · llm_client] Only `client.py` signature — key from args. No new env reads. Behavioral dep on config → `add_dependency` (attach guarantee if one exists). Verify scope, return."
+    },
+    {
+      "type": "say",
+      "text": "[After · top-level · final acceptance] Subagent green is not enough. I re-run affected guarantees through GBC tools.\nGreen → ship. Red → `who_depends_on` / fix — never loosen tests to fake the gate.\n\nVersus before: the same demand does not stuff `os.environ` into `llm_client/`. Not a smarter model — instruction + gbc.md + brief boundaries block the \"convenient\" drift *before* the keystroke."
+    },
+    {
+      "type": "say",
+      "text": "This scene deliberately skips live edits: it shows **thinking and process**. Hard gates → `config-service-strong` / `*-en`.\nAfter install, the operating rules block in the project instruction file is the source of truth — same story as this narration."
+    }
+  ]
+}

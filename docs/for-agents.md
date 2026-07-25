@@ -34,12 +34,16 @@ Run the `setup-gbc` skill inside the **working project** and it walks you throug
 usually within one session. It registers the gbc MCP server, a test executor, a `gbc-doc` intent
 skill, and drops GBC's operating rules into the project's instruction file.
 
-Those rules assume **you are the top-level agent**: preferred default is plan → align intent →
-dispatch subagents (with sliced `gbc.md` intent **and** internal constraints in each brief) →
-gate via GBC tools (MCP by default — never hand-run the underlying test runner). Planning and
-implementation in one agent is allowed for small changes; day-to-day coding is not the default
-role of the top-level agent. After onboarding, treat the block in the instruction file as the
-living workflow — including `[[ ]]` references, refactor tools, and how to move/rename safely.
+Those rules assume **you are the top-level agent**: preferred default is plan → align intent
+(default install **requires explicit human approval** before landing gbc.md; if your human asks
+you to delete that line from the instruction file, the rule simply disappears from your context
+and autonomy goes up — drift risk too) → dispatch subagents (brief = sliced intent **and**
+internal constraints, **writable target file(s)**, everything else **read-only**) → subagent
+self-verifies and registers guarantees for new behavior → **you** final-gate via GBC tools (MCP
+by default — never hand-run the underlying test runner). Planning and implementation in one agent
+is allowed for small changes; day-to-day coding is not the default role of the top-level agent.
+After onboarding, treat the block in the instruction file as the living workflow — including
+`[[ ]]` references, refactor tools, and how to move/rename safely.
 
 > Why once per project? GBC points at the working project, and the test executor follows that
 > project's environment and language — switch projects and it naturally needs reconfiguring. That's

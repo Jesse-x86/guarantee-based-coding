@@ -25,47 +25,66 @@ handed to subagents.
    check whether the change belongs there). Prefer plain file reads of those docs. Use `tree`
    only when you need a one-shot architecture overview at the start of a large task — not as the
    entry ritual for every edit. Context should stay scoped to the change, not the whole project.
-2. **Settle intent first** with your human when the architecture is not already settled; once it
-   is settled, it *is* the spec. Edit gbc.md only through `gbc-doc`.
+2. **New human demand → align intent before code.** If the change needs new or updated gbc.md,
+   draft the delta and **check it with your human**; land it through `gbc-doc` only after they
+   **explicitly approve**. **Shipped default: this confirmation line is present.** If your human
+   dislikes the friction, they may ask you to **remove this requirement from the instruction
+   file** — then you simply will not see a rule that forces intent confirmation, and you may act
+   more autonomously. That is allowed; understand that with no human watching intent landings,
+   **silent architectural drift risk goes up**. You should not re-invent a private "bypass flag"
+   while the line is still here: either the rule is in your instructions (confirm) or the human
+   deleted it (absent).
 3. **Dispatch in dependency order** (providers before dependents). Prefer subagents for
    implementation.
 4. **Every subagent brief must carry the duty scope** (this is the token-saving move — do not
    send the whole `.gbc` tree):
-   - paths it may touch
+   - **target path(s) it may write** — prefer **one primary file** per subagent task
+   - that **other files are read-only** unless the brief explicitly lists them as writable
    - the **sliced** intent **and** internal constraints (and file-entry lines that apply) from the
      relevant gbc.md — paste them into the prompt; do not say only “go read `.gbc`”
    - what it may change / must not cross
    - this project's executor name (`{{EXECUTOR_NAME}}`) and that **all guarantee runs go through
      GBC tools (MCP by default; or the project's skill/CLI entry if that is how GBC was wired) —
      never `pytest` / the test runner by hand**
-   - that any behavior it comes to depend on must be registered before the task is “done”
-5. **Gate after they return.** Run affected guarantees **via GBC tools only**. On red, use
-   `who_depends_on` / `list_provides` / `list_depends_on` to see what broke and who cares — on
-   green, do not burn tokens pulling the graph. If intent itself was wrong, re-align; do not let
-   implementation quietly rewrite architecture.
+   - that when it writes behavior worth depending on, it must **author a narrow test and register
+     the guarantee** (and any behavioral dep) before the task is “done”
+5. **Final acceptance after they return.** Subagents should self-verify their scope; **you** run
+   affected guarantees again **via GBC tools only** as the architecture-level acceptance. On red,
+   use `who_depends_on` / `list_provides` / `list_depends_on` to see what broke and who cares —
+   on green, do not burn tokens pulling the graph. If intent itself was wrong, re-align; do not
+   let implementation quietly rewrite architecture.
 
 ### What to hand a subagent (implementation contract)
 
 Subagents should **not** re-pull the architecture graph; the brief already carries their scope.
 They:
 
-1. Implement inside the brief's paths and constraints.
-2. As soon as they rely on another module's **behavior** (not only its signature), register it
-   while the work is still open: free symbol dependency for signature-only; named guarantee +
-   narrow test when a real behavior is on the line. **Do not finish a task with silent, unregistered
-   behavioral deps.** Prefer reusing an existing guarantee when it already covers the need.
-3. Run affected guarantees **only through GBC tools** (MCP default; skill/CLI if that is the
-   install). Do **not** invoke the underlying test runner yourself — hand-running makes it too
-   easy to “fix” a test to green and hollow out the gate.
-4. On red: restore the behavior or escalate to the top-level agent so dependents can adapt.
+1. **Focus on the target file** (single-file edit by default). Paths outside the writable list are
+   **read-only** — you may read them for context; do not "while I'm here" rewrite them.
+2. Implement inside the brief's paths and constraints.
+3. When the code you write exposes a **behavior others will rely on** (or you rely on another
+   module's behavior, not only its signature): **proactively write a narrow test and register it
+   with GBC** (`create_guarantee` / `add_dependency` as appropriate) before calling the task done.
+   Free symbol deps for signature-only; named guarantee + test for real behavior. Prefer reusing an
+   existing guarantee when it already covers the need. **Silent unregistered behavioral deps = not
+   done.**
+4. **Self-verify** affected guarantees in scope **only through GBC tools** (MCP default; skill/CLI
+   if that is the install). Do **not** invoke the underlying test runner yourself — hand-running
+   makes it too easy to “fix” a test to green and hollow out the gate.
+5. On red: restore the behavior or escalate to the top-level agent so dependents can adapt.
    **Never loosen or retire a test just to turn red green.**
-5. If the **intent** is wrong mid-flight: stop and return to the top-level agent; no silent drift.
-6. Moves/renames go through `refactor_file` / `refactor_func` / `rename_guarantee`. Afterward:
+6. If the **intent** is wrong mid-flight: stop and return to the top-level agent; no silent drift.
+7. Moves/renames go through `refactor_file` / `refactor_func` / `rename_guarantee`. Afterward:
    fix imports, move tests + `update_guarantee(test=...)`, then `enable_guarantee` each disabled
    id.
 
+**Acceptance split.** Subagent: verify own scope before returning. Top-level (architecture) agent:
+final gate on the change after dispatch returns. Do not skip the top-level pass just because the
+subagent reported green.
+
 If the top-level agent implements without a subagent, the same implementation contract applies
-to it — only the dispatch step is skipped.
+to it — only the dispatch step is skipped; it still self-verifies, and intentional multi-step
+work still ends with a conscious final verify.
 
 ### Convenience rules (both roles)
 
@@ -98,7 +117,7 @@ them back, so they can't rot silently.
 | Read relevant `gbc.md` | Top-level while planning; subagent only if the brief is incomplete for its folder |
 | `tree` | Top-level architecture overview — not every edit |
 | `who_depends_on` / `list_provides` / `list_depends_on` | After a red gate (or when deliberately breaking a guarantee) |
-| `gbc-doc` | Only compliant write path for gbc.md |
+| `gbc-doc` | Only compliant write path for gbc.md; land only after human approval while that rule is in your instructions |
 | Guarantee CRUD + `verify_*` (MCP default) | Register and run gates — never the bare test runner |
 
 **One small habit.** Narrow tests assert the **promise**, not the **implementation** —

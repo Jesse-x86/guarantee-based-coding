@@ -13,6 +13,29 @@ You'll barely lift a finger — hand it to your coding agent. Pick whoever you a
 
 Prefer to do it by hand, or to understand each step: [docs/manual_EN.md](./docs/manual_EN.md) (the manual / detailed reference).
 
+## 🎬 Try the demo first
+
+Almost zero setup. The menu lists Chinese and English scenarios.
+
+```bash
+pip install -r demo/requirements.txt
+python demo/run_demo.py
+```
+
+| Scenario | What it shows |
+|----------|----------------|
+| `config-service-strong` / `*-en` | **Gate catches** — strong test covers the edge path; RED after the break |
+| `config-service-weak` / `*-en` | **Gate misses** — weak test only covers the productive path; stays GREEN |
+| `config-service-bad-test` / `*-en` | **Born-green refuse** — buggy test rejected at registration |
+| `workflow-before-after` / `*-en` | **Before GBC vs after setup** — solo main-agent drift vs injected rules, intent approval, subagent brief, register + accept |
+
+Gate scenarios are live MCP + pytest. Workflow scenarios are a narrative of how the agent thinks and acts.
+
+> **Hand to your agent**: [demo/EXAMPLE.md](./demo/EXAMPLE.md) (ZH) / [demo/EXAMPLE_EN.md](./demo/EXAMPLE_EN.md) (EN) — “walk through this”.
+
+See [demo/](./demo/).
+
+
 ## The Problem
 
 The core failure mode of coding agents (Cursor, Aider, Devin, etc.) isn't writing wrong code — wrong code can be retried. The real problem is **silently breaking implicit assumptions in existing code**.
@@ -160,29 +183,6 @@ GBC provides two sets of integration points, available via both CLI and MCP:
 Context size depends on the number of guarantees for the current file, **not on overall project size**.
 
 GBC offers **both CLI and MCP** interfaces, plus a **recommended agent workflow** — just hand [docs/for-agents.md](./docs/for-agents.md) to your agent to get started.
-
-## 🎬 Demo
-
-The project includes an interactive Demo Runner that contrasts "weak test vs strong test" with real GBC gating:
-
-```bash
-pip install -r demo/requirements.txt
-python demo/run_demo.py
-```
-
-Select a scenario from the menu:
-
-| Scenario | What it demonstrates |
-|----------|---------------------|
-| `config-service-bad-test` | **Born-green rejection** — a buggy test is refused at registration |
-| `config-service-strong` | **Gate intercepts** — strong test covers all paths, shows RED after break |
-| `config-service-weak` | **Gate misses** — weak test covers only one path, stays GREEN after break |
-
-Each scenario walks through: source code → test code → guarantee registration → simulated breaking change → gating result. Everything is live (the Runner launches GBC MCP server and runs real pytest).
-
-> 💡 **Better with your agent**: If you already use a coding agent (Cursor, Pi, Claude Code, etc.), just hand it [demo/EXAMPLE.md](./demo/EXAMPLE.md) and say "follow this". Your agent will **operate GBC tools itself** — editing code, running gates, explaining as it goes — while you watch the live walkthrough.
-
-See [demo/](./demo/) for details.
 
 ## Comparison with Existing Approaches
 

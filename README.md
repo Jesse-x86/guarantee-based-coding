@@ -13,6 +13,29 @@
 
 想亲自动手、或弄清每一步:[docs/manual.md](./docs/manual.md)(手动 / 详细文档)。
 
+## 🎬 先看演示
+
+几乎零配置就能跑；菜单里中/英剧本都有。
+
+```bash
+pip install -r demo/requirements.txt
+python demo/run_demo.py
+```
+
+| 剧本 | 演示什么 |
+|------|----------|
+| `config-service-strong` / `*-en` | **门禁拦住**——强测试覆盖 edge path，改坏后 RED |
+| `config-service-weak` / `*-en` | **门禁没拦住**——弱测试只盖 productive path，改坏后仍 GREEN |
+| `config-service-bad-test` / `*-en` | **出生即绿拒登**——测试本身有 bug，登记当场失败 |
+| `workflow-before-after` / `*-en` | **装 GBC 前 vs 装到位后**——主 agent 直接写会如何漂；注入 rules 后如何规划、批意图、派 subagent、登记保证并验收 |
+
+每个门禁剧本都是真跑 MCP + pytest。工作流剧本偏「agent 怎么想、怎么做」的叙事对照。
+
+> **交给 agent 走读**：[demo/EXAMPLE.md](./demo/EXAMPLE.md)（中）/ [demo/EXAMPLE_EN.md](./demo/EXAMPLE_EN.md)（英）——对它说「按这个走一遍」。
+
+详见 [demo/](./demo/)。
+
+
 ## 问题
 
 Coding agents（Cursor, Aider, Devin 等）的核心失败模式不是写错代码——写错可以重试。真正的问题是**静默地破坏已有代码的隐含假设**。
@@ -160,29 +183,6 @@ GBC 提供两组集成点，CLI 与 MCP 皆可：
 上下文大小取决于当前文件的 guarantee 数量，**与项目整体规模无关**。
 
 GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent 工作流**——把 [docs/for-agents.md](./docs/for-agents.md) 交给你的 agent 即可上手。
-
-## 🎬 演示
-
-项目内置了一个交互式 Demo Runner，用真实的 GBC 门禁演示「弱测试 vs 强测试」的对比效果：
-
-```bash
-pip install -r demo/requirements.txt
-python demo/run_demo.py
-```
-
-弹出菜单后选择要运行的剧本：
-
-| 剧本 | 演示什么 |
-|------|----------|
-| `config-service-bad-test` | **出生即绿拒之门外**——测试有 bug，登记时当场被拒 |
-| `config-service-strong` | **门禁成功拦截**——强测试覆盖所有路径，改坏后亮 RED |
-| `config-service-weak` | **门禁没拦住**——弱测试只测一条路径，改坏后仍是 GREEN |
-
-每个剧本会逐步展示：源码 → 测试代码 → 登记保证 → 模拟破坏性修改 → 门禁结果，全部是真实执行（Runner 通过 MCP 启动 GBC server 真正跑 pytest）。
-
-> 💡 **更自然的体验**：如果你已经有一个 coding agent（Cursor、Pi、Claude Code 等），直接把 [demo/EXAMPLE.md](./demo/EXAMPLE.md) 交给它，对它说「按这个走一遍」——你的 agent 会**亲自**操作 GBC 工具，一边改代码一边跑门禁，你在旁边看着它一步步演示。
-
-详见 [demo/](./demo/) 目录。
 
 ## 和现有方案的对比
 
