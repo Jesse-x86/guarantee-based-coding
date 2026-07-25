@@ -1,0 +1,15 @@
+# Normalize line endings to LF in the repo.
+# Lets contributors on any OS work without spurious CRLF/LF diffs.
+* text=auto eol=lf
+
+# Scripts must never get CRLF — it breaks the shebang line.
+*.sh text eol=lf
+
+# Binary assets — don't touch their bytes.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.zip binary
