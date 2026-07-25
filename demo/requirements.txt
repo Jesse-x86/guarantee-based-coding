@@ -1,9 +1,10 @@
-# GBC Demo Runner 依赖
-# 安装: pip install -r demo/requirements.txt
-#
-# 注意: 本 runner 通过 MCP server 与 GBC 通信，不依赖 GBC 主库代码。
-#       主库环境（Python/TS/其他）变化时，只要 MCP server 接口不变，
-#       runner 无需修改。
+# GBC Demo Runner dependencies
+# Install: pip install -r demo/requirements.txt
+
+# Note: this runner talks to GBC only through the MCP server — it does not
+# import the main GBC library. As long as the MCP tool interface is stable,
+# the runner does not need changes when the main library's language/env changes.
 
 rich>=13.0
 typer>=0.9
+pytest>=7.0

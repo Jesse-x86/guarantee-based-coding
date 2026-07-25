@@ -1,23 +1,22 @@
-"""测试：get_config() 永不为 None —— 故意写错的测试。
+"""Tests: get_config() never returns None — deliberately wrong test.
 
-这个测试的 productive path（第18行）是正确的，
-但 edge path（第19行）断言了一个错误的值：
-get_config("nonexistent") 实际返回 ""，测试却期待 "default"。
+The productive path (port) is correct, but the edge path asserts the wrong
+value: get_config("nonexistent") actually returns "", the test expects "default".
 """
 
 from config_loader import ConfigLoader
 
 
 def test_get_config_never_returns_none():
-    """验证 get_config 不返回 None —— 但写错了！
+    """get_config does not return None — but the second assert is wrong.
 
-    productive path 是对的：port 存在，返回 "8080"，不为 None。
-    但 edge path 断言错误的值——期待 "default"，实际返回 ""。
+    Productive path is fine: port exists, returns "8080", not None.
+    Edge path asserts the wrong value — expects "default", actual is "".
     """
     loader = ConfigLoader({"port": "8080"})
 
-    # ✅ 正确：存在的 key 不为 None
+    # correct: present key is not None
     assert loader.get_config("port") is not None
 
-    # ❌ 错误！get_config("nonexistent") 返回 ""，不是 "default"
+    # wrong! get_config("nonexistent") returns "", not "default"
     assert loader.get_config("nonexistent") == "default"

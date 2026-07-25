@@ -1,124 +1,135 @@
 # GBC Interactive Demo (for Agents)
 
-**你是人类** → 把本文交给你的 coding agent，对它说："按这个走一遍，每步停一下解释给我听。"
+**You are human** → hand this doc to your coding agent and say: "Walk through this step by step; pause and explain after each step."
 
-**你是 agent** → 你好！你的任务是用 GBC 工具做一次交互式演示，让人类看到它怎么工作。
-三步场景：强测试拦截破坏 → 弱测试没拦住 → 错误测试被出生即绿拒绝。
-每做完一步停下来解释，等人类确认再继续。
+**You are an agent** → Hi. Your job is an interactive GBC demo so your human can see how it works.
+Three scenes: strong test catches a break → weak test misses it → a bad test is refused at
+born-green. Pause after each step, explain, wait for confirmation before continuing.
 
-## 前置：确保 GBC 可用
+## Prep: make sure GBC is available
 
-先确认 GBC 的 MCP server 已经接入了。如果还没有：
+Confirm the GBC MCP server is wired in. If not:
 
-1. 人类已经 clone 了 `guarantee-based-coding` 仓。找它。
-2. `pip install -r requirements.txt`（装进合适的 Python 环境）。
-3. 把 `serve.py` 注册为 MCP server（入口是仓根的 `serve.py`，Python 用上一步的环境）。
+1. Your human has cloned the `guarantee-based-coding` repo. Find it.
+2. `pip install -r requirements.txt` into a suitable Python environment.
+3. Register `serve.py` as an MCP server (entry is the repo-root `serve.py`, interpreter from step 2).
 
-> 详细说明见 [docs/for-agents.md](../docs/for-agents.md)。
+> Details: [docs/for-agents.md](../docs/for-agents.md).
 
-你需要这些 MCP 工具：`create_guarantee`、`add_dependency`、`verify_provider`、`upsert_executor`。
+Tools you need: `create_guarantee`, `add_dependency`, `verify_provider`, `upsert_executor`.
 
-演示素材：
-- 项目源码（只读，不要修改）：`demo/projects/config-service/`
-- 测试文件（只读）：`demo/scenarios/<name>/tests/`
+Demo assets:
+- Project source (read-only — do not edit): `demo/projects/config-service/`
+- Tests (read-only): `demo/scenarios/<name>/tests/`
 
-## Workspace 管理
+## Workspace management
 
-演示**不会**直接操作 `demo/` 下的源文件——那些是只读的模板。每一步都在一个独立的 workspace 里进行。
+The demo **never** edits files under `demo/` directly — those are read-only templates. Every step
+runs in a separate workspace.
 
-你自己选一个合适的位置作为 workspace（比如本仓的 `demo/workspace/` 或系统临时目录），按下面的规则操作：
+Pick a workspace location (e.g. this repo's `demo/workspace/` or a temp dir) and follow:
 
-- **第一轮（第二步）开始前**：创建 workspace 目录，从 `demo/projects/config-service/` **复制** `config_loader.py` 和 `server.py` 到 workspace 根目录。从 `demo/scenarios/config-service-strong/tests/` **复制** `test_never_none.py` 到 `workspace/tests/`（手动建目录）。
-- **第二轮（第三步）开始前**：**清空**整个 workspace，重新复制源码（同上），但测试文件改为从 `demo/scenarios/config-service-weak/tests/` 复制。
-- **第三轮（第四步）开始前**：**清空** workspace，重新复制源码（同上），测试文件改为从 `demo/scenarios/config-service-bad-test/tests/` 复制。
+- **Round 1 (step 2)**: create the workspace; **copy** `config_loader.py` and `server.py` from
+  `demo/projects/config-service/` to the workspace root. **Copy**
+  `demo/scenarios/config-service-strong/tests/test_never_none.py` into `workspace/tests/` (create the dir).
+- **Round 2 (step 3)**: **wipe** the workspace, re-copy the source, but take the test from
+  `demo/scenarios/config-service-weak/tests/`.
+- **Round 3 (step 4)**: **wipe** again, re-copy source, test from
+  `demo/scenarios/config-service-bad-test/tests/`.
 
-> ⚠️ 所有源文件都是**复制**进来的，不要移动——`demo/` 下的模板文件必须保持原样不动。
-
----
-
-## 第一步：带人类看代码
-
-打开 `config_loader.py`，向人类解释：
-
-> `get_config(key)` 保证永远返回 str——找不到 key 时返回 `""`，不是 `None`。
-> 第 21 行的 `.get(key, "")` 就是这条承诺。
-
-打开 `server.py`：
-
-> 下游 `int(get_config("port"))` 信任它永不为 None。如果某天违约返回 None，`int(None)` → TypeError。
-
-**等人类确认看懂了。**
+> All sources are **copied**, never moved — templates under `demo/` must stay untouched.
 
 ---
 
-## 第二步：强测试 — 门禁拦截（核心演示）
+## Step 1: show the code
 
-用 `demo/scenarios/config-service-strong/tests/test_never_none.py`。
+Open `config_loader.py` and explain:
 
-打开这个测试文件，向人类解释：
+> `get_config(key)` always returns str — missing keys yield `""`, not `None`.
+> The `.get(key, "")` line is that promise.
 
-> 两条断言：`get_config("port")` 不为 None **且** `get_config("nonexistent")` 也不为 None。
-> 第二条覆盖了 edge path——这就是"强"的地方。
+Open `server.py`:
 
-然后操作：
+> Downstream `int(get_config("port"))` trusts it never to be None. If it ever returned None,
+> `int(None)` → TypeError.
 
-1. **注册 executor**：`upsert_executor`，config_name=`demo-pytest`。command 用当前 Python 的 `-m pytest {file} -x -q`，cwd 和 PYTHONPATH 指向 workspace。
-
-2. **登记保证**：`create_guarantee`，provider=`config_loader.py`，id=`config_loader.get_config.never_none`，用刚复制的测试文件。**这步会当场跑测试——把 PASS 展示出来，解释"出生即绿"。**
-
-3. **登记依赖**：`add_dependency`，consumer=`server.py`，provider=`config_loader.py`，symbol=`get_config`，guarantee_id=`config_loader.get_config.never_none`。
-
-4. **初始验证**：`verify_provider config_loader.py` → 应该 **GREEN**。解释："所有保证通过，代码健康。"
-
-5. **模拟破坏**：把 `config_loader.py` 的 `.get(key, "")` 改成 `.get(key)`（删掉默认值）。**展示 diff**，解释："找不到 key 时现在返回 None——一次看起来很无害的简化。"
-
-6. **再验证**：`verify_provider config_loader.py` → 应该 **RED**！
-
-向人类解释：
-> `get_config("nonexistent")` 现在返回 None，强测试第二条断言抓住了它。门禁亮红——在真实项目中，agent 会收到阻止信号，不会让这个改动落地。
-
-**🎉 这就是 GBC 的核心。等人类消化完。**
+**Wait until your human follows.**
 
 ---
 
-## 第三步：弱测试 — 对比，门禁失效
+## Step 2: strong test — the gate catches (core demo)
 
-清理 workspace，重新复制源码。这次用 `demo/scenarios/config-service-weak/tests/test_never_none.py`。
+Use `demo/scenarios/config-service-strong/tests/test_never_none.py`.
 
-打开测试文件，向人类解释：
+Open the test and explain:
 
-> 只有一条断言：`get_config("port")` 不为 None。没测 `get_config("nonexistent")`。
-> missing key 分支完全不在测试覆盖范围内。
+> Two asserts: `get_config("port")` is not None **and** `get_config("nonexistent")` is not None.
+> The second covers the edge path — that is what makes it "strong".
 
-重复第二步的全部操作（注册 executor → 登记保证 → 登记依赖 → 初始验证 → 同样的改动 → 再验证）。
+Then:
 
-最后一步应该显示 **GREEN**——测试通过了，改动被放行！
+1. **Register executor**: `upsert_executor`, config_name=`demo-pytest`. command = current Python
+   `-m pytest {file} -x -q`, cwd and PYTHONPATH point at the workspace.
+2. **Register guarantee**: `create_guarantee`, provider=`config_loader.py`,
+   id=`config_loader.get_config.never_none`, with the copied test. **This runs the test on the spot —
+   show PASS and explain born-green.**
+3. **Register dependency**: `add_dependency`, consumer=`server.py`, provider=`config_loader.py`,
+   symbol=`get_config`, guarantee_id=`config_loader.get_config.never_none`.
+4. **Baseline verify**: `verify_provider config_loader.py` → should be **GREEN**.
+   "All guarantees pass; the code is healthy."
+5. **Simulate the break**: change `config_loader.py` `.get(key, "")` → `.get(key)` (drop the default).
+   **Show the diff** — "missing keys now return None — a "harmless" simplify."
+6. **Re-verify**: `verify_provider config_loader.py` → should be **RED**.
 
-向人类解释：
-> 弱测试只测了 productive path。`get_config("port")` 永远返回 `"8080"`，测试永远过。
-> 但 `get_config("nonexistent")` 已经悄悄从 `""` 变成了 `None`——只是测试不知道。
+Explain:
+> `get_config("nonexistent")` is now None; the strong test's second assert catches it. The gate
+> goes red — in a real project the agent would be blocked from landing this change.
+
+**That is the core of GBC. Let it sink in.**
+
+---
+
+## Step 3: weak test — contrast, the gate misses
+
+Wipe the workspace and re-copy source. This time use
+`demo/scenarios/config-service-weak/tests/test_never_none.py`.
+
+Open the test:
+
+> One assert only: `get_config("port")` is not None. No `get_config("nonexistent")`.
+> The missing-key branch is outside coverage.
+
+Repeat all of step 2 (executor → guarantee → dependency → baseline → same edit → re-verify).
+
+The last step should stay **GREEN** — the edit helped over the gate.
+
+Explain:
+> The weak test only covers the productive path. `get_config("port")` always returns `"8080"`, so
+> the test always passes. Meanwhile `get_config("nonexistent")` quietly went from `""` to `None` —
+> the test never looked.
 >
-> **结论：GBC 的门禁能拦住的，是你测试覆盖到的边界。**
+> **Takeaway: the gate is only as strong as the test coverage.**
 
 ---
 
-## 第四步（可选）：错误测试 — 出生即绿拒绝
+## Step 4 (optional): bad test — born-green refuses
 
-清理 workspace，用 `demo/scenarios/config-service-bad-test/tests/test_never_none.py`（故意写错的测试——断言 `get_config("nonexistent") == "default"`，但代码返回 `""`）。
+Wipe the workspace. Use `demo/scenarios/config-service-bad-test/tests/test_never_none.py`
+(deliberately wrong — asserts `get_config("nonexistent") == "default"`, code returns `""`).
 
-直接调 `create_guarantee`——它应该**失败**，返回 pytest 断言错误。
+Call `create_guarantee` directly — it should **fail** with a pytest assertion error.
 
-向人类解释：
-> GBC 不仅在修改代码后拦截破坏——它在**登记时**就要求测试本身是对的。
-> 一条连注册都过不了的保证，根本不可能进入系统。这是第一道防线。
+Explain:
+> GBC does not only catch breaks after edits — it requires the test itself to be honest at
+> **registration**. A guarantee that cannot register never enters the system. First line of defense.
 
 ---
 
-## 结束
+## Wrap-up
 
-向人类总结三条：
-1. **GBC = 把测试变成门禁**：改代码 → 跑保证 → 全绿才放行
-2. **门禁的强度 = 测试的强度**：弱测试覆盖不到的边界，门禁也看不见
-3. **出生即绿**：保证登记的那一刻就跑测试——坏的测试进不来
+Three points for your human:
+1. **GBC turns tests into a gate**: edit → run guarantees → land only when green
+2. **Gate strength = test strength**: untested edges are blind to the gate
+3. **Born-green**: the test runs the moment a guarantee is registered — bad tests never enter
 
-然后告诉人类：想在自己的项目里用 GBC → 把 [docs/for-agents.md](../docs/for-agents.md) 交给你就行。
+Then: want GBC in your own project → hand them [docs/for-agents.md](../docs/for-agents.md).

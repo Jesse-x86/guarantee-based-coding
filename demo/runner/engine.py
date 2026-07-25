@@ -1,4 +1,4 @@
-"""执行引擎：读 JSON 剧本 → 搭建 workspace → 启动 MCP → 逐步执行。"""
+"""Execution engine: read JSON scenario → set up workspace → start MCP → run steps."""
 
 import json
 import os
@@ -13,7 +13,7 @@ from .tools import tool_say, tool_edit, tool_gbc, tool_show
 
 
 def _copy_tree_content(src: Path, dst: Path) -> None:
-    """递归复制目录内容，只复制文件内容不碰元数据/permission。"""
+    """Recursively copy directory contents (file bytes only, no metadata/permissions)."""
     os.makedirs(str(dst), exist_ok=True)
     for item in os.listdir(src):
         s = src / item
@@ -25,7 +25,7 @@ def _copy_tree_content(src: Path, dst: Path) -> None:
 
 
 class ScenarioRunner:
-    """读取并执行一个演示剧本。通过 MCP server 与 GBC 通信。"""
+    """Load and run a demo scenario. Talks to GBC via an MCP server."""
 
     def __init__(self, demo_root: Path, gbc_root: Path):
         self.demo_root = demo_root
@@ -34,41 +34,41 @@ class ScenarioRunner:
         self._mcp: McpClient | None = None
 
     # ==================================================================
-    # 公共入口
+    # public entry
     # ==================================================================
 
     def run(self, scenario_name: str) -> dict:
-        """运行指定 scenario。"""
+        """Run the named scenario."""
         scenario_dir = self.demo_root / "scenarios" / scenario_name
         if not scenario_dir.is_dir():
-            raise FileNotFoundError(f"Scenario 不存在: {scenario_dir}")
+            raise FileNotFoundError(f"Scenario not found: {scenario_dir}")
 
         scenario = self._load_scenario(scenario_dir / "scenario.json")
         scenario["_name"] = scenario_name
 
         title(scenario["name"])
 
-        # 1. 搭建 workspace
+        # 1. workspace
         self._setup_workspace(scenario)
 
-        # 2. 启动 MCP server
+        # 2. MCP server
         self._start_mcp()
 
         try:
-            # 3. 注册 executor（幂等）
+            # 3. register executor (idempotent)
             self._register_demo_executor()
 
-            # 4. 逐步执行
+            # 4. steps
             return self._run_steps(scenario)
         finally:
             self._stop_mcp()
 
     # ==================================================================
-    # MCP 生命周期
+    # MCP lifecycle
     # ==================================================================
 
     def _start_mcp(self) -> None:
-        """启动 GBC MCP server，通过 stdio 通信。"""
+        """Start the GBC MCP server over stdio."""
         serve_py = str(self.gbc_root / "serve.py")
         self._mcp = McpClient([sys.executable, serve_py, str(self.workspace)])
 
@@ -82,7 +82,7 @@ class ScenarioRunner:
     # ==================================================================
 
     def _setup_workspace(self, scenario: dict) -> None:
-        """清空并重建 workspace。"""
+        """Wipe and rebuild the workspace."""
         project_name = scenario["project"]
         scenario_name = scenario["_name"]
 
@@ -93,7 +93,7 @@ class ScenarioRunner:
             shutil.rmtree(self.workspace)
         self.workspace.mkdir(parents=True)
 
-        # 源码
+        # source
         for item in project_dir.iterdir():
             dst = self.workspace / item.name
             if item.is_dir():
@@ -109,7 +109,7 @@ class ScenarioRunner:
                 shutil.rmtree(dst_tests)
             _copy_tree_content(scenario_tests, dst_tests)
 
-        # .gbc（若有预置）
+        # .gbc (if pre-seeded)
         scenario_gbc = scenario_dir / ".gbc"
         if scenario_gbc.is_dir():
             dst_gbc = self.workspace / ".gbc"
@@ -118,7 +118,7 @@ class ScenarioRunner:
             _copy_tree_content(scenario_gbc, dst_gbc)
 
     # ==================================================================
-    # 步骤执行
+    # step execution
     # ==================================================================
 
     def _run_steps(self, scenario: dict) -> dict:
@@ -163,7 +163,7 @@ class ScenarioRunner:
                 self.workspace,
                 step["file"],
                 step["edits"],
-                step.get("desc", "编辑文件"),
+                step.get("desc", "edit file"),
             )
             return {"type": "edit", "ok": True}
 
@@ -185,14 +185,14 @@ class ScenarioRunner:
             }
 
         else:
-            raise ValueError(f"未知 step 类型: {typ}")
+            raise ValueError(f"unknown step type: {typ}")
 
     # ==================================================================
-    # Executor 注册（通过 MCP）
+    # executor registration (via MCP)
     # ==================================================================
 
     def _register_demo_executor(self) -> None:
-        """通过 MCP 注册 demo-pytest executor（幂等）。"""
+        """Register the demo-pytest executor via MCP (idempotent)."""
         assert self._mcp is not None
         self._mcp.call_tool("upsert_executor", {
             "config_name": "demo-pytest",
@@ -211,7 +211,7 @@ class ScenarioRunner:
         })
 
     # ==================================================================
-    # 工具
+    # helpers
     # ==================================================================
 
     def _load_scenario(self, path: Path) -> dict:

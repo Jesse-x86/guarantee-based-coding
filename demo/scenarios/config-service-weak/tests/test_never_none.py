@@ -1,18 +1,18 @@
-"""测试：get_config() 永不为 None —— 弱测试版。
+"""Tests: get_config() never returns None — weak version.
 
-本测试只能测 productive path（get_config("port") 有值），
-无法捕获 "missing key 分支返回 None" 的回归。
+Only covers the productive path (get_config("port") has a value), so it
+cannot catch a regression where the missing-key branch returns None.
 """
 
 from config_loader import ConfigLoader
 
 
 def test_get_config_never_returns_none():
-    """验证 get_config 不返回 None。
+    """get_config does not return None.
 
-    弱点：只测了一个 100% 存在的 key。
-    当上游把 .get(key, "") 改成 .get(key)（missing key 返回 None），
-    这个测试仍然通过——因为 port 在字典里。
+    Weakness: only asserts a key that is always present.
+    If upstream changes .get(key, "") to .get(key) (missing key → None),
+    this test still passes — because port is in the dict.
     """
     loader = ConfigLoader({"port": "8080"})
     result = loader.get_config("port")

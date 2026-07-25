@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
-"""GBC Demo Runner — 交互式菜单 / 命令行双模式。
+"""GBC Demo Runner — interactive menu / CLI dual mode.
 
-用法：
-  python demo/run_demo.py                          # 无参数 → 弹出菜单选择
-  python demo/run_demo.py run config-service-strong  # 直接跑指定剧本
-  python demo/run_demo.py list                        # 仅列出所有剧本
+Usage:
+  python demo/run_demo.py                             # no args → menu
+  python demo/run_demo.py run config-service-strong   # run a named scenario
+  python demo/run_demo.py list                        # list scenarios
 
-依赖：pip install -r demo/requirements.txt
+Deps: pip install -r demo/requirements.txt
 """
 
 import json
 import sys
 from pathlib import Path
 
-# 项目根
+# repo root
 _gbc_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_gbc_root))
 
 
 def _find_scenarios() -> list[dict]:
-    """扫描 demo/scenarios/ 下所有有效剧本。"""
+    """Scan demo/scenarios/ for valid scenario dirs."""
     scenarios_dir = _gbc_root / "demo" / "scenarios"
     found: list[dict] = []
     if not scenarios_dir.is_dir():
@@ -42,7 +42,7 @@ def _find_scenarios() -> list[dict]:
 
 
 def _interactive_menu() -> None:
-    """弹出 Rich 表格菜单，用户选号执行。"""
+    """Rich table menu; user picks a number to run."""
     from rich.console import Console
     from rich.table import Table
     from rich.panel import Panel
@@ -53,8 +53,8 @@ def _interactive_menu() -> None:
 
     console.print()
     console.print(Panel(
-        Text("GBC Demo Runner — 选择要运行的演示剧本\n"
-             "直接执行: [bold]python demo/run_demo.py run <name>[/bold]",
+        Text("GBC Demo Runner — pick a scenario\n"
+             "direct: [bold]python demo/run_demo.py run <name>[/bold]",
              style="white"),
         title="🛡️  Guarantee-Based Coding",
         title_align="left",
@@ -62,14 +62,14 @@ def _interactive_menu() -> None:
     ))
 
     if not scenarios:
-        console.print("[yellow]没有找到可用剧本。[/yellow]")
+        console.print("[yellow]No scenarios found.[/yellow]")
         return
 
-    table = Table(title="可用演示剧本")
+    table = Table(title="Available scenarios")
     table.add_column("#", style="dim", justify="right", width=3)
-    table.add_column("名称", style="cyan bold")
-    table.add_column("项目", style="white")
-    table.add_column("描述", style="dim")
+    table.add_column("Name", style="cyan bold")
+    table.add_column("Project", style="white")
+    table.add_column("Description", style="dim")
 
     for i, s in enumerate(scenarios, 1):
         table.add_row(str(i), s["name"], s["project"], s["desc"])
@@ -81,17 +81,17 @@ def _interactive_menu() -> None:
     while True:
         try:
             choice = console.input(
-                f"[bold cyan]输入序号运行[/bold cyan] [dim](1-{n})[/dim] [bold cyan]或 q 退出:[/bold cyan] "
+                f"[bold cyan]Number to run[/bold cyan] [dim](1-{n})[/dim] [bold cyan]or q to quit:[/bold cyan] "
             ).strip()
             if choice.lower() in ("q", "quit", "exit", ""):
-                console.print("[dim]退出。[/dim]")
+                console.print("[dim]Bye.[/dim]")
                 return
             idx = int(choice) - 1
             if 0 <= idx < n:
                 break
-            console.print(f"[red]请输入 1 到 {n} 之间的数字。[/red]")
+            console.print(f"[red]Enter a number between 1 and {n}.[/red]")
         except ValueError:
-            console.print("[red]请输入数字。[/red]")
+            console.print("[red]Enter a number.[/red]")
         except (KeyboardInterrupt, EOFError):
             console.print()
             return
@@ -101,7 +101,7 @@ def _interactive_menu() -> None:
 
 
 def _run(name: str) -> None:
-    """直接跑一个剧本。"""
+    """Run one scenario by name."""
     from demo.runner.engine import ScenarioRunner
 
     runner = ScenarioRunner(
@@ -118,7 +118,7 @@ def _run(name: str) -> None:
 
 
 def _print_summary(result: dict) -> None:
-    """终场总结。"""
+    """End-of-run summary line."""
     from rich.console import Console
     console = Console()
     console.print()
@@ -127,16 +127,16 @@ def _print_summary(result: dict) -> None:
         last = gbc_v[-1]
         stdout = last.get("stdout", "")
         if "GREEN" in stdout:
-            console.print("[bold yellow]⚠️  最终验证通过 — 测试未能拦截回归。[/bold yellow]")
+            console.print("[bold yellow]⚠️  Final verify green — test did not catch the regression.[/bold yellow]")
         elif "RED" in stdout:
-            console.print("[bold green]🛡️  最终验证失败 — 门禁成功拦截了回归！[/bold green]")
+            console.print("[bold green]🛡️  Final verify red — gate caught the regression.[/bold green]")
         else:
-            console.print("[bold yellow]⚠️  无法判定验证结果。[/bold yellow]")
+            console.print("[bold yellow]⚠️  Could not judge verify result.[/bold yellow]")
     console.print()
 
 
 # ================================================================
-# 入口
+# entry
 # ================================================================
 
 if __name__ == "__main__":
@@ -146,16 +146,16 @@ if __name__ == "__main__":
         from rich.console import Console
         from rich.table import Table
         console = Console()
-        table = Table(title="可用演示剧本")
-        table.add_column("名称", style="cyan")
-        table.add_column("描述", style="dim")
+        table = Table(title="Available scenarios")
+        table.add_column("Name", style="cyan")
+        table.add_column("Description", style="dim")
         for s in _find_scenarios():
             table.add_row(s["name"], s["desc"])
         console.print(table)
     elif sys.argv[1] == "run" and len(sys.argv) >= 3:
         _run(sys.argv[2])
     else:
-        print("用法: python demo/run_demo.py                  # 交互菜单")
-        print("      python demo/run_demo.py list              # 列出剧本")
-        print("      python demo/run_demo.py run <scenario>    # 直接跑")
+        print("Usage: python demo/run_demo.py                  # interactive menu")
+        print("       python demo/run_demo.py list              # list scenarios")
+        print("       python demo/run_demo.py run <scenario>    # run one")
         sys.exit(1)

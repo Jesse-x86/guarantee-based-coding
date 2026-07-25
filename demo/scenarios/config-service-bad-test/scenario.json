@@ -1,43 +1,43 @@
 {
-  "name": "错误测试：出生即绿拒之门外",
+  "name": "Bad test: born-green refuses registration",
   "project": "config-service",
   "delay": 1.5,
   "steps": [
     {
       "type": "say",
-      "text": "这次的场景：测试本身是错的。来看看 GBC 的「出生即绿」机制怎么处理。"
+      "text": "This time the test itself is wrong. Watch how born-green handles it."
     },
     {
       "type": "show",
       "file": "config_loader.py",
-      "highlight": "第21行：.get(key, \"\") — 找不到 key 返回 \"\"",
-      "desc": "Provider 代码：get_config(\"nonexistent\") 返回 \"\"（空字符串）。这是正确的行为。"
+      "highlight": "line 21: .get(key, \"\") — missing key → \"\"",
+      "desc": "Provider: get_config(\"nonexistent\") returns \"\" (empty string). Correct behavior."
     },
     {
       "type": "show",
       "file": "tests/test_never_none.py",
-      "highlight": "第19行：断言错误 — 期待 \"default\"，实际返回 \"\"",
-      "desc": "注意第 19 行！测试写的是 assert get_config(\"nonexistent\") == \"default\"，但代码实际返回 \"\"。这个测试跑不过。"
+      "highlight": "line 22: wrong assert — expects \"default\", actual is \"\"",
+      "desc": "Look at line 22: it expects get_config(\"nonexistent\") == \"default\", but the code returns \"\". This test cannot pass."
     },
     {
       "type": "say",
-      "text": "现在试着登记这条保证。GBC 会立刻跑测试——如果测试过不了，连登记都不让。这就是「出生即绿」。"
+      "text": "Try to register the guarantee. GBC runs the test immediately — if it fails, registration is refused. That is born-green."
     },
     {
       "type": "gbc",
       "tool": "create_guarantee",
-      "desc": "登记保证 — 但测试写错了，会被拒绝",
+      "desc": "Register guarantee — wrong test; should be refused",
       "args": {
         "provider": "config_loader.py",
         "id": "config_loader.get_config.never_none",
-        "desc": "get_config(key) 永远返回 str，绝不返回 None。",
+        "desc": "get_config(key) always returns str, never None.",
         "test": "tests/test_never_none.py::test_get_config_never_returns_none",
         "executor": "demo-pytest"
       }
     },
     {
       "type": "say",
-      "text": "看到了吗？GBC 拒绝登记这条保证。\n\n「出生即绿」意味着：你连一条跑不过的保证都注册不了，更别提后续带着这个 bug 去修改代码了。GBC 不仅在改代码后拦住破坏——它在登记时就确保你的测试本身就是对的。\n\n这就是保证系统的第一道防线：不是「改了之后发现坏了」，而是「坏的测试根本进不来」。"
+      "text": "Registration refused.\n\nBorn-green means you cannot install a failing guarantee, let alone ship changes on top of it. GBC does not only catch breaks after edits — it also ensures the test is honest at registration time.\n\nFirst line of defense: not \"break then discover\", but \"a bad test never enters the graph\"."
     }
   ]
 }
