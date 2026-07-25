@@ -1,4 +1,4 @@
-"""Rich rendering: chat bubbles, diffs, command output."""
+"""Rich 渲染：聊天气泡、diff、命令输出。"""
 
 import difflib
 from typing import List
@@ -12,11 +12,11 @@ console = Console()
 
 
 def say_bubble(text: str, *, avatar: str = "🤖", color: str = "cyan") -> None:
-    """Render a chat bubble as if an LLM were speaking."""
+    """渲染模拟 LLM 说话的聊天气泡。"""
     console.print()
     body = Panel(
         Text(text, style="white"),
-        title=f"{avatar} LLM",
+        title=f"{avatar} LLM 说",
         title_align="left",
         border_style=color,
         padding=(0, 1),
@@ -27,7 +27,7 @@ def say_bubble(text: str, *, avatar: str = "🤖", color: str = "cyan") -> None:
 def render_diff(
     file: str, old_lines: List[str], new_lines: List[str], desc: str
 ) -> None:
-    """Render a unified-diff panel, mimicking an LLM edit tool."""
+    """渲染 unified diff 面板，模拟 LLM 编辑工具的输出。"""
     diff_lines = list(
         difflib.unified_diff(
             old_lines,
@@ -38,9 +38,10 @@ def render_diff(
         )
     )
     if not diff_lines:
-        console.print(f"[dim]({file}: no change)[/dim]")
+        console.print(f"[dim]（{file} 无变化）[/dim]")
         return
 
+    # 给 diff 行加颜色
     styled = []
     for line in diff_lines:
         if line.startswith("+++") or line.startswith("---"):
@@ -57,7 +58,7 @@ def render_diff(
     console.print()
     body = Panel(
         "\n".join(styled),
-        title=f"✏️  Edit: {desc}",
+        title=f"✏️  编辑: {desc}",
         title_align="left",
         border_style="yellow",
         padding=(0, 1),
@@ -66,14 +67,14 @@ def render_diff(
 
 
 def render_gbc_start(cmd: List[str], desc: str) -> None:
-    """Render the start of a GBC command."""
+    """渲染 GBC 命令开始。"""
     console.print()
     console.print(f"[bold blue]▸ gbc {' '.join(cmd)}[/bold blue]")
     console.print(f"[dim]  {desc}[/dim]")
 
 
 def render_gbc_result(returncode: int, stdout: str, stderr: str) -> None:
-    """Render a GBC command result."""
+    """渲染 GBC 命令结果。"""
     color = "green" if returncode == 0 else "red"
     status = "PASS" if returncode == 0 else "FAIL"
     console.print(f"[bold {color}]  ── {status} (exit {returncode}) ──[/bold {color}]")
@@ -84,7 +85,7 @@ def render_gbc_result(returncode: int, stdout: str, stderr: str) -> None:
 
 
 def render_file(file: str, content: str, language: str, desc: str, *, highlight: str | None = None) -> None:
-    """Render a source file with syntax highlighting."""
+    """渲染一个文件的源代码（带语法高亮）。"""
     console.print()
     title_text = f"📄 {file}"
     if highlight:
@@ -102,13 +103,13 @@ def render_file(file: str, content: str, language: str, desc: str, *, highlight:
 
 
 def divider() -> None:
-    """Step divider."""
+    """步骤分隔线。"""
     console.print()
     console.print("─" * 60, style="dim")
 
 
 def title(text: str) -> None:
-    """Section title."""
+    """大标题。"""
     console.print()
     console.print(f"[bold magenta]{'=' * 60}[/bold magenta]")
     console.print(f"[bold magenta]  {text}[/bold magenta]")
@@ -117,16 +118,16 @@ def title(text: str) -> None:
 
 
 def summary(weak_passed: bool, strong_passed: bool) -> None:
-    """End-of-run summary (legacy dual-scenario helper)."""
+    """终场总结。"""
     console.print()
     console.print("═" * 60, style="bold white")
     if weak_passed and not strong_passed:
-        console.print("[bold green]  Weak test passed[/bold green]  [dim]|[/dim]  [bold red]Strong test caught it[/bold red]")
+        console.print("[bold green]  弱测试通过[/bold green]  [dim]|[/dim]  [bold red]强测试拦截[/bold red]")
         console.print()
-        console.print("[italic dim]Takeaway: only edges your tests cover can the gate hold.[/italic dim]")
+        console.print("[italic dim]结论：测试覆盖了 edge path，门禁才能守住 edge path。[/italic dim]")
     elif not weak_passed:
-        console.print("[bold yellow]  Weak test also failed (test may be broken)[/bold yellow]")
+        console.print("[bold yellow]  弱测试也未通过（测试可能有问题）[/bold yellow]")
     else:
-        console.print("[bold yellow]  Both scenarios passed (tests may not cover the edit path)[/bold yellow]")
+        console.print("[bold yellow]  两个 scenario 都通过了（测试可能未覆盖改动路径）[/bold yellow]")
     console.print("═" * 60, style="bold white")
     console.print()

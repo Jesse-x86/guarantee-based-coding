@@ -1,0 +1,43 @@
+{
+  "name": "Bad test: born-green refuses registration",
+  "project": "config-service-en",
+  "delay": 1.5,
+  "steps": [
+    {
+      "type": "say",
+      "text": "This time the test itself is wrong. Watch how born-green handles it."
+    },
+    {
+      "type": "show",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key, \"\") — missing key → \"\"",
+      "desc": "Provider: get_config(\"nonexistent\") returns \"\" (empty string). Correct behavior."
+    },
+    {
+      "type": "show",
+      "file": "tests/test_never_none.py",
+      "highlight": "line 22: wrong assert — expects \"default\", actual is \"\"",
+      "desc": "Look at line 22: it expects get_config(\"nonexistent\") == \"default\", but the code returns \"\". This test cannot pass."
+    },
+    {
+      "type": "say",
+      "text": "Try to register the guarantee. GBC runs the test immediately — if it fails, registration is refused. That is born-green."
+    },
+    {
+      "type": "gbc",
+      "tool": "create_guarantee",
+      "desc": "Register guarantee — wrong test; should be refused",
+      "args": {
+        "provider": "config_loader.py",
+        "id": "config_loader.get_config.never_none",
+        "desc": "get_config(key) always returns str, never None.",
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
+        "executor": "demo-pytest"
+      }
+    },
+    {
+      "type": "say",
+      "text": "Registration refused.\n\nBorn-green means you cannot install a failing guarantee, let alone ship changes on top of it. GBC does not only catch breaks after edits — it also ensures the test is honest at registration time.\n\nFirst line of defense: not \"break then discover\", but \"a bad test never enters the graph\"."
+    }
+  ]
+}

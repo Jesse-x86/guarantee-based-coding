@@ -1,4 +1,4 @@
-"""Simulated LLM tools: say / edit (with diff) / gbc (via MCP)."""
+"""模拟 LLM 工具：say / edit（带 diff） / gbc（通过 MCP）。"""
 
 import json
 from pathlib import Path
@@ -15,19 +15,19 @@ from .mcp_client import McpClient
 
 
 def tool_say(text: str) -> None:
-    """Simulated LLM speech."""
+    """模拟 LLM 说话。"""
     say_bubble(text)
 
 
 def tool_show(workspace: Path, file: str, desc: str, *, highlight: str | None = None) -> None:
-    """Show a file with syntax highlighting.
+    """展示一个文件的内容（带语法高亮）。
 
-    highlight: optional line/keyword note for the panel title (not a real highlight).
+    highlight: 可选的高亮行号或关键词（在面板标题中标注，不实际高亮代码）。
     """
     path = workspace / file
     if not path.exists():
         from rich.console import Console
-        Console().print(f"[dim]({file} missing)[/dim]")
+        Console().print(f"[dim]（{file} 不存在）[/dim]")
         return
     content = path.read_text(encoding="utf-8")
     lang = _guess_language(file)
@@ -35,10 +35,10 @@ def tool_show(workspace: Path, file: str, desc: str, *, highlight: str | None = 
 
 
 def tool_edit(workspace: Path, file: str, edits: list[dict], desc: str) -> None:
-    """Simulated precise edit (oldText → newText + unified diff)."""
+    """模拟 LLM 的精确编辑工具（oldText → newText 替换 + unified diff）。"""
     path = workspace / file
     if not path.exists():
-        raise FileNotFoundError(f"edit target missing: {path}")
+        raise FileNotFoundError(f"编辑目标不存在: {path}")
 
     original = path.read_text(encoding="utf-8")
     current = original
@@ -48,7 +48,7 @@ def tool_edit(workspace: Path, file: str, edits: list[dict], desc: str) -> None:
         new_text = e["newText"]
         if old_text not in current:
             raise ValueError(
-                f"oldText not found in {file}."
+                f"oldText 未在 {file} 中找到。"
             )
         current = current.replace(old_text, new_text, 1)
 
@@ -67,13 +67,13 @@ def tool_gbc(
     args: dict[str, Any],
     desc: str,
 ) -> dict[str, Any]:
-    """Call a GBC tool through MCP.
+    """通过 MCP 调用 GBC 工具。
 
     Args:
-        mcp: McpClient instance
-        tool: MCP tool name (e.g. "create_guarantee", "verify_provider")
-        args: keyword args for the tool
-        desc: human-readable description
+        mcp: McpClient 实例
+        tool: MCP 工具名（如 "create_guarantee", "verify_provider"）
+        args: 工具的关键字参数
+        desc: 人类可读的描述
 
     Returns:
         {"returncode": int, "stdout": str, "stderr": str}
@@ -82,7 +82,7 @@ def tool_gbc(
 
     try:
         result_text = mcp.call_tool(tool, args)
-        # Parse result — MCP tool text may be a JSON error
+        # 解析结果——MCP 工具返回的文本可能是 JSON error
         try:
             parsed = json.loads(result_text)
             if isinstance(parsed, dict) and "error" in parsed:
@@ -91,7 +91,7 @@ def tool_gbc(
         except (json.JSONDecodeError, TypeError):
             pass
 
-        # verify_provider returns a JSON object; extract green status + summary
+        # verify_provider 的返回是 JSON 对象，提取 green 状态和摘要
         stdout = result_text
         if tool == "verify_provider":
             try:
@@ -106,22 +106,23 @@ def tool_gbc(
                 )
                 if failed:
                     stdout += f"\nfailed: {', '.join(vdata['failed'])}"
-                    # show raw test output for failures
+                    # 展示失败的测试原始输出
                     results = vdata.get("results", {})
                     for gid in vdata["failed"]:
                         r = results.get(gid, {})
                         detail = (r.get("stderr", "") + "\n" + r.get("stdout", "")).strip()
                         if detail:
-                            # trim long output, keep the tail
+                            # 截断过长的输出，保留关键部分
                             lines = detail.splitlines()
                             if len(lines) > 15:
                                 detail = "\n".join(lines[-12:])
-                                detail = f"...({len(lines) - 12} lines omitted)\n{detail}"
+                                detail = f"...(省略前 {len(lines) - 12} 行)\n{detail}"
                             stdout += f"\n\n── {gid} ──\n{detail}"
             except (json.JSONDecodeError, TypeError):
                 pass
 
         returncode = 0
+        # 检查 stdout 中是否有 RED，或有 failed
         if tool == "verify_provider" and "RED" in stdout:
             returncode = 1
 
@@ -133,7 +134,7 @@ def tool_gbc(
 
 
 def _guess_language(filename: str) -> str:
-    """Guess language from extension for Rich Syntax."""
+    """从扩展名猜语言，给 Rich Syntax 用。"""
     ext = Path(filename).suffix.lower()
     return {
         ".py": "python",

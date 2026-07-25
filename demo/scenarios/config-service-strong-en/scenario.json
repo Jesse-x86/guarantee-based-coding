@@ -1,0 +1,105 @@
+{
+  "name": "Strong test: catches the None regression",
+  "project": "config-service-en",
+  "delay": 1.5,
+  "steps": [
+    {
+      "type": "say",
+      "text": "A tiny config-service project. Let's look at the code."
+    },
+    {
+      "type": "show",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key, \"\") — missing key → \"\", never None",
+      "desc": "Provider: get_config(). Note the \"\" default on .get() — that is how \"never None\" is implemented. Downstream trusts it."
+    },
+    {
+      "type": "show",
+      "file": "server.py",
+      "highlight": "line 16: int(port) — consumes get_config() with no None check",
+      "desc": "Consumer: start_server() does int(get_config(\"port\")) with no guard. If get_config ever returned None, int(None) → TypeError."
+    },
+    {
+      "type": "show",
+      "file": "tests/test_never_none.py",
+      "highlight": "line 23: also asserts a missing key is not None",
+      "desc": "Strong test: asserts get_config(\"port\") (present) and get_config(\"nonexistent\") (missing). Both paths must be non-None. That edge coverage is what catches the regression."
+    },
+    {
+      "type": "say",
+      "text": "Register a GBC guarantee: \"get_config() never returns None\". GBC runs the test immediately — born-green. A failing test is refused at registration."
+    },
+    {
+      "type": "gbc",
+      "tool": "create_guarantee",
+      "desc": "Register guarantee + run test now",
+      "args": {
+        "provider": "config_loader.py",
+        "id": "config_loader.get_config.never_none",
+        "desc": "get_config(key) always returns str, never None. The test asserts both get_config(\"port\") and get_config(\"nonexistent\").",
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
+        "executor": "demo-pytest"
+      }
+    },
+    {
+      "type": "say",
+      "text": "Born-green passed. Now register the dependency: server.py depends on get_config from config_loader.py — specifically the \"never None\" guarantee."
+    },
+    {
+      "type": "gbc",
+      "tool": "add_dependency",
+      "desc": "Register dependency both ways",
+      "args": {
+        "provider": "config_loader.py",
+        "consumer": "server.py",
+        "symbol": "get_config",
+        "guarantee_id": "config_loader.get_config.never_none"
+      }
+    },
+    {
+      "type": "gbc",
+      "tool": "verify_provider",
+      "desc": "Baseline verify — everything healthy",
+      "args": {
+        "provider": "config_loader.py"
+      }
+    },
+    {
+      "type": "say",
+      "text": "Now a \"harmless\" edit: drop the \"\" default from .get(key, \"\"). Missing keys start returning None.\n\nCommon in real projects — someone \"simplifies\" the code and never realizes downstream relies on that behavior."
+    },
+    {
+      "type": "edit",
+      "file": "config_loader.py",
+      "desc": "\"Simplify\": drop .get() default — missing key → None",
+      "edits": [
+        {
+          "oldText": "        # Critical line: the \"\" default is what keeps \"never None\" true\n        return self._config.get(key, \"\")",
+          "newText": "        # \"Simplified\": no default — missing key returns None\n        return self._config.get(key)"
+        }
+      ]
+    },
+    {
+      "type": "show",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key) — default removed!",
+      "desc": "After the edit: .get(key, \"\") became .get(key). Present keys still work; missing keys now return None."
+    },
+    {
+      "type": "say",
+      "text": "Can GBC's gate catch this break?"
+    },
+    {
+      "type": "gbc",
+      "tool": "verify_provider",
+      "desc": "Gate verify — does it catch?",
+      "args": {
+        "provider": "config_loader.py"
+      }
+    },
+    {
+      "type": "say",
+      "text": "Caught.\n\nThe strong test asserts both get_config(\"port\") and get_config(\"nonexistent\"). The edit only breaks the missing-key path (port still returns \"8080\"); the second assertion fails on None.\n\nInsight: GBC can only gate what your tests cover. Edge path covered → edge path guarded."
+    }
+  ]
+}

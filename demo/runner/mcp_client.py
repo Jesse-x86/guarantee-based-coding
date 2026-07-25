@@ -1,7 +1,7 @@
-"""Minimal MCP JSON-RPC stdio client.
+"""最小 MCP JSON-RPC stdio 客户端。
 
-Talks to the GBC MCP server (serve.py) over stdin/stdout.
-Protocol: one JSON message per line, JSON-RPC 2.0.
+与 GBC MCP server（serve.py）通过 stdin/stdout 通信。
+协议：每行一个 JSON 消息，JSON-RPC 2.0。
 """
 
 import json
@@ -11,7 +11,7 @@ from typing import Any
 
 
 class McpClient:
-    """MCP stdio client — spawn a server process, call tools via JSON-RPC."""
+    """MCP stdio 客户端 —— 启动 server 子进程，通过 JSON-RPC 调工具。"""
 
     def __init__(self, server_cmd: list[str]):
         self._id = 0
@@ -28,16 +28,16 @@ class McpClient:
     # ---- public ----
 
     def call_tool(self, name: str, arguments: dict[str, Any]) -> str:
-        """Call an MCP tool; return its result text."""
+        """调用 MCP 工具，返回结果文本。"""
         resp = self._request("tools/call", {"name": name, "arguments": arguments})
-        # MCP result shape: result.content[0].text
+        # MCP 返回格式: result.content[0].text
         content = resp.get("result", {}).get("content", [])
         if content and isinstance(content, list):
             return content[0].get("text", "")
         return json.dumps(resp.get("result", {}))
 
     def close(self) -> None:
-        """Shut down the server subprocess."""
+        """关闭 server 子进程。"""
         try:
             self.proc.stdin.close()
         except OSError:
@@ -51,7 +51,7 @@ class McpClient:
     # ---- internal ----
 
     def _initialize(self) -> None:
-        """MCP handshake: initialize → initialized notification."""
+        """MCP 握手：initialize → initialized notification。"""
         self._request("initialize", {
             "protocolVersion": "2024-11-05",
             "capabilities": {},
@@ -60,31 +60,31 @@ class McpClient:
         self._notify("notifications/initialized")
 
     def _request(self, method: str, params: dict) -> dict:
-        """Send a JSON-RPC request and read the response."""
+        """发 JSON-RPC 请求，收响应。"""
         self._id += 1
         msg = {"jsonrpc": "2.0", "id": self._id, "method": method, "params": params}
         self._send(msg)
         return self._recv()
 
     def _notify(self, method: str, params: dict | None = None) -> None:
-        """Send a JSON-RPC notification (no id, no response)."""
+        """发 JSON-RPC 通知（无 id，无响应）。"""
         msg: dict = {"jsonrpc": "2.0", "method": method}
         if params is not None:
             msg["params"] = params
         self._send(msg)
 
     def _send(self, msg: dict) -> None:
-        """Write one JSON line to the server's stdin."""
+        """写一行 JSON 到 server 的 stdin。"""
         self.proc.stdin.write(json.dumps(msg, ensure_ascii=False) + "\n")
         self.proc.stdin.flush()
 
     def _recv(self) -> dict:
-        """Read one JSON line from the server's stdout."""
+        """从 server 的 stdout 读一行 JSON 响应。"""
         line = self.proc.stdout.readline()
         if not line:
             raise ConnectionError("MCP server closed stdout unexpectedly")
         try:
             return json.loads(line)
         except json.JSONDecodeError:
-            # may be server noise mixed into stdout; try again
+            # 可能是 server 的 stderr 混进来了，尝试继续读
             return self._recv()

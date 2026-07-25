@@ -1,4 +1,4 @@
-"""demo.runner entry: python -m demo.runner <command>"""
+"""demo.runner 入口：python -m demo.runner <command>"""
 
 from .cli import app
 
