@@ -32,8 +32,14 @@ Once done, these four are good for all projects.
 
 Run the `setup-gbc` skill inside the **working project** and it walks you through wiring GBC in —
 usually within one session. It registers the gbc MCP server, a test executor, a `gbc-doc` intent
-skill, and drops GBC's operating rules into the project's instruction file (those rules cover the
-conventions you'll follow, including how to write references and how to move/rename code safely).
+skill, and drops GBC's operating rules into the project's instruction file.
+
+Those rules assume **you are the top-level agent**: preferred default is plan → align intent →
+dispatch subagents (with sliced `gbc.md` intent **and** internal constraints in each brief) →
+gate via GBC tools (MCP by default — never hand-run the underlying test runner). Planning and
+implementation in one agent is allowed for small changes; day-to-day coding is not the default
+role of the top-level agent. After onboarding, treat the block in the instruction file as the
+living workflow — including `[[ ]]` references, refactor tools, and how to move/rename safely.
 
 > Why once per project? GBC points at the working project, and the test executor follows that
 > project's environment and language — switch projects and it naturally needs reconfiguring. That's

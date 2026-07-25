@@ -158,6 +158,14 @@ Call a read-only tool or two:
 
 ## 7. Working under GBC: the workflow
 
+**Role default (top-level agent).** These manuals and the operating rules that `setup-gbc`
+injects assume **you are the top-level agent**: preferred default is plan → align intent →
+dispatch subagents (each brief carries sliced gbc.md **intent and internal constraints**) →
+gate via GBC tools (MCP by default — do not hand-run the underlying test runner). Planning and
+implementation in one agent is fine for small changes; day-to-day coding is not the default role
+of the top-level agent. Projects onboarded via `setup-gbc` get the full write-up in their
+instruction file — treat that block as the living workflow.
+
 **Two layers of contract.** ① **Intent** (gbc.md): architectural truth, the highest contract,
 **owned and approved by a human**; you can only draft it. ② **Guarantee**: a **named behavior** a
 file currently provides and that has downstream dependents; you may evolve it, but breaking it =

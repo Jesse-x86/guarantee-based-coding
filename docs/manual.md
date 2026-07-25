@@ -145,6 +145,12 @@ Commands: show / set-intent / set-constraints / set-file / rm-entry / check / sy
 
 ## 7. 在 GBC 下工作:工作流
 
+**角色默认(顶层 agent)。** 本手册,以及 `setup-gbc` 注入项目的 operating rules,都默认
+**你是顶层 agent**:推荐流程是 规划 → 对齐意图 → 派 subagent(每个 brief 带上裁切好的 gbc.md
+**意图和内部约束**) → 经 GBC 工具门控(默认走 MCP——不要手跑底层测试命令)。小改动可以规划与
+实现一体;日常写代码不是顶层 agent 的默认职责。经 `setup-gbc` 接入的项目会在 instruction file
+里拿到完整写法——以那一段为现行工作流。
+
 **两层契约。** ① **意图**(gbc.md):架构真相,最高契约,**由人类持有并审批**;你只能起草。
 ② **保证**:一个文件当前提供、且有下游依赖方的**具名行为**;你可以演进它,但破坏它 = 你必须让每个依赖方都改好。
 
