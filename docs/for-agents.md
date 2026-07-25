@@ -14,13 +14,19 @@ Two roles you'll use throughout:
 
 Do this once; every project reuses it. This step only touches the **GBC tool repo**.
 
-1. **Find the GBC tool repo.** If you're not sure where it is, ask your human for the path.
+1. **Find the GBC tool repo.** If you're not sure where it is, follow your human's autonomy preference: if they run you autonomous (or their rules say not to keep asking), search the obvious places yourself; if they prefer you ask before acting, ask them for the path.
 2. **Install its dependencies.** It ships a `requirements.txt` — install it into a suitable Python
    environment. Which environment and how is up to you and your human's conventions.
 3. **Install the `setup-gbc` skill.** It's under the GBC tool repo's `skills/setup-gbc/`; install it
    the way you install skills. You'll use it every time you onboard a project.
+4. **Know how `setup-gbc` remembers the repo.** It caches the GBC repo path and the interpreter in
+   `gbc.config.json` next to its `SKILL.md` (`{"gbc_repo": "...", "gbc_interpreter": "..."}`).
+   Rule: file exists and the paths work → use them; file missing or a path stale/wrong → write them
+   back in (one-time burn-in that re-heals whenever it goes stale). So the first time you run
+   `setup-gbc` after installing, it burns the paths in — nothing to do by hand at install, just be
+   aware that's where the path lives.
 
-Once done, these three are good for all projects.
+Once done, these four are good for all projects.
 
 ## ② Each project: run setup-gbc to onboard
 
