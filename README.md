@@ -24,10 +24,10 @@ python demo/run_demo.py
 
 | 剧本 | 演示什么 |
 |------|----------|
-| `config-service-strong` / `*-en` | **门禁拦住**——强测试覆盖 edge path，改坏后 RED |
-| `config-service-weak` / `*-en` | **门禁没拦住**——弱测试只盖 productive path，改坏后仍 GREEN |
-| `config-service-bad-test` / `*-en` | **出生即绿拒登**——测试本身有 bug，登记当场失败 |
-| `workflow-before-after` / `*-en` | **装 GBC 前 vs 装到位后**——主 agent 直接写会如何漂；注入 rules 后如何规划、批意图、派 subagent、登记保证并验收 |
+| `config-service-strong` / `*-en` | **成功拦截**——强测试覆盖边缘路径 (Edge Path)，改坏代码后触发 RED 拦截 |
+| `config-service-weak` / `*-en` | **拦截失败**——弱测试只覆盖正常路径 (Happy Path)，改坏代码后仍为 GREEN |
+| `config-service-bad-test` / `*-en` | **注册即验证 (Born-Green)**——测试本身有 Bug，登记保证时当场拒绝 |
+| `workflow-before-after` / `*-en` | **作业模式对比**——对比集成 GBC 前后的开发逻辑：从「随意修改」到「规划、对齐意图、派发任务、登记保证与最终验收」的流程演进 |
 
 每个门禁剧本都是真跑 MCP + pytest。工作流剧本偏「agent 怎么想、怎么做」的叙事对照。
 
@@ -92,7 +92,7 @@ my-project/
 - **Guarantee**：一条**具名**（全局唯一 id）的行为承诺，对应一个测试 + 一段描述；**多个 consumer 可共享同一条保证**
 - **Executor**：定义如何运行测试的配置（命令模板、工作目录、环境变量等）
 
-依赖边有两级:免费的**符号依赖**（依赖签名/符号存在）与**具名保证依赖**（依赖具体行为）。后者**双向登记**——provider 的 `provides[id].dependents` ⇄ consumer 的 `depends_on[].guarantees`，由工具兜底同步。
+依赖边分为两个层级：轻量级的**符号依赖**（仅依赖签名或符号存在）与强约束的**具名保证依赖**（依赖具体行为）。后者通过反向边机制实现**双向登记**——提供方的 `provides[id].dependents` ⇄ 消费者的 `depends_on[].guarantees`，由工具链确保状态同步。
 
 ### Meta 文件示例
 

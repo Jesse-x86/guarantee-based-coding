@@ -1,7 +1,7 @@
-"""测试：get_config() 永不为 None —— 弱测试版。
+"""
+测试：get_config() 永不为 None —— 弱测试版。
 
-本测试只能测 productive path（get_config("port") 有值），
-无法捕获 "missing key 分支返回 None" 的回归。
+本测试仅覆盖了正常路径（存在键），无法捕获「缺失键时返回 None」的回归问题。
 """
 
 from config_loader import ConfigLoader

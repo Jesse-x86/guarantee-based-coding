@@ -1,7 +1,8 @@
-"""测试：get_config() 永不为 None —— 强测试版。
+"""
+测试：get_config() 永不为 None —— 强测试版。
 
-本测试同时覆盖 productive path 和 edge path（missing key），
-能捕获 "missing key 分支返回 None" 的回归。
+本测试同时覆盖了正常路径（存在键）和边界路径（缺失键），
+能够精准捕获「缺失键时返回 None」的回归问题。
 """
 
 from config_loader import ConfigLoader

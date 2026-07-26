@@ -1,75 +1,75 @@
 {
-  "name": "装前 vs 装后：主 agent 漂移动线 vs 注入 rules 后的规划派工",
-  "project": "workflow-mini",
   "delay": 1.2,
+  "name": "集成前 vs 集成后：作业工作模式对比",
+  "project": "workflow-mini",
   "steps": [
     {
-      "type": "say",
-      "text": "这是一条「工作方式」对照剧本——重点听 agent 怎么想、怎么做。\n\n题材复用一个迷你工程：`llm_client/` 只该放模型调用，`config/` 才放配置读取。\n人类新需求只有一句：\n\n> 「chat 要带 API key——帮我接上。」\n\n先看装 GBC 之前，最常见的主 agent 一体写法。"
+      "text": "这是一个演示「工作方式」变化的剧本。请重点关注 Agent 在集成 GBC 后，思考与行动逻辑的转变。\n\n示例项目非常精简：`llm_client/` 负责模型调用，`config/` 负责读取配置。人类现在提出了一个新需求：\n\n> 「Chat 功能需要读取 API Key，帮我对接一下。」",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "现状：LLM 客户端是一个空桩，尚未接入配置读取逻辑。",
       "file": "llm_client/client.py",
-      "highlight": "眼下只有 chat() 桩",
-      "desc": "现状：LLM 客户端，没有读配置。"
+      "highlight": "目前仅有 chat() 方法的定义",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "【装前 · 主 agent】收到。改 chat 接 key……key 一般在环境变量里，写在 client 旁边最省事，少开一个文件。"
+      "text": "【集成前 · Agent 逻辑】\n\n「收到需求。给 chat 方法接入 API Key……Key 通常在环境变量里，直接在 client 旁边读取最省事，不用多开一个文件看代码。」",
+      "type": "say"
     },
     {
-      "type": "say",
-      "text": "【装前 · 主 agent】（下面是想象中的 diff，不真改库）\n我会直接在 `llm_client/client.py` 里加：\n\n  import os\n  def chat(prompt):\n      key = os.environ[\"OPENAI_API_KEY\"]  # 顺手读 env\n      ...\n\n没人要我先对齐「这个目录能放什么」。自测 chat 能跑就交货。\n\n结果：配置 IO  悄悄进了 LLM 包——架构默契被搅了，当时还全绿。"
+      "text": "【集成前 · Agent 操作】（以下为模拟操作）\n\nAgent 会直接在 `llm_client/client.py` 中注入逻辑：\n\n  import os\n  def chat(prompt):\n      key = os.environ[\"OPENAI_API_KEY\"]  # 随意插入的环境变量读取\n      ...\n\nAgent 没有动力去确认「这个目录是否允许处理配置 IO」。只要功能跑得通，Agent 就会宣告完工。\n\n结果：配置 IO 逻辑悄悄侵入了 LLM 包。原本的架构约定已被破坏，但此时测试依然是全绿的。",
+      "type": "say"
     },
     {
-      "type": "say",
-      "text": "—— 分割线：同一需求，项目已 setup-gbc 装到位 ——"
+      "text": "—— 分割线：同一需求，项目在集成 GBC 并注入规则后 ——",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "项目 Instruction 注入了 GBC 作业守则：顶层负责规划、架构意图修改需人类确认、Subagent 权限受限、所有保证必须明确登记并验证。",
       "file": "instruction-excerpt.md",
-      "highlight": "setup-gbc 注入 instruction 的节选",
-      "desc": "System / 项目 instruction 多了 GBC operating rules：顶层规划、意图默认要人类确认、subagent 单文件可写其余只读、保证经 GBC 登记与验收。"
+      "highlight": "GBC 注入 Instruction 的守则节选",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "【装后 · 顶层】instruction 里写着我是规划默认，不是上来就改 `client.py`。\n先读相关 `.gbc/**/gbc.md`，看 `llm_client` 和 `config` 各自许诺什么。"
+      "text": "【集成后 · 顶层 Agent 逻辑】\n\n「守则要求我以规划者身份行动，不能直接修改 client.py。我需要先查看 .gbc/ 目录下的架构意图（gbc.md），确认 llm_client 和 config 各自的职责边界。」",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "意图层已明确规定：LLM 目录不负责处理配置和密钥加载。",
       "file": ".gbc/llm_client/gbc.md",
-      "highlight": "内部约束：禁止在此做配置 IO",
-      "desc": "意图层已经写明：LLM 目录不负责读配置 / 密钥。"
+      "highlight": "内部约束：禁止在此执行配置 IO 操作",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "密钥与配置加载职责属于 config/ 模块。",
       "file": ".gbc/config/gbc.md",
-      "highlight": "配置读取集中在此",
-      "desc": "密钥/设置加载属于 config/。"
+      "highlight": "配置读取逻辑集中在此处",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "【装后 · 顶层】意图不需要改文件结构——key 加载本就该在 config，chat 只接收传入的 key。\n若有人想改 gbc.md 正文，默认必须先把草案给人类、拿到**显式批准**再 gbc-doc 落库。\n（安装默认就带着这句；人类若嫌烦、让我从 instruction **删掉**这句，删完后我就「看不到」必须确认——可以更自动，但漂移风险自己扛。）\n本次不改 gbc.md，跳过落库，直接派工。"
+      "text": "【集成后 · 顶层 Agent 逻辑】\n\n「现在的架构意图非常清晰，无需修改：Key 加载应在 config 完成，chat 只负责接收传入的参数。我将按此边界派发任务。」\n\n（注：如果要修改 gbc.md，必须严格遵守『起草草案 -> 人类显式批准 -> 落库』的流程，防止架构设计悄然漂移。）",
+      "type": "say"
     },
     {
-      "type": "say",
-      "text": "【装后 · 顶层 → subagent brief】\n\n```\n可写：config/settings.py\n只读：llm_client/** 及其它（可参考，禁止顺手大改）\n从 gbc.md 裁切：\n  - config：配置与密钥加载集中在此；不调 LLM\n  - llm_client：只放 LLM 调用；禁止配置 IO；密钥由调用方注入\n任务：实现 load_api_key() → str（非空）；写窄测试并 create_guarantee；经 GBC 工具自证\n禁止：在 llm_client 里 os.environ\nexecutor：本项目已注册的名字；禁止手跑 pytest\n```\n\n另一个 brief（可第二轮）：可写 `llm_client/client.py`，让 chat 接收 api_key 参数，仍只读 config。"
+      "text": "【集成后 · 顶层 → Subagent 任务简报】\n\n```\n可写路径：config/settings.py\n只读路径：llm_client/ 及其他（仅供参考，禁止修改）\n架构约束：\n  - config：负责配置与密钥加载；禁止调用 LLM\n  - llm_client：仅限 LLM 调用；禁止配置 IO；密钥由调用方注入\n任务：在 config 中实现 load_api_key()；编写测试并登记保证；使用 GBC 工具自证\n```\n\n后续还会派发第二个简报：修改 chat 签名以接收 api_key 参数。",
+      "type": "say"
     },
     {
-      "type": "say",
-      "text": "【装后 · subagent · config】收到 brief。只动 `settings.py`。实现 `load_api_key()`，写 `tests/test_load_api_key.py` 断言非空/缺失时报错，再 MCP：`create_guarantee` + 本范围 `verify_*`。交回顶层。"
+      "text": "【集成后 · Subagent 行为】\n\nSubagent 严格按照简报执行：只动 `settings.py`。实现功能后，编写测试，并通过 MCP 工具调用 `create_guarantee` 登记保证。最后运行 `verify_provider` 自证清白，并将控制权交还顶层。",
+      "type": "say"
     },
     {
-      "type": "say",
-      "text": "【装后 · subagent · llm_client】只改 `client.py` 签名，密钥从参数进。不新开 env 读取。依赖 config 侧行为则 `add_dependency`（有保证就挂上）。本范围 verify 后交回。"
+      "text": "【集成后 · 顶层 · 最终验收】\n\nSubagent 完成工作并不意味着结束。作为顶层，我会再次运行受影响的保证以完成最终门控。全绿则交货，飘红则修补，绝不为了「看上去是绿的」而对测试质量妥协。",
+      "type": "say"
     },
     {
-      "type": "say",
-      "text": "【装后 · 顶层 · 最终验收】subagent 自称绿不算完。我再经 GBC 工具跑受影响保证。\n绿：交货。红：`who_depends_on` / 修，不在门禁上装绿。\n\n对照装前：同需求不会把 `os.environ` 塞进 `llm_client/`——不是模型突然变聪明，是 instruction + gbc.md + brief 边界把「看起来省事」的漂法挡在动笔前。"
+      "text": "对照集成前后的差异：同样的原始需求，环境变量读取不会再被随意塞进 `llm_client/`。这并非因为模型变聪明了，而是 Instruction + gbc.md + 任务边界构成的「力场」，在动笔之前就挡住了由于一时省事而导致的架构破坏。",
+      "type": "say"
     },
     {
-      "type": "say",
-      "text": "这一幕刻意少用真实 edit：要展示的是**思考与流程**。真闸门细节见 `config-service-strong` / `*-en`。\n装机后以项目 instruction 里的 operating rules 为准——和本剧本旁白一致。"
+      "text": "本剧本旨在展示**思考与流程**的变化，而非具体的代码修改细节。具体的自动门控演示，详见 `config-service-strong` 场景。",
+      "type": "say"
     }
   ]
 }

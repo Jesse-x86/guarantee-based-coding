@@ -1,8 +1,9 @@
-"""测试：get_config() 永不为 None —— 故意写错的测试。
+"""
+测试：get_config() 永不为 None —— 故意写错的测试。
 
-这个测试的 productive path（第18行）是正确的，
-但 edge path（第19行）断言了一个错误的值：
-get_config("nonexistent") 实际返回 ""，测试却期待 "default"。
+本测试针对存在键的验证是正确的，但针对缺失键（第 19 行）的断言有误：
+代码实际返回 ""，测试却期待 "default"。
+这演示了 GBC 如何在初始登记阶段拦截错误的测试。
 """
 
 from config_loader import ConfigLoader

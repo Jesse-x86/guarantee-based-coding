@@ -1,105 +1,105 @@
 {
-  "name": "Strong test: catches the None regression",
-  "project": "config-service-en",
   "delay": 1.5,
+  "name": "Strong Test: Catching a None Regression",
+  "project": "config-service-en",
   "steps": [
     {
-      "type": "say",
-      "text": "A tiny config-service project. Let's look at the code."
+      "text": "Let's look at a simple configuration service project and analyze its design.",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "Provider: get_config() method. Note the empty string default on .get()—this implementation ensures the result is 'never None'. Downstream code relies on this guarantee.",
       "file": "config_loader.py",
-      "highlight": "line 21: .get(key, \"\") — missing key → \"\", never None",
-      "desc": "Provider: get_config(). Note the \"\" default on .get() — that is how \"never None\" is implemented. Downstream trusts it."
+      "highlight": "line 21: .get(key, \"\") — returns \"\" on missing key, ensuring no None values",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "Consumer: start_server() calls int(get_config(\"port\")) without a None check. If get_config ever returns None, int(None) will raise a TypeError 💥",
       "file": "server.py",
-      "highlight": "line 16: int(port) — consumes get_config() with no None check",
-      "desc": "Consumer: start_server() does int(get_config(\"port\")) with no guard. If get_config ever returned None, int(None) → TypeError."
+      "highlight": "line 16: int(port) — directly consumes the result, assuming it is never None",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "Strong Test: Verifies both existing keys and missing keys. Both paths are asserted to be non-None. This coverage is key to catching regressions.",
       "file": "tests/test_never_none.py",
-      "highlight": "line 23: also asserts a missing key is not None",
-      "desc": "Strong test: asserts get_config(\"port\") (present) and get_config(\"nonexistent\") (missing). Both paths must be non-None. That edge coverage is what catches the regression."
+      "highlight": "line 23: asserts that even a missing key does not return None",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "Register a GBC guarantee: \"get_config() never returns None\". GBC runs the test immediately — born-green. A failing test is refused at registration."
+      "text": "Register a GBC guarantee: 'get_config() never returns None'. GBC runs the test immediately—this is 'Born-Green'. A failing test will be blocked from registration.",
+      "type": "say"
     },
     {
-      "type": "gbc",
-      "tool": "create_guarantee",
-      "desc": "Register guarantee + run test now",
       "args": {
-        "provider": "config_loader.py",
+        "desc": "get_config(key) always returns a string, never None. The test covers both existing and missing keys.",
+        "executor": "demo-pytest",
         "id": "config_loader.get_config.never_none",
-        "desc": "get_config(key) always returns str, never None. The test asserts both get_config(\"port\") and get_config(\"nonexistent\").",
-        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
-        "executor": "demo-pytest"
-      }
-    },
-    {
-      "type": "say",
-      "text": "Born-green passed. Now register the dependency: server.py depends on get_config from config_loader.py — specifically the \"never None\" guarantee."
-    },
-    {
-      "type": "gbc",
-      "tool": "add_dependency",
-      "desc": "Register dependency both ways",
-      "args": {
         "provider": "config_loader.py",
-        "consumer": "server.py",
-        "symbol": "get_config",
-        "guarantee_id": "config_loader.get_config.never_none"
-      }
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none"
+      },
+      "desc": "Register guarantee and verify immediately",
+      "tool": "create_guarantee",
+      "type": "gbc"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "Baseline verify — everything healthy",
+      "text": "Registration successful. Now define the dependency: server.py depends on get_config from config_loader.py, specifically its 'never None' behavior.",
+      "type": "say"
+    },
+    {
+      "args": {
+        "consumer": "server.py",
+        "guarantee_id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "symbol": "get_config"
+      },
+      "desc": "Register dependency relations",
+      "tool": "add_dependency",
+      "type": "gbc"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "Baseline check — confirming the system is healthy",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "Now a \"harmless\" edit: drop the \"\" default from .get(key, \"\"). Missing keys start returning None.\n\nCommon in real projects — someone \"simplifies\" the code and never realizes downstream relies on that behavior."
+      "text": "Now, let's simulate a 'harmless' refraction: removing the default value from .get(). Missing keys will now return None.\n\nThis is a common real-world mistake—someone 'cleans up' the code, unaware that downstream logic depends on that hidden default.",
+      "type": "say"
     },
     {
-      "type": "edit",
-      "file": "config_loader.py",
-      "desc": "\"Simplify\": drop .get() default — missing key → None",
+      "desc": "Refactor code: remove default value, causing None to be returned for missing keys",
       "edits": [
         {
-          "oldText": "        # Critical line: the \"\" default is what keeps \"never None\" true\n        return self._config.get(key, \"\")",
-          "newText": "        # \"Simplified\": no default — missing key returns None\n        return self._config.get(key)"
+          "newText": "        # 'Simplified': removing the default value — missing keys now return None\n        return self._config.get(key)",
+          "oldText": "        # Critical line: the \"\" default is what keeps \"never None\" true\n        return self._config.get(key, \"\")"
         }
-      ]
-    },
-    {
-      "type": "show",
+      ],
       "file": "config_loader.py",
-      "highlight": "line 21: .get(key) — default removed!",
-      "desc": "After the edit: .get(key, \"\") became .get(key). Present keys still work; missing keys now return None."
+      "type": "edit"
     },
     {
-      "type": "say",
-      "text": "Can GBC's gate catch this break?"
+      "desc": "Result: existing keys still work, but missing keys now return None.",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key) — default value removed",
+      "type": "show"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "Gate verify — does it catch?",
+      "text": "Since we have an explicit guarantee and dependency, let's see if the GBC gate catches this break...",
+      "type": "say"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "Gate validation — can we stop the regression?",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "Caught.\n\nThe strong test asserts both get_config(\"port\") and get_config(\"nonexistent\"). The edit only breaks the missing-key path (port still returns \"8080\"); the second assertion fails on None.\n\nInsight: GBC can only gate what your tests cover. Edge path covered → edge path guarded."
+      "text": "🛡️ Caught successfully!\n\nThe Strong Test asserted both the 'happy path' (port exists) and the 'edge path' (nonexistent key). While the change didn't break the happy path, it was accurately caught by the edge case assertion.\n\nCore Insight: GBC is as strong as your tests. If you cover the edges, GBC guards the edges.",
+      "type": "say"
     }
   ]
 }

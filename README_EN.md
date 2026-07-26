@@ -24,10 +24,10 @@ python demo/run_demo.py
 
 | Scenario | What it shows |
 |----------|----------------|
-| `config-service-strong` / `*-en` | **Gate catches** — strong test covers the edge path; RED after the break |
-| `config-service-weak` / `*-en` | **Gate misses** — weak test only covers the productive path; stays GREEN |
-| `config-service-bad-test` / `*-en` | **Born-green refuse** — buggy test rejected at registration |
-| `workflow-before-after` / `*-en` | **Before GBC vs after setup** — solo main-agent drift vs injected rules, intent approval, subagent brief, register + accept |
+| `config-service-strong` / `*-en` | **Successful Catch** — strong test covers the edge path; RED gate blocks the break |
+| `config-service-weak` / `*-en` | **Failed Catch** — weak test only covers the happy path; remains GREEN despite breakage |
+| `config-service-bad-test` / `*-en` | **Born-Green Rejection** — buggy test rejected at the point of registration |
+| `workflow-before-after` / `*-en` | **Workflow Comparison** — solo main-agent drift vs. structured planning, intent approval, and task dispatching |
 
 Gate scenarios are live MCP + pytest. Workflow scenarios are a narrative of how the agent thinks and acts.
 

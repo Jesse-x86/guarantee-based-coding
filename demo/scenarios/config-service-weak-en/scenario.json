@@ -1,105 +1,105 @@
 {
-  "name": "Weak test: misses the None regression",
-  "project": "config-service-en",
   "delay": 1.5,
+  "name": "Weak Test: Missing a None Regression",
+  "project": "config-service-en",
   "steps": [
     {
-      "type": "say",
-      "text": "Same tiny config-service project. Look at the code first."
+      "text": "In this scenario, we will see what happens when test coverage is insufficient to protect your guarantees.",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "Provider: same source code as the 'Strong' scenario, using .get(key, \"\") to ensure results are never None.",
       "file": "config_loader.py",
-      "highlight": "line 21: .get(key, \"\") — missing key → \"\"",
-      "desc": "Provider: same source as the strong scenario. .get(key, \"\") keeps \"never None\" true."
+      "highlight": "line 21: .get(key, \"\") — returns \"\" on missing key",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "Consumer: also the same logic, relying on the guarantee that results are never None.",
       "file": "server.py",
-      "highlight": "line 16: int(port) — trusts get_config()",
-      "desc": "Consumer: int(get_config(\"port\")) with no None check. Downstream relies on \"never None\"."
+      "highlight": "line 16: trusts the return value's type",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "Weak Test: Only asserts that get_config(\"port\") is not None. Since \"port\" exists in the default config, this always passes.\n\nFatal Flaw: No test for get_config(\"nonexistent\")—missing key branches are completely ignored.",
       "file": "tests/test_never_none.py",
-      "highlight": "only one assertion",
-      "desc": "Weak test: only asserts get_config(\"port\") is not None. port is always in the dict, always a str.\n\nNo get_config(\"nonexistent\") — the missing-key branch is untested."
+      "highlight": "only one assertion, covering only the 'happy path'",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "Register the guarantee — GBC runs the test (born-green). port is in the dict, so it passes."
+      "text": "Register the guarantee. GBC runs the test (Born-Green), and it passes because the 'port' key indeed returns a string.",
+      "type": "say"
     },
     {
-      "type": "gbc",
-      "tool": "create_guarantee",
-      "desc": "Register guarantee + run test",
       "args": {
-        "provider": "config_loader.py",
+        "desc": "get_config(key) always returns a string, never None.",
+        "executor": "demo-pytest",
         "id": "config_loader.get_config.never_none",
-        "desc": "get_config(key) always returns str, never None.",
-        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
-        "executor": "demo-pytest"
-      }
-    },
-    {
-      "type": "say",
-      "text": "Test passed. Register server.py → config_loader.py dependency."
-    },
-    {
-      "type": "gbc",
-      "tool": "add_dependency",
-      "desc": "Register dependency",
-      "args": {
         "provider": "config_loader.py",
-        "consumer": "server.py",
-        "symbol": "get_config",
-        "guarantee_id": "config_loader.get_config.never_none"
-      }
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none"
+      },
+      "desc": "Register guarantee and run the weak test",
+      "tool": "create_guarantee",
+      "type": "gbc"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "Baseline verify — green",
+      "text": "Registration successful. Now establishing the dependency relation.",
+      "type": "say"
+    },
+    {
+      "args": {
+        "consumer": "server.py",
+        "guarantee_id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "symbol": "get_config"
+      },
+      "desc": "Register dependency relations",
+      "tool": "add_dependency",
+      "type": "gbc"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "Baseline check — system status: green",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "Same edit as the strong scenario: drop the .get(key, \"\") default. Missing keys return None."
+      "text": "Now we make the same mistake: remove the default value, allowing missing keys to return None.",
+      "type": "say"
     },
     {
-      "type": "edit",
-      "file": "config_loader.py",
-      "desc": "\"Simplify\": drop .get() default — missing key → None",
+      "desc": "Refactor code: remove default value",
       "edits": [
         {
-          "oldText": "        # Critical line: the \"\" default is what keeps \"never None\" true\n        return self._config.get(key, \"\")",
-          "newText": "        # \"Simplified\": no default — missing key returns None\n        return self._config.get(key)"
+          "newText": "        # 'Simplified': removing the default value — missing keys now return None\n        return self._config.get(key)",
+          "oldText": "        # Critical line: the \"\" default is what keeps \"never None\" true\n        return self._config.get(key, \"\")"
         }
-      ]
-    },
-    {
-      "type": "show",
+      ],
       "file": "config_loader.py",
-      "highlight": "line 21: .get(key) — default removed",
-      "desc": "After the edit: same break as the strong scenario. Present keys fine; missing keys → None."
+      "type": "edit"
     },
     {
-      "type": "say",
-      "text": "Can GBC catch it this time?"
+      "desc": "Result: the behavior for missing keys is now broken, but since our test doesn't check that path, it still looks fine.",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key) — default value removed",
+      "type": "show"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "Gate verify — does it catch?",
+      "text": "Let's see if the GBC gate can catch this break...",
+      "type": "say"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "Gate validation — checking for regressions",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "It cannot. The test is still green.\n\nThe weak test only covers get_config(\"port\"). port stays in the dict and still returns \"8080\" with or without the default. The missing-key branch (now None) was never under test.\n\nGBC runs your tests. Untested branches are blind spots for the gate.\n\nCompare the strong scenario (python demo/run_demo.py run config-service-strong-en): one extra assert get_config(\"nonexistent\") is not None catches this regression."
+      "text": "💔 Block failed! The gate is still green.\n\nWhy? Because the weak test only verifies the existing 'port' key. That path still works, while the path that returns None—and triggers downstream crashes—was never tested.\n\nGBC relies on the tests you provide. If your tests have blind spots, the gate has blind spots.\n\nCompare this with the 'Strong' scenario (python demo/run_demo.py run config-service-strong-en) to see how adding a single assertion for edge cases can prevent such failures.",
+      "type": "say"
     }
   ]
 }
