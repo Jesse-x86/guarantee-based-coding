@@ -56,7 +56,11 @@ Coding agents（Cursor, Aider, Devin 等）的核心失败模式不是写错代�
 - 如果某个保证被打破，精确知道是哪个保证、谁依赖它
 - **正确性的判定从"AI 觉得自己改对了"变成"所有保证仍然通过"**——一个可以机械验证的布尔条件
 
+![无 GBC vs 有 GBC](docs/workflow-comparison.svg)
+
 ## 它怎么工作
+
+![GBC Architecture](docs/architecture.svg)
 
 ### 设计原则
 

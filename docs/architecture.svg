@@ -1,0 +1,211 @@
+<svg width="960" height="720" viewBox="0 0 960 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Shadows -->
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadow-light" x="-2%" y="-2%" width="104%" height="108%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#1565c0"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#546e7a"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c62828"/>
+    </marker>
+
+    <!-- Gradients -->
+    <linearGradient id="grad-intent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e3f2fd"/>
+      <stop offset="100%" stop-color="#bbdefb"/>
+    </linearGradient>
+    <linearGradient id="grad-provider" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#e8f5e9"/>
+      <stop offset="100%" stop-color="#c8e6c9"/>
+    </linearGradient>
+    <linearGradient id="grad-consumer" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3e0"/>
+      <stop offset="100%" stop-color="#ffe0b2"/>
+    </linearGradient>
+    <linearGradient id="grad-meta" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#eceff1"/>
+      <stop offset="100%" stop-color="#cfd8dc"/>
+    </linearGradient>
+    <linearGradient id="grad-exec" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f3e5f5"/>
+      <stop offset="100%" stop-color="#e1bee7"/>
+    </linearGradient>
+    <linearGradient id="grad-green" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#43a047"/>
+      <stop offset="100%" stop-color="#2e7d32"/>
+    </linearGradient>
+    <linearGradient id="grad-red" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#e53935"/>
+      <stop offset="100%" stop-color="#c62828"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="720" fill="#fafafa" rx="8"/>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 1: INTENT -->
+  <!-- ============================================================ -->
+
+  <rect x="130" y="30" width="700" height="72" rx="12" fill="url(#grad-intent)" stroke="#1565c0" stroke-width="2" filter="url(#shadow)"/>
+  <text x="480" y="58" font-family="'Segoe UI', Arial, sans-serif" font-size="16" font-weight="700" fill="#0d47a1" text-anchor="middle">📋 Intent Layer — gbc.md</text>
+  <text x="480" y="82" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#1565c0" text-anchor="middle">人类持有 · 架构意图 · 约束 agent 行为边界 · 只经 gbc-doc 修改</text>
+
+  <!-- Intent → Provider arrow -->
+  <line x1="290" y1="102" x2="290" y2="145" stroke="#1565c0" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+  <!-- Intent → Consumer arrow -->
+  <line x1="670" y1="102" x2="670" y2="145" stroke="#1565c0" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 2: CODE FILES (Provider + Consumer) -->
+  <!-- ============================================================ -->
+
+  <!-- Provider card -->
+  <rect x="60" y="150" width="420" height="195" rx="10" fill="url(#grad-provider)" stroke="#2e7d32" stroke-width="2" filter="url(#shadow)"/>
+  <!-- Provider header -->
+  <rect x="60" y="150" width="420" height="36" rx="10" fill="#2e7d32"/>
+  <rect x="60" y="176" width="420" height="10" fill="#2e7d32"/> <!-- square bottom corners -->
+  <text x="270" y="174" font-family="'Consolas', 'Courier New', monospace" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">📦 Provider: src/llm_client/client.py</text>
+
+  <!-- Provider guarantees -->
+  <rect x="80" y="198" width="180" height="66" rx="6" fill="#ffffff" stroke="#66bb6a" stroke-width="1.5" filter="url(#shadow-light)"/>
+  <text x="170" y="218" font-family="'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" fill="#2e7d32" text-anchor="middle">Guarantee</text>
+  <text x="170" y="236" font-family="'Consolas', monospace" font-size="10" fill="#555" text-anchor="middle">chat.content_is_str</text>
+  <text x="170" y="254" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#888" text-anchor="middle">desc: "返回 str 类型"</text>
+
+  <rect x="270" y="198" width="195" height="66" rx="6" fill="#ffffff" stroke="#66bb6a" stroke-width="1.5" filter="url(#shadow-light)"/>
+  <text x="367" y="218" font-family="'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" fill="#2e7d32" text-anchor="middle">Guarantee</text>
+  <text x="367" y="236" font-family="'Consolas', monospace" font-size="10" fill="#555" text-anchor="middle">chat.returns_dict</text>
+  <text x="367" y="254" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#888" text-anchor="middle">desc: "返回 dict 类型"</text>
+
+  <!-- Test file reference -->
+  <rect x="80" y="274" width="385" height="58" rx="6" fill="#f1f8e9" stroke="#aed581" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="272" y="294" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#558b2f" text-anchor="middle">📎 测试文件（用户自管）</text>
+  <text x="272" y="312" font-family="'Consolas', monospace" font-size="9" fill="#777" text-anchor="middle">tests/test_client_content_is_str.py::test_content_is_str</text>
+  <text x="272" y="326" font-family="'Consolas', monospace" font-size="9" fill="#777" text-anchor="middle">tests/test_client_returns_dict.py::test_returns_dict</text>
+
+  <!-- Consumer card -->
+  <rect x="520" y="150" width="390" height="195" rx="10" fill="url(#grad-consumer)" stroke="#e65100" stroke-width="2" filter="url(#shadow)"/>
+  <!-- Consumer header -->
+  <rect x="520" y="150" width="390" height="36" rx="10" fill="#e65100"/>
+  <rect x="520" y="176" width="390" height="10" fill="#e65100"/>
+  <text x="715" y="174" font-family="'Consolas', 'Courier New', monospace" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">🔗 Consumer: src/conversation/manager.py</text>
+
+  <!-- Consumer dependencies -->
+  <rect x="540" y="198" width="165" height="90" rx="6" fill="#ffffff" stroke="#ff9800" stroke-width="1.5" filter="url(#shadow-light)"/>
+  <text x="622" y="218" font-family="'Segoe UI', Arial, sans-serif" font-size="11" font-weight="600" fill="#e65100" text-anchor="middle">depends_on</text>
+  <rect x="550" y="230" width="145" height="22" rx="4" fill="#fff8e1" stroke="#ffb74d" stroke-width="1"/>
+  <text x="622" y="245" font-family="'Consolas', monospace" font-size="9" fill="#e65100" text-anchor="middle">symbol: client.py:chat</text>
+  <rect x="550" y="256" width="145" height="22" rx="4" fill="#fff8e1" stroke="#ffb74d" stroke-width="1"/>
+  <text x="622" y="271" font-family="'Consolas', monospace" font-size="9" fill="#e65100" text-anchor="middle">guarantee: content_is_str</text>
+
+  <!-- Consumer → Provider dependency arrow -->
+  <path d="M540 240 L485 240" stroke="#e65100" stroke-width="2.5" stroke-dasharray="8,4" marker-end="url(#arrow-green)"/>
+  <text x="512" y="232" font-family="'Segoe UI', Arial, sans-serif" font-size="9" font-weight="600" fill="#e65100" text-anchor="middle">依赖</text>
+
+  <!-- Consumer own test -->
+  <rect x="715" y="198" width="180" height="58" rx="6" fill="#fff8e1" stroke="#ffcc80" stroke-width="1" stroke-dasharray="4,3"/>
+  <text x="805" y="218" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#ef6c00" text-anchor="middle">📎 每个 consumer 也可以</text>
+  <text x="805" y="236" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#ef6c00" text-anchor="middle">同时是 provider</text>
+  <text x="805" y="250" font-family="'Consolas', monospace" font-size="9" fill="#999" text-anchor="middle">(图略)</text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 2→3: Code → Metadata arrows -->
+  <!-- ============================================================ -->
+
+  <line x1="270" y1="345" x2="350" y2="390" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow-gray)"/>
+  <line x1="690" y1="345" x2="610" y2="390" stroke="#546e7a" stroke-width="1.5" marker-end="url(#arrow-gray)"/>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 3: METADATA (.gbc/) -->
+  <!-- ============================================================ -->
+
+  <rect x="100" y="395" width="760" height="100" rx="10" fill="url(#grad-meta)" stroke="#546e7a" stroke-width="2" filter="url(#shadow)"/>
+
+  <!-- .gbc/ folder indicator -->
+  <rect x="120" y="407" width="100" height="26" rx="5" fill="#455a64"/>
+  <text x="170" y="425" font-family="'Consolas', monospace" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle">.gbc/</text>
+
+  <!-- JSON file 1 -->
+  <rect x="235" y="407" width="290" height="38" rx="5" fill="#ffffff" stroke="#90a4ae" stroke-width="1" filter="url(#shadow-light)"/>
+  <text x="380" y="422" font-family="'Consolas', monospace" font-size="10" font-weight="600" fill="#37474f" text-anchor="middle">gbc.client.py.json</text>
+  <text x="380" y="438" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#78909c" text-anchor="middle">{ provides: { chat.content_is_str: {…} } }</text>
+
+  <!-- JSON file 2 -->
+  <rect x="540" y="407" width="300" height="38" rx="5" fill="#ffffff" stroke="#90a4ae" stroke-width="1" filter="url(#shadow-light)"/>
+  <text x="690" y="422" font-family="'Consolas', monospace" font-size="10" font-weight="600" fill="#37474f" text-anchor="middle">gbc.manager.py.json</text>
+  <text x="690" y="438" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#78909c" text-anchor="middle">{ depends_on: [{ symbol: …, guarantees: […] }] }</text>
+
+  <!-- Bidirectional sync note -->
+  <path d="M525 426 L540 426" stroke="#546e7a" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+  <path d="M540 432 L525 432" stroke="#546e7a" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+  <text x="532" y="456" font-family="'Segoe UI', Arial, sans-serif" font-size="8" fill="#78909c" text-anchor="middle">双向同步</text>
+
+  <!-- Zero intrusion note -->
+  <rect x="120" y="453" width="200" height="30" rx="5" fill="#cfd8dc"/>
+  <text x="220" y="472" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#455a64" text-anchor="middle">✅ 零代码侵入（仅元数据）</text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 3→4: Metadata → Executor -->
+  <!-- ============================================================ -->
+
+  <line x1="480" y1="495" x2="480" y2="530" stroke="#6a1b9a" stroke-width="1.8" marker-end="url(#arrow-gray)"/>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 4: EXECUTOR -->
+  <!-- ============================================================ -->
+
+  <rect x="230" y="535" width="500" height="56" rx="10" fill="url(#grad-exec)" stroke="#7b1fa2" stroke-width="2" filter="url(#shadow)"/>
+  <text x="480" y="558" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="700" fill="#4a148c" text-anchor="middle">⚙️ Executor: pytest-gbc</text>
+  <text x="480" y="580" font-family="'Consolas', monospace" font-size="10" fill="#6a1b9a" text-anchor="middle">python -m pytest {file} -x -q   ·   语言无关 · 可配置任意测试框架</text>
+
+  <!-- ============================================================ -->
+  <!-- LAYER 5: GATING (GREEN / RED) -->
+  <!-- ============================================================ -->
+
+  <!-- Split arrows from Executor -->
+  <line x1="380" y1="591" x2="300" y2="630" stroke="#7b1fa2" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <line x1="580" y1="591" x2="660" y2="630" stroke="#7b1fa2" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+
+  <!-- GREEN result -->
+  <rect x="100" y="635" width="350" height="60" rx="12" fill="url(#grad-green)" filter="url(#shadow)"/>
+  <text x="275" y="662" font-family="'Segoe UI', Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">✅ 全部通过 → 修改安全</text>
+  <text x="275" y="682" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#c8e6c9" text-anchor="middle">所有保证 (guarantees) 仍然成立</text>
+
+  <!-- RED result -->
+  <rect x="510" y="635" width="350" height="60" rx="12" fill="url(#grad-red)" filter="url(#shadow)"/>
+  <text x="685" y="662" font-family="'Segoe UI', Arial, sans-serif" font-size="20" font-weight="700" fill="#ffffff" text-anchor="middle">🛑 有失败 → 精确拦截</text>
+  <text x="685" y="682" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#ffcdd2" text-anchor="middle">报告：哪个保证失败 · 谁依赖它 · 为什么</text>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND -->
+  <!-- ============================================================ -->
+
+  <rect x="730" y="10" width="210" height="110" rx="8" fill="#ffffff" stroke="#e0e0e0" stroke-width="1" filter="url(#shadow-light)"/>
+  <text x="835" y="32" font-family="'Segoe UI', Arial, sans-serif" font-size="11" font-weight="700" fill="#424242" text-anchor="middle">图例</text>
+
+  <rect x="745" y="42" width="12" height="12" rx="2" fill="#1565c0"/>
+  <text x="765" y="53" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#555">Intent 意图层</text>
+
+  <rect x="745" y="60" width="12" height="12" rx="2" fill="#2e7d32"/>
+  <text x="765" y="71" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#555">Provider 提供方</text>
+
+  <rect x="745" y="78" width="12" height="12" rx="2" fill="#e65100"/>
+  <text x="765" y="89" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#555">Consumer 消费方</text>
+
+  <rect x="745" y="96" width="12" height="12" rx="2" fill="#546e7a"/>
+  <text x="765" y="107" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#555">.gbc/ 元数据</text>
+</svg>

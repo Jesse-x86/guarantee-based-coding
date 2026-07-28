@@ -1,0 +1,105 @@
+<svg width="960" height="620" viewBox="0 0 960 620" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.12"/>
+    </filter>
+    <filter id="shadow-heavy" x="-4%" y="-4%" width="108%" height="112%">
+      <feDropShadow dx="0" dy="3" stdDeviation="5" flood-opacity="0.18"/>
+    </filter>
+
+    <marker id="arrow-dark" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#424242"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#2e7d32"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#c62828"/>
+    </marker>
+
+    <linearGradient id="grad-vs-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fafafa"/>
+      <stop offset="100%" stop-color="#f5f5f5"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="960" height="620" fill="url(#grad-vs-bg)" rx="8"/>
+
+  <text x="480" y="38" font-family="'Segoe UI', Arial, sans-serif" font-size="20" font-weight="700" fill="#212121" text-anchor="middle">Agent Modifies Code: Without GBC vs With GBC</text>
+
+  <line x1="480" y1="60" x2="480" y2="580" stroke="#e0e0e0" stroke-width="2" stroke-dasharray="6,4"/>
+
+  <!-- ============================================================ -->
+  <!-- LEFT: WITHOUT GBC -->
+  <!-- ============================================================ -->
+
+  <text x="240" y="88" font-family="'Segoe UI', Arial, sans-serif" font-size="16" font-weight="700" fill="#c62828" text-anchor="middle">❌ Without GBC</text>
+
+  <rect x="70" y="105" width="340" height="60" rx="10" fill="#ffffff" stroke="#bdbdbd" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="240" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#424242" text-anchor="middle">🤖 Agent modifies client.py</text>
+  <text x="240" y="150" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#888" text-anchor="middle">Changes the return format of chat()</text>
+
+  <line x1="240" y1="165" x2="240" y2="195" stroke="#424242" stroke-width="1.5" marker-end="url(#arrow-dark)"/>
+
+  <rect x="70" y="200" width="340" height="60" rx="10" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="240" y="225" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#e65100" text-anchor="middle">⚠️ No verification mechanism</text>
+  <text x="240" y="245" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#bf360c" text-anchor="middle">Agent has no idea what it just broke</text>
+
+  <line x1="240" y1="260" x2="240" y2="290" stroke="#424242" stroke-width="1.5" marker-end="url(#arrow-dark)"/>
+
+  <rect x="70" y="295" width="340" height="80" rx="10" fill="#ffebee" stroke="#ef5350" stroke-width="2" filter="url(#shadow-heavy)"/>
+  <text x="240" y="322" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="700" fill="#c62828" text-anchor="middle">💥 Silent Breakage</text>
+  <text x="240" y="344" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#d32f2f" text-anchor="middle">manager.py depends on chat() returning str</text>
+  <text x="240" y="362" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#d32f2f" text-anchor="middle">→ Production crash / data corruption</text>
+
+  <rect x="70" y="395" width="340" height="55" rx="8" fill="#fafafa" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="240" y="416" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#757575" text-anchor="middle">Consequences</text>
+  <text x="240" y="434" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#9e9e9e" text-anchor="middle">· May take hours to notice · Long debugging chain</text>
+  <text x="240" y="446" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#9e9e9e" text-anchor="middle">· Trust erosion · Manual rework</text>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT: WITH GBC -->
+  <!-- ============================================================ -->
+
+  <text x="720" y="88" font-family="'Segoe UI', Arial, sans-serif" font-size="16" font-weight="700" fill="#2e7d32" text-anchor="middle">✅ With GBC</text>
+
+  <rect x="550" y="105" width="340" height="60" rx="10" fill="#e8f5e9" stroke="#66bb6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="720" y="130" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#2e7d32" text-anchor="middle">📋 Before modifying: learn the guarantees</text>
+  <text x="720" y="150" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#558b2f" text-anchor="middle">who_depends_on / list_provides — know exact boundaries</text>
+
+  <line x1="720" y1="165" x2="720" y2="195" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <rect x="550" y="200" width="340" height="60" rx="10" fill="#ffffff" stroke="#66bb6a" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="720" y="225" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#424242" text-anchor="middle">🤖 Agent modifies client.py</text>
+  <text x="720" y="245" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#888" text-anchor="middle">Careful change within known constraints</text>
+
+  <line x1="720" y1="260" x2="720" y2="290" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+
+  <rect x="550" y="295" width="340" height="60" rx="10" fill="#e3f2fd" stroke="#42a5f5" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="720" y="318" font-family="'Segoe UI', Arial, sans-serif" font-size="13" font-weight="600" fill="#1565c0" text-anchor="middle">🔬 verify_provider(client.py)</text>
+  <text x="720" y="338" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#1976d2" text-anchor="middle">Auto-runs all registered guarantee tests</text>
+
+  <line x1="720" y1="355" x2="720" y2="380" stroke="#424242" stroke-width="1.5"/>
+  <line x1="720" y1="380" x2="620" y2="380" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+  <line x1="720" y1="380" x2="820" y2="380" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <text x="720" y="375" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#757575" text-anchor="middle">gate check</text>
+
+  <rect x="550" y="388" width="180" height="70" rx="10" fill="#e8f5e9" stroke="#43a047" stroke-width="2" filter="url(#shadow)"/>
+  <text x="640" y="414" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="700" fill="#2e7d32" text-anchor="middle">✅ All Green</text>
+  <text x="640" y="434" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#558b2f" text-anchor="middle">All guarantees hold</text>
+  <text x="640" y="450" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#689f38" text-anchor="middle">→ Modification accepted</text>
+
+  <rect x="750" y="388" width="170" height="70" rx="10" fill="#ffebee" stroke="#e53935" stroke-width="2" filter="url(#shadow)"/>
+  <text x="835" y="414" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="700" fill="#c62828" text-anchor="middle">🛑 Has Red</text>
+  <text x="835" y="434" font-family="'Segoe UI', Arial, sans-serif" font-size="10" fill="#d32f2f" text-anchor="middle">Guarantee broken</text>
+  <text x="835" y="450" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#e53935" text-anchor="middle">→ Precise block + report</text>
+
+  <rect x="550" y="478" width="370" height="55" rx="8" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="735" y="499" font-family="'Segoe UI', Arial, sans-serif" font-size="10" font-weight="600" fill="#2e7d32" text-anchor="middle">Result</text>
+  <text x="735" y="517" font-family="'Segoe UI', Arial, sans-serif" font-size="9" fill="#558b2f" text-anchor="middle">· Instant feedback · Precise location · Verifiable trust · Zero manual rework</text>
+
+  <!-- KEY INSIGHT -->
+  <rect x="160" y="545" width="640" height="55" rx="12" fill="#263238" filter="url(#shadow-heavy)"/>
+  <text x="480" y="570" font-family="'Segoe UI', Arial, sans-serif" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">Key Insight: Correctness shifts from "the AI thinks it got it right" → "all guarantees still pass"</text>
+  <text x="480" y="590" font-family="'Segoe UI', Arial, sans-serif" font-size="11" fill="#b0bec5" text-anchor="middle">A mechanically verifiable boolean condition — independent of agent comprehension</text>
+</svg>

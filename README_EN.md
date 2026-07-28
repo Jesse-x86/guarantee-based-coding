@@ -56,7 +56,11 @@ If we make these guarantees **explicit, executable, and verifiable**, then:
 - If a guarantee breaks, you know exactly which one and who depends on it
 - **Correctness shifts from "the AI thinks it got it right" to "all guarantees still pass"** — a mechanically verifiable boolean condition
 
+![Without GBC vs With GBC](docs/workflow-comparison_en.svg)
+
 ## How It Works
+
+![GBC Architecture](docs/architecture_en.svg)
 
 ### Design Principles
 
