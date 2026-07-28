@@ -15,6 +15,24 @@ Prefer to do it by hand, or to understand each step: [docs/manual_EN.md](./docs/
 
 ## 🎬 Try the demo first
 
+Here is what a real GBC error looks like. Precise localization: which guarantee failed and why.
+
+```text
+RED  passed=0 failed=1 skipped=0
+failed: config_loader.get_config.never_none
+
+── config_loader.get_config.never_none ──
+...
+E       AssertionError: assert None is not None
+E        +  where None = get_config()
+
+tests/test_never_none.py:12: AssertionError
+
+=========================== short test summary info ============================
+FAILED tests/test_never_none.py::test_get_config_never_returns_none - Asserti...
+1 failed in 0.08s
+```
+
 Almost zero setup. The menu lists Chinese and English scenarios.
 
 ```bash
@@ -64,7 +82,7 @@ If we make these guarantees **explicit, executable, and verifiable**, then:
 
 ### Design Principles
 
-1. **Zero intrusion**: All metadata lives in a `.gbc/` directory; your codebase stays clean
+1. **Zero source-code intrusion**: All metadata lives in a `.gbc/` directory; no decorators, no imports, no changes to your source files. Setup adds an `.mcp.json` and a rules block to your agent instruction file.
 2. **User-managed test files**: GBC does not generate, store, or manage test files. You organize your test files however you like in your own project. GBC only **records which test files correspond to which guarantees, runs them, and aggregates results**
 3. **Language-agnostic**: Supports any language and test framework through executor configuration
 
@@ -84,10 +102,20 @@ my-project/
 │   └── ...
 │
 └── .gbc/                                   # GBC metadata directory (auto-generated)
+    ├── gbc.md                              # Intent Layer: defines semantic contracts for folders
     └── src/
         └── llm_client/
-            └── gbc.client.py.json          # Guarantee registry for client.py
+            └── gbc.client.py.json          # Behavior Layer: records guarantee registry
 ```
+
+### Two-Layer Contract
+
+GBC uses a dual-layer approach to pin down the impact of changes:
+
+1. **Intent Layer**: Stored in `.gbc/**/gbc.md`. Uses natural language (Markdown) to define folder responsibilities, internal constraints, and architectural intent. It's the "Source of Truth" that tells the agent, "This is what you should and shouldn't do here."
+2. **Behavior Layer (Guarantee)**: Stored in `.gbc/**/*.json`. These are executable, test-backed promises of specific behavior.
+
+When an agent modifies code, it must adhere to both the Intent Layer (not violating the design philosophy) and the Behavior Layer (not breaking specific functionality).
 
 ### Core Concepts
 
@@ -131,6 +159,8 @@ Each source file may have a sibling `.json` recording two things: what guarantee
 }
 ```
 
+*   `heavy`: Cost rank. 0 for lightweight tests (run in batch), >0 for heavy tests (skipped by default in batch verify).
+
 Guarantee ids are globally unique (`<dotted.path>.<symbol>.<behavior>`); both directions are written by the tools (CLI/MCP) — you don't hand-edit them.
 
 ### Executor Configuration Example
@@ -160,6 +190,8 @@ Executors define how tests are run. `{file}` is a placeholder replaced at runtim
 
 Supported environment variable operations: `set`, `append`, `prepend`, `remove`.
 
+> ⚠️ **Security Note**: Executor configurations run arbitrary shell commands. Always review and approve executor configs, especially when they are written by an agent.
+
 ### Workflow
 
 ```
@@ -188,16 +220,14 @@ Context size depends on the number of guarantees for the current file, **not on 
 
 GBC offers **both CLI and MCP** interfaces, plus a **recommended agent workflow** — just hand [docs/for-agents.md](./docs/for-agents.md) to your agent to get started.
 
-## Comparison with Existing Approaches
+## What GBC is NOT, and how it fits in
 
-| | Context Optimization (Cursor, Aider) | Full Agent (Devin, OpenHands) | GBC |
-|---|---|---|---|
-| Core strategy | Better code retrieval | End-to-end automation | Constraints eliminate the need for understanding |
-| Correctness guarantee | None | Agent self-verification | Guarantee gating |
-| Modification impact awareness | None | Agent reasoning (unreliable) | Explicit registration + automatic detection |
-| Context growth | Grows with project size | Grows with project size | Grows with per-file guarantee count, independent of project size |
-| Codebase intrusion | Low | Medium | **Zero** |
-| Language binding | Usually bound | Usually bound | Language-agnostic |
+GBC is **NOT** another AI coding assistant meant to compete with Cursor or Aider. Instead, it fills the missing link in complex projects: **Machine-Verifiable change boundaries**.
+
+- **With Cursor/Aider**: They are great at finding and editing code, but they lack explicit awareness of cross-module dependencies, leading to silent breakages. GBC provides a "constraint guardrail" — before a change, the agent consults the dependency tree; after the change, all related guarantees must pass.
+- **Vs. CI Systems**: CI is post-hoc, catching errors only after code is pushed. GBC is a proactive "gate" in the agent's workflow, intercepting errors in the agent's context before they even land in the codebase.
+
+The core value of GBC is **orthogonality**: it doesn't make the AI "smarter," but by reducing reliance on "semantic understanding," it ensures that even a less capable agent cannot bypass the behavioral contracts you've defined.
 
 ## How This Differs from Existing Concepts
 
@@ -230,6 +260,19 @@ Technically, guarantees are test files. The conceptual differences:
 - [x] Usage docs ([docs/](./docs/))
 - [ ] Full test coverage
 - [ ] **TypeScript rewrite**, publish to npm
+
+> **Note**: GBC is currently in the prototype stage. While the core logic has been dogfooded in private internal projects, the self-registration of guarantees for this repo is still a work in progress.
+
+## Limitations & Notes
+
+- **Protection Bound = Test Quality**: GBC only catches what the tests actually check. A happy-path-only test provides a false sense of security. **The demo explicitly includes a "weak-test" scenario to demonstrate this.**
+- **Registration Overhead**: Dependencies must be actively registered by the agent or human. While the per-file burden is low, maintaining coverage as the project scales requires active participation.
+- **Performance**: Since verification involves running real tests, there is a latency cost per check.
+- **Prototype Status**: Currently a Python prototype. A TypeScript rewrite for better performance and distribution is planned, and self-testing coverage for this repo is still incomplete.
+
+## License
+
+This project is licensed under the [Apache-2.0](./LICENSE) license.
 
 ## Contact
 

@@ -53,7 +53,7 @@ After onboarding, treat the block in the instruction file as the living workflow
 
 Setup wires the tools in — it can't stop you from making them lie. A guarantee only
 protects what it can actually catch, and a handful of moves quietly turn it into theater.
-The full trap list is in [manual.md §7–8](./manual_EN.md), and [demo/EXAMPLE.md](../demo/EXAMPLE.md)
+The full trap list is in [manual_EN.md](./manual_EN.md), and [demo/EXAMPLE_EN.md](../demo/EXAMPLE_EN.md)
 walks a runnable version of exactly this — its *strong* vs *weak* scenarios show one guarantee
 catching, then silently missing, the same non-null→null break. These three are worth carrying
 in your head from day one, because they're the ones that fail *silently*:
@@ -77,4 +77,4 @@ Smell test, every time you register a dependency or a guarantee: *"If the behavi
 broke right now, would a test actually go red?"* If no, you have a symbol dependency pretending
 to be a guarantee, or a happy-path fixture pretending to be a test. Fix that first.
 
-Once onboarded, [manual.md](./manual_EN.md) covers how to change code safely under GBC in full.
+Once onboarded, [manual_EN.md](./manual_EN.md) covers how to change code safely under GBC in full.

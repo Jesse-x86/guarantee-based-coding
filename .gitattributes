@@ -13,3 +13,6 @@
 *.webp binary
 *.ico binary
 *.zip binary
+
+# GitHub Linguist — exclude frontend from language stats
+tools/intent-editor/frontend/* linguist-vendored

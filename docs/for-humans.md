@@ -10,6 +10,8 @@
 ## 怎么开始
 
 1. 让你的 agent **安装并运行 GBC 的 `setup-gbc` skill**。
+   - 如果你的 agent 支持 `.agents/skills` 路径，可以手动拷贝过去：`cp -r <gbc-path>/skills/setup-gbc .agents/skills/`
+   - 或者直接将 `skills/setup-gbc/SKILL.md` 的内容贴给它，让它自己理解。
 2. 它会就近问你几个问题——用哪个 Python 环境跑 GBC、你的项目怎么跑测试、规则写进哪个文件——
    照实回答即可,不懂的它会先解释。
 3. 答完,它就把 GBC 接进了你手头的项目。之后重启一次 agent,就能开始用了。

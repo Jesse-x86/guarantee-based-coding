@@ -9,11 +9,29 @@
 几乎不用你动手——交给你的 coding agent 就好。先看你是谁:
 
 - **你是人类** → [docs/for-humans.md](./docs/for-humans.md)
-- **你是 agent** → [docs/for-agents.md](./docs/for-agents.md)
+- **你是 agent** → [docs/for-agents.md](./docs/for-agents.md) (English / 英文版)
 
 想亲自动手、或弄清每一步:[docs/manual.md](./docs/manual.md)(手动 / 详细文档)。
 
 ## 🎬 先看演示
+
+先看看 GBC 报错时的真实样子。精确定位：哪个保证坏了、报错信息是什么。
+
+```text
+RED  passed=0 failed=1 skipped=0
+failed: config_loader.get_config.never_none
+
+── config_loader.get_config.never_none ──
+...
+E       AssertionError: assert None is not None
+E        +  where None = get_config()
+
+tests/test_never_none.py:12: AssertionError
+
+=========================== short test summary info ============================
+FAILED tests/test_never_none.py::test_get_config_never_returns_none - Asserti...
+1 failed in 0.08s
+```
 
 几乎零配置就能跑；菜单里中/英剧本都有。
 
@@ -64,7 +82,7 @@ Coding agents（Cursor, Aider, Devin 等）的核心失败模式不是写错代�
 
 ### 设计原则
 
-1. **零侵入**：所有元数据存放在 `.gbc/` 目录下，代码库本身保持干净
+1. **源码零侵入**：所有元数据存放在 `.gbc/` 目录下，不修改源代码、不增加装饰器/注解。Setup 会增加一个 `.mcp.json` 并向 agent 指令文件（如 `CLAUDE.md`）添加 rules 块。
 2. **测试文件由用户管理**：GBC 不生成、不存储、不管理测试文件本身。用户在自己的项目目录里用自己喜欢的方式组织测试文件。GBC 只负责**记录哪些测试文件是哪些保证、运行它们、汇总结果**
 3. **语言无关**：通过 executor 配置支持任何语言和测试框架
 
@@ -84,10 +102,20 @@ my-project/
 │   └── ...
 │
 └── .gbc/                                   # GBC 元数据目录（自动生成）
+    ├── gbc.md                              # 意图层：定义文件夹/架构的语义契约
     └── src/
         └── llm_client/
-            └── gbc.client.py.json          # client.py 的保证注册信息
+            └── gbc.client.py.json          # 行为层：记录保证注册信息
 ```
+
+### 两层契约
+
+GBC 通过两层契约来锁定变更影响：
+
+1. **意图层 (Intent)**：存放于 `.gbc/**/gbc.md`。使用自然语言（Markdown）定义文件夹的职责、内部约束和架构意图。它是「真理之源」，告诉 Agent「你在这里该做什么、不该做什么」。
+2. **行为层 (Guarantee)**：存放于 `.gbc/**/*.json`。这是可执行的、被测试覆盖的具体行为承诺。
+
+当 Agent 修改代码时，它必须同时遵守意图层（不违背开发初衷）和行为层（不破坏具体功能）。
 
 ### 核心概念
 
@@ -131,6 +159,8 @@ my-project/
 }
 ```
 
+*   `heavy`: 成本等级。0 表示轻量级测试（默认运行），>0 表示重量级测试（批量验证时默认跳过）。
+
 保证 id 全局唯一（`<点分路径>.<符号>.<行为>`）；两个方向都由工具（CLI/MCP）双向写入，你不手编。
 
 ### Executor 配置示例
@@ -160,6 +190,8 @@ Executor 定义了如何运行测试。`{file}` 是占位符，运行时替换�
 
 支持的环境变量操作：`set`、`append`、`prepend`、`remove`。
 
+> ⚠️ **安全提示**：Executor 配置本质上允许运行任意 shell 命令。请务必审计 agent 写入的 executor 配置，确保其安全可控。
+
 ### 工作流程
 
 ```
@@ -188,16 +220,14 @@ GBC 提供两组集成点，CLI 与 MCP 皆可：
 
 GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent 工作流**——把 [docs/for-agents.md](./docs/for-agents.md) 交给你的 agent 即可上手。
 
-## 和现有方案的对比
+## 它不是什么，它和谁配合？
 
-| | 上下文优化方案 (Cursor, Aider) | 完整 Agent 方案 (Devin, OpenHands) | GBC |
-|---|---|---|---|
-| 核心策略 | 更好地检索相关代码 | 端到端自动化 | 用约束消除对理解的依赖 |
-| 正确性保证 | 无 | Agent 自我验证 | Guarantee 门控 |
-| 修改影响感知 | 无 | Agent 推理（不可靠） | 显式注册 + 自动检测 |
-| 上下文增长 | 随项目增长 | 随项目增长 | 随单文件保证数增长，与项目规模无关 |
-| 对代码库的侵入 | 低 | 中 | **零** |
-| 语言绑定 | 通常绑定 | 通常绑定 | 语言无关 |
+GBC **不是**另一个要挑战 Cursor 或 Aider 的 AI 编程助手。相反，它是为了填补它们在大型复杂项目中缺失的一环：**机器可判定（Machine-Verifiable）的变更边界**。
+
+- **与 Cursor/Aider 配合**：它们擅长寻找代码并完成修改，但由于缺乏对跨模块依赖的显式感知，容易引发静默破坏。GBC 为这些 Agent 提供了一层「约束护栏」——修改前，Agent 查阅依赖树；修改后，Agent 必须跑通所有相关的 Guarantee。
+- **与 CI 系统的区别**：CI 是「事后」的，通常在代码提交后才发现错误。GBC 是「准入制」的，它是 Agent 工作流中的一个门禁（Gate），错误在代码落地前就被拦截在 Agent 的上下文中。
+
+GBC 的核心价值是**正交性**：它并不让 AI 变得「更聪明」，而是通过降低对「语义理解」的依赖，确保即使是能力有限的 Agent 也无法绕过你定义的行为契约。
 
 ## 和已有概念的区别
 
@@ -230,6 +260,19 @@ GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent
 - [x] 使用文档（[docs/](./docs/)）
 - [ ] 完整测试覆盖
 - [ ] **TypeScript 重写**，发布到 npm
+
+> **注**：本项目目前处于原型阶段。虽然核心逻辑已在内部私有项目中进行了「吃螃蟹」验证，但本工具仓自身的 .gbc 注册工作仍在进行中。
+
+## 局限性与说明
+
+- **保护能力上限 = 测试质量**：GBC 只能拦截测试能抓到的错误。如果测试只走 Happy Path，那么保证就是虚假的安全感。**Demo 剧本中专门包含了一个 weak-test 场景来展示这种局限性。**
+- **手动登记负担**：依赖关系需要 Agent 或人类主动登记。虽然单次登记的开销很小，但随着项目规模增长，覆盖率的提升需要持续投入。
+- **运行性能**：由于每次验证都是真实运行测试，存在一定的延迟成本。
+- **原型阶段**：目前为 Python 实现在验证想法，尚未实现 TS 重构，且工具仓自身的测试覆盖仍不完整。
+
+## 许可
+
+本项目采用 [Apache-2.0](./LICENSE) 许可证。
 
 ## 联系
 

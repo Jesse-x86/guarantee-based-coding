@@ -9,6 +9,8 @@ And the best news is: **once GBC is wired in, you barely have to do anything you
 ## Getting started
 
 1. Have your agent **install and run GBC's `setup-gbc` skill**.
+   - If your agent supports the `.agents/skills` standard, you can copy it over: `cp -r <gbc-path>/skills/setup-gbc .agents/skills/`
+   - Or simply paste the content of `skills/setup-gbc/SKILL.md` to your agent.
 2. It will ask you a few questions along the way — which Python environment to run GBC in, how your project runs its tests, which file the rules should be written into — just answer honestly, and if something is unclear it will explain first.
 3. Once you're done answering, it has wired GBC into the project you're working on. Restart the agent once, and you're ready to go.
 
@@ -19,4 +21,4 @@ GBC travels with the project; it's not a one-time install-and-forget: how tests 
 ## Want to know more
 
 - Curious what exactly your agent is doing on its side → [for-agents.md](./for-agents.md)
-- Want to do it by hand, or understand the ins and outs of every step → [manual.md](./manual_EN.md) (manual / detailed docs)
+- Want to do it by hand, or understand the ins and outs of every step → [manual_EN.md](./manual_EN.md) (manual / detailed docs)
