@@ -1,3 +1,17 @@
+# Copyright 2026 Jesse-x86
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """IO / 编排层：路径解析、meta 文件读写、跨文件双向写、全局扫描。
 
 core 层是纯模型操作（不碰磁盘）；这里负责把「provider/consumer 文件字符串」解析成

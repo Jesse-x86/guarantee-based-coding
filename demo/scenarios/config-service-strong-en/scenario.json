@@ -1,0 +1,105 @@
+{
+  "delay": 1.5,
+  "name": "Strong Test: Catching a None Regression",
+  "project": "config-service-en",
+  "steps": [
+    {
+      "text": "Let's look at a simple configuration service project and analyze its design.",
+      "type": "say"
+    },
+    {
+      "desc": "Provider: get_config() method. Note the empty string default on .get()—this implementation ensures the result is 'never None'. Downstream code relies on this guarantee.",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key, \"\") — returns \"\" on missing key, ensuring no None values",
+      "type": "show"
+    },
+    {
+      "desc": "Consumer: start_server() calls int(get_config(\"port\")) without a None check. If get_config ever returns None, int(None) will raise a TypeError 💥",
+      "file": "server.py",
+      "highlight": "line 16: int(port) — directly consumes the result, assuming it is never None",
+      "type": "show"
+    },
+    {
+      "desc": "Strong Test: Verifies both existing keys and missing keys. Both paths are asserted to be non-None. This coverage is key to catching regressions.",
+      "file": "tests/test_never_none.py",
+      "highlight": "line 23: asserts that even a missing key does not return None",
+      "type": "show"
+    },
+    {
+      "text": "Register a GBC guarantee: 'get_config() never returns None'. GBC runs the test immediately—this is 'Born-Green'. A failing test will be blocked from registration.",
+      "type": "say"
+    },
+    {
+      "args": {
+        "desc": "get_config(key) always returns a string, never None. The test covers both existing and missing keys.",
+        "executor": "demo-pytest",
+        "id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none"
+      },
+      "desc": "Register guarantee and verify immediately",
+      "tool": "create_guarantee",
+      "type": "gbc"
+    },
+    {
+      "text": "Registration successful. Now define the dependency: server.py depends on get_config from config_loader.py, specifically its 'never None' behavior.",
+      "type": "say"
+    },
+    {
+      "args": {
+        "consumer": "server.py",
+        "guarantee_id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "symbol": "get_config"
+      },
+      "desc": "Register dependency relations",
+      "tool": "add_dependency",
+      "type": "gbc"
+    },
+    {
+      "args": {
+        "provider": "config_loader.py"
+      },
+      "desc": "Baseline check — confirming the system is healthy",
+      "tool": "verify_provider",
+      "type": "gbc"
+    },
+    {
+      "text": "Now, let's simulate a 'harmless' refraction: removing the default value from .get(). Missing keys will now return None.\n\nThis is a common real-world mistake—someone 'cleans up' the code, unaware that downstream logic depends on that hidden default.",
+      "type": "say"
+    },
+    {
+      "desc": "Refactor code: remove default value, causing None to be returned for missing keys",
+      "edits": [
+        {
+          "newText": "        # 'Simplified': removing the default value — missing keys now return None\n        return self._config.get(key)",
+          "oldText": "        # Critical line: the \"\" default is what keeps \"never None\" true\n        return self._config.get(key, \"\")"
+        }
+      ],
+      "file": "config_loader.py",
+      "type": "edit"
+    },
+    {
+      "desc": "Result: existing keys still work, but missing keys now return None.",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key) — default value removed",
+      "type": "show"
+    },
+    {
+      "text": "Since we have an explicit guarantee and dependency, let's see if the GBC gate catches this break...",
+      "type": "say"
+    },
+    {
+      "args": {
+        "provider": "config_loader.py"
+      },
+      "desc": "Gate validation — can we stop the regression?",
+      "tool": "verify_provider",
+      "type": "gbc"
+    },
+    {
+      "text": "🛡️ Caught successfully!\n\nThe Strong Test asserted both the 'happy path' (port exists) and the 'edge path' (nonexistent key). While the change didn't break the happy path, it was accurately caught by the edge case assertion.\n\nCore Insight: GBC is as strong as your tests. If you cover the edges, GBC guards the edges.",
+      "type": "say"
+    }
+  ]
+}

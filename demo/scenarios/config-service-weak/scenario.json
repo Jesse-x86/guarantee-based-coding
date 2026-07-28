@@ -1,105 +1,105 @@
 {
-  "name": "弱测试：拦不住 None 回归",
-  "project": "config-service",
   "delay": 1.5,
+  "name": "弱测试：无法拦截的 None 返回值回归",
+  "project": "config-service",
   "steps": [
     {
-      "type": "say",
-      "text": "这是一个简单的配置服务项目。先看看代码。"
+      "text": "在这个场景中，我们将看到当测试用例覆盖不足时，GBC 系统的局限性。",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "Provider：代码与此前版本一致，通过 .get(key, \"\") 确保永不返回 None。",
       "file": "config_loader.py",
-      "highlight": "第17行：.get(key, \"\") — 找不到 key 返回空字符串",
-      "desc": "Provider：和强测试版一样的源码。.get(key, \"\") 保证永不为 None。"
+      "highlight": "第17行：.get(key, \"\") — 键不存在时返回空字符串",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "Consumer：同样的代码逻辑，下游依赖「永不返回 None」这一行为。",
       "file": "server.py",
-      "highlight": "第17行：int(port) — 信任 get_config() 的返回值",
-      "desc": "Consumer：int(get_config(\"port\")) 不检查 None。下游依赖「永不为 None」的行为。"
+      "highlight": "第17行：直接消费返回值，假设其非空",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "弱测试：仅断言 get_config(\"port\") 非空。由于 \"port\" 始终存在于配置中，该断言总是成功。\n\n致命缺失：没有测试 get_config(\"nonexistent\") —— 即完全漏掉了键不存在时的分支路径。",
       "file": "tests/test_never_none.py",
-      "highlight": "只有第14行一个断言",
-      "desc": "弱测试：只断言 get_config(\"port\") is not None。port 在字典里，永远是 str。\n\n没有测 get_config(\"nonexistent\") —— missing key 分支完全没有被测试覆盖。"
+      "highlight": "只有第14行一个断言，且仅针对存在的键",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "现在登记保证——GBC 跑测试，「出生即绿」。因为 port 在字典里，测试通过。"
+      "text": "现在登记保证——GBC 运行测试，顺利通过并完成登记。因为目前 \"port\" 的返回值的确不是 None。",
+      "type": "say"
     },
     {
-      "type": "gbc",
-      "tool": "create_guarantee",
-      "desc": "登记保证 + 跑测试",
       "args": {
-        "provider": "config_loader.py",
+        "desc": "get_config(key) 始终返回字符串，绝不返回 None。",
+        "executor": "demo-pytest",
         "id": "config_loader.get_config.never_none",
-        "desc": "get_config(key) 永远返回 str，绝不返回 None。",
-        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
-        "executor": "demo-pytest"
-      }
-    },
-    {
-      "type": "say",
-      "text": "测试通过。登记 server.py → config_loader.py 的依赖。"
-    },
-    {
-      "type": "gbc",
-      "tool": "add_dependency",
-      "desc": "登记依赖",
-      "args": {
         "provider": "config_loader.py",
-        "consumer": "server.py",
-        "symbol": "get_config",
-        "guarantee_id": "config_loader.get_config.never_none"
-      }
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none"
+      },
+      "desc": "登记保证并运行弱测试",
+      "tool": "create_guarantee",
+      "type": "gbc"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "初始验证 — 全绿",
+      "text": "测试通过，建立依赖关系。",
+      "type": "say"
+    },
+    {
+      "args": {
+        "consumer": "server.py",
+        "guarantee_id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "symbol": "get_config"
+      },
+      "desc": "登记依赖关系",
+      "tool": "add_dependency",
+      "type": "gbc"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "初始验证 — 状态全绿",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "现在做同样的改动：把 .get(key, \"\") 的默认值去掉。找不到 key 时返回 None。"
+      "text": "现在执行同样的逻辑破坏：移除默认值，使得缺失的键返回 None。",
+      "type": "say"
     },
     {
-      "type": "edit",
-      "file": "config_loader.py",
-      "desc": "「简化」：去掉 .get() 的默认值 — 找不到 key 时返回 None",
+      "desc": "代码修改：移除默认值",
       "edits": [
         {
-          "oldText": "        # 关键行：.get() 的第二个参数 \"\" 保证「永不为 None」\n        return self._config.get(key, \"\")",
-          "newText": "        # 「简化」：去掉默认值 —— 找不到 key 时返回 None\n        return self._config.get(key)"
+          "newText": "        # 「简化」：移除默认值 —— 键不存在时将返回 None\n        return self._config.get(key)",
+          "oldText": "        # 关键行：.get() 的第二个参数 \"\" 保证「永不为 None」\n        return self._config.get(key, \"\")"
         }
-      ]
-    },
-    {
-      "type": "show",
+      ],
       "file": "config_loader.py",
-      "highlight": "第17行：.get(key) — 默认值被删了",
-      "desc": "改动后：和强测试版同样的破坏。对存在的 key 没影响，找不到的 key 返回 None。"
+      "type": "edit"
     },
     {
-      "type": "say",
-      "text": "来看看 GBC 能不能拦住它…"
+      "desc": "修改后：虽然破坏了缺失键的行为，但由于弱测试不涉及该路径，测试依旧显示通过。",
+      "file": "config_loader.py",
+      "highlight": "第17行：.get(key) — 默认值被移除",
+      "type": "show"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "门禁验证 — 能拦住吗？",
+      "text": "让我们看看 GBC 门禁能否发现这次破坏……",
+      "type": "say"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "门禁验证 — 是否能拦截破坏？",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "💔 拦不住！测试仍然通过（GREEN）。\n\n因为弱测试只测了 get_config(\"port\")。port 一直在字典里，不管有没有默认值都返回 \"8080\"。missing key 分支（get_config(\"nonexistent\") 返回 None）根本没有被测试覆盖到。\n\nGBC 跑的是你的测试。测试没测到的分支 = 门禁看不见的死角。\n\n对比强测试版（python demo/run_demo.py run config-service-strong），多一行 assert get_config(\"nonexistent\") is not None 就能抓住这个回归。"
+      "text": "💔 拦截失败！测试依然显示全绿（GREEN）。\n\n原因很简单：弱测试只验证了配置中存在的 \"port\" 键。该路径依然返回有效字符串，而那个会触发异常的 None 返回路径，测试从未触及。\n\nGBC 依靠你提供的测试来守门。如果测试存在死角，门禁也就成了摆设。\n\n可以尝试运行「强测试」场景（python demo/run_demo.py run config-service-strong）进行对比，看看通过增加一行边界路径的断言如何精准防御。",
+      "type": "say"
     }
   ]
 }

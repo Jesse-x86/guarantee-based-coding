@@ -1,105 +1,105 @@
 {
-  "name": "强测试：成功拦截 None 回归",
-  "project": "config-service",
   "delay": 1.5,
+  "name": "强测试：成功拦截 None 返回值回归",
+  "project": "config-service",
   "steps": [
     {
-      "type": "say",
-      "text": "这是一个简单的配置服务项目。我来带你看看代码。"
+      "text": "这是一个简单的配置服务项目，我来带你分析其代码结构。",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "Provider：提供 get_config() 方法。注意第 17 行的 .get() 带有默认值 \"\" —— 这保证了返回值「永不为 None」，下游代码深度依赖这一行为。",
       "file": "config_loader.py",
-      "highlight": "第17行：.get(key, \"\") — 找不到 key 返回空字符串，永不为 None",
-      "desc": "Provider：提供 get_config() 方法。注意第 17 行的 .get() 有默认值 \"\" ——这就是「永不为 None」的实现。下游代码信任这一点。"
+      "highlight": "第17行：.get(key, \"\") — 键不存在时返回空字符串，保证不为 None",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "Consumer：start_server() 直接对返回值调用 int()，未做 None 检查。如果 get_config() 返回 None，此处将抛出 TypeError 💥",
       "file": "server.py",
-      "highlight": "第17行：int(port) — 直接消费 get_config() 的返回值",
-      "desc": "Consumer：start_server() 调用 int(get_config(\"port\"))，不加 None 检查。如果 get_config() 某天开始返回 None，int(None) → TypeError 💥"
+      "highlight": "第17行：int(port) — 直接消费返回值，依赖非 None 保证",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "强测试：不仅验证了存在的键，还验证了不存在的键。两条路径都断言返回值不为 None。这是拦截回归问题的关键。",
       "file": "tests/test_never_none.py",
-      "highlight": "第22行：也断言不存在的 key 不为 None",
-      "desc": "强测试：不仅测 get_config(\"port\")（存在），也测 get_config(\"nonexistent\")（不存在）。两条路径都断言不为 None。这就是能抓住回归的关键。"
+      "highlight": "第22行：同时验证不存在的键是否返回 None",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "好，现在用 GBC 登记保证：「get_config() 永不为 None」。GBC 会立刻跑测试——这叫「出生即绿」，测试不通过就拒绝登记。"
+      "text": "现在使用 GBC 登记保证：「get_config() 永不为 None」。GBC 会立即运行测试——只有通过测试才能完成登记。",
+      "type": "say"
     },
     {
-      "type": "gbc",
-      "tool": "create_guarantee",
-      "desc": "登记保证 + 立刻跑测试",
       "args": {
-        "provider": "config_loader.py",
+        "desc": "get_config(key) 始终返回字符串，绝不返回 None。测试覆盖了存在与不存在两种场景。",
+        "executor": "demo-pytest",
         "id": "config_loader.get_config.never_none",
-        "desc": "get_config(key) 永远返回 str，绝不返回 None。测试同时断言 get_config(\"port\") 和 get_config(\"nonexistent\") 都不为 None。",
-        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
-        "executor": "demo-pytest"
-      }
-    },
-    {
-      "type": "say",
-      "text": "出生即绿！现在登记依赖关系：server.py 依赖 config_loader.py 的 get_config，具体依赖的是「永不为 None」这条保证。"
-    },
-    {
-      "type": "gbc",
-      "tool": "add_dependency",
-      "desc": "双向登记依赖",
-      "args": {
         "provider": "config_loader.py",
-        "consumer": "server.py",
-        "symbol": "get_config",
-        "guarantee_id": "config_loader.get_config.never_none"
-      }
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none"
+      },
+      "desc": "双向登记保证并立即验证",
+      "tool": "create_guarantee",
+      "type": "gbc"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "初始验证 — 确认一切正常",
+      "text": "登记成功！现在建立依赖关系：让 server.py 明确依赖 config_loader.py 的这条保证。",
+      "type": "say"
+    },
+    {
+      "args": {
+        "consumer": "server.py",
+        "guarantee_id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "symbol": "get_config"
+      },
+      "desc": "登记依赖关系",
+      "tool": "add_dependency",
+      "type": "gbc"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "初始验证 — 确认状态全绿",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "现在模拟一次「看起来无害」的改动：把 .get(key, \"\") 的默认值 \"\" 去掉。这样找不到 key 时就返回 None 了。\n\n这在真实场景中非常常见——有人觉得「简化代码」删掉了默认参数，没意识到下游依赖这个行为。"
+      "text": "现在模拟一次「看似无害」的重构：删掉 .get() 的默认值。这样找不到键时会转而返回 None。\n\n这在现实场景中很常见——有人为了「简化代码」删掉了默认参数，却没意识到下游逻辑正依赖于此。",
+      "type": "say"
     },
     {
-      "type": "edit",
-      "file": "config_loader.py",
-      "desc": "「简化」：去掉 .get() 的默认值 — 找不到 key 时返回 None",
+      "desc": "「简化」代码：移除默认值，导致缺失键时返回 None",
       "edits": [
         {
-          "oldText": "        # 关键行：.get() 的第二个参数 \"\" 保证「永不为 None」\n        return self._config.get(key, \"\")",
-          "newText": "        # 「简化」：去掉默认值 —— 找不到 key 时返回 None\n        return self._config.get(key)"
+          "newText": "        # 「简化」：移除默认值 —— 键不存在时将返回 None\n        return self._config.get(key)",
+          "oldText": "        # 关键行：.get() 的第二个参数 \"\" 保证「永不为 None」\n        return self._config.get(key, \"\")"
         }
-      ]
-    },
-    {
-      "type": "show",
+      ],
       "file": "config_loader.py",
-      "highlight": "第17行：.get(key) — 默认值被删除了！",
-      "desc": "改动后的代码：.get(key, \"\") 变成了 .get(key)。对存在的 key 没影响，但找不到的 key 现在返回 None。"
+      "type": "edit"
     },
     {
-      "type": "say",
-      "text": "来看看 GBC 的门禁能不能发现这个破坏…"
+      "desc": "修改后：对于存在的键依然正常，但对于缺失的键，现在返回值变成了 None。",
+      "file": "config_loader.py",
+      "highlight": "第17行：.get(key) — 默认值被移除了",
+      "type": "show"
     },
     {
-      "type": "gbc",
-      "tool": "verify_provider",
-      "desc": "门禁验证 — 能拦住吗？",
+      "text": "由于存在明确的保证和依赖，让我们看看 GBC 门禁能否及时止损……",
+      "type": "say"
+    },
+    {
       "args": {
         "provider": "config_loader.py"
-      }
+      },
+      "desc": "门禁验证 — 是否能拦截破坏？",
+      "tool": "verify_provider",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "🛡️ 拦住了！\n\n因为强测试同时断言了 get_config(\"port\") 和 get_config(\"nonexistent\") 都不为 None。改动只影响了 productive path（port 存在 → 仍返回 \"8080\"），但 edge path（nonexistent → 原返回 \"\"，现返回 None）被第二行断言捕获。\n\n关键洞察：GBC 能拦住的，是你测试覆盖到的边界。测试覆盖了 edge path → 门禁才能守住 edge path。"
+      "text": "🛡️ 成功拦截！\n\n原因在于强测试同时断言了正常路径（port 存在）和边界路径（nonexistent）。改动虽未破坏正常路径，但被边界路径的断言精准捕获。\n\n核心洞察：GBC 保护的力度取决于测试的覆盖面。测试覆盖了边界，门禁才能守住边界。",
+      "type": "say"
     }
   ]
 }

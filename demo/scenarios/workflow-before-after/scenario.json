@@ -1,0 +1,75 @@
+{
+  "delay": 1.2,
+  "name": "集成前 vs 集成后：作业工作模式对比",
+  "project": "workflow-mini",
+  "steps": [
+    {
+      "text": "这是一个演示「工作方式」变化的剧本。请重点关注 Agent 在集成 GBC 后，思考与行动逻辑的转变。\n\n示例项目非常精简：`llm_client/` 负责模型调用，`config/` 负责读取配置。人类现在提出了一个新需求：\n\n> 「Chat 功能需要读取 API Key，帮我对接一下。」",
+      "type": "say"
+    },
+    {
+      "desc": "现状：LLM 客户端是一个空桩，尚未接入配置读取逻辑。",
+      "file": "llm_client/client.py",
+      "highlight": "目前仅有 chat() 方法的定义",
+      "type": "show"
+    },
+    {
+      "text": "【集成前 · Agent 逻辑】\n\n「收到需求。给 chat 方法接入 API Key……Key 通常在环境变量里，直接在 client 旁边读取最省事，不用多开一个文件看代码。」",
+      "type": "say"
+    },
+    {
+      "text": "【集成前 · Agent 操作】（以下为模拟操作）\n\nAgent 会直接在 `llm_client/client.py` 中注入逻辑：\n\n  import os\n  def chat(prompt):\n      key = os.environ[\"OPENAI_API_KEY\"]  # 随意插入的环境变量读取\n      ...\n\nAgent 没有动力去确认「这个目录是否允许处理配置 IO」。只要功能跑得通，Agent 就会宣告完工。\n\n结果：配置 IO 逻辑悄悄侵入了 LLM 包。原本的架构约定已被破坏，但此时测试依然是全绿的。",
+      "type": "say"
+    },
+    {
+      "text": "—— 分割线：同一需求，项目在集成 GBC 并注入规则后 ——",
+      "type": "say"
+    },
+    {
+      "desc": "项目 Instruction 注入了 GBC 作业守则：顶层负责规划、架构意图修改需人类确认、Subagent 权限受限、所有保证必须明确登记并验证。",
+      "file": "instruction-excerpt.md",
+      "highlight": "GBC 注入 Instruction 的守则节选",
+      "type": "show"
+    },
+    {
+      "text": "【集成后 · 顶层 Agent 逻辑】\n\n「守则要求我以规划者身份行动，不能直接修改 client.py。我需要先查看 .gbc/ 目录下的架构意图（gbc.md），确认 llm_client 和 config 各自的职责边界。」",
+      "type": "say"
+    },
+    {
+      "desc": "意图层已明确规定：LLM 目录不负责处理配置和密钥加载。",
+      "file": ".gbc/llm_client/gbc.md",
+      "highlight": "内部约束：禁止在此执行配置 IO 操作",
+      "type": "show"
+    },
+    {
+      "desc": "密钥与配置加载职责属于 config/ 模块。",
+      "file": ".gbc/config/gbc.md",
+      "highlight": "配置读取逻辑集中在此处",
+      "type": "show"
+    },
+    {
+      "text": "【集成后 · 顶层 Agent 逻辑】\n\n「现在的架构意图非常清晰，无需修改：Key 加载应在 config 完成，chat 只负责接收传入的参数。我将按此边界派发任务。」\n\n（注：如果要修改 gbc.md，必须严格遵守『起草草案 -> 人类显式批准 -> 落库』的流程，防止架构设计悄然漂移。）",
+      "type": "say"
+    },
+    {
+      "text": "【集成后 · 顶层 → Subagent 任务简报】\n\n```\n可写路径：config/settings.py\n只读路径：llm_client/ 及其他（仅供参考，禁止修改）\n架构约束：\n  - config：负责配置与密钥加载；禁止调用 LLM\n  - llm_client：仅限 LLM 调用；禁止配置 IO；密钥由调用方注入\n任务：在 config 中实现 load_api_key()；编写测试并登记保证；使用 GBC 工具自证\n```\n\n后续还会派发第二个简报：修改 chat 签名以接收 api_key 参数。",
+      "type": "say"
+    },
+    {
+      "text": "【集成后 · Subagent 行为】\n\nSubagent 严格按照简报执行：只动 `settings.py`。实现功能后，编写测试，并通过 MCP 工具调用 `create_guarantee` 登记保证。最后运行 `verify_provider` 自证清白，并将控制权交还顶层。",
+      "type": "say"
+    },
+    {
+      "text": "【集成后 · 顶层 · 最终验收】\n\nSubagent 完成工作并不意味着结束。作为顶层，我会再次运行受影响的保证以完成最终门控。全绿则交货，飘红则修补，绝不为了「看上去是绿的」而对测试质量妥协。",
+      "type": "say"
+    },
+    {
+      "text": "对照集成前后的差异：同样的原始需求，环境变量读取不会再被随意塞进 `llm_client/`。这并非因为模型变聪明了，而是 Instruction + gbc.md + 任务边界构成的「力场」，在动笔之前就挡住了由于一时省事而导致的架构破坏。",
+      "type": "say"
+    },
+    {
+      "text": "本剧本旨在展示**思考与流程**的变化，而非具体的代码修改细节。具体的自动门控演示，详见 `config-service-strong` 场景。",
+      "type": "say"
+    }
+  ]
+}

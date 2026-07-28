@@ -1,0 +1,105 @@
+{
+  "delay": 1.5,
+  "name": "Weak Test: Missing a None Regression",
+  "project": "config-service-en",
+  "steps": [
+    {
+      "text": "In this scenario, we will see what happens when test coverage is insufficient to protect your guarantees.",
+      "type": "say"
+    },
+    {
+      "desc": "Provider: same source code as the 'Strong' scenario, using .get(key, \"\") to ensure results are never None.",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key, \"\") — returns \"\" on missing key",
+      "type": "show"
+    },
+    {
+      "desc": "Consumer: also the same logic, relying on the guarantee that results are never None.",
+      "file": "server.py",
+      "highlight": "line 16: trusts the return value's type",
+      "type": "show"
+    },
+    {
+      "desc": "Weak Test: Only asserts that get_config(\"port\") is not None. Since \"port\" exists in the default config, this always passes.\n\nFatal Flaw: No test for get_config(\"nonexistent\")—missing key branches are completely ignored.",
+      "file": "tests/test_never_none.py",
+      "highlight": "only one assertion, covering only the 'happy path'",
+      "type": "show"
+    },
+    {
+      "text": "Register the guarantee. GBC runs the test (Born-Green), and it passes because the 'port' key indeed returns a string.",
+      "type": "say"
+    },
+    {
+      "args": {
+        "desc": "get_config(key) always returns a string, never None.",
+        "executor": "demo-pytest",
+        "id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none"
+      },
+      "desc": "Register guarantee and run the weak test",
+      "tool": "create_guarantee",
+      "type": "gbc"
+    },
+    {
+      "text": "Registration successful. Now establishing the dependency relation.",
+      "type": "say"
+    },
+    {
+      "args": {
+        "consumer": "server.py",
+        "guarantee_id": "config_loader.get_config.never_none",
+        "provider": "config_loader.py",
+        "symbol": "get_config"
+      },
+      "desc": "Register dependency relations",
+      "tool": "add_dependency",
+      "type": "gbc"
+    },
+    {
+      "args": {
+        "provider": "config_loader.py"
+      },
+      "desc": "Baseline check — system status: green",
+      "tool": "verify_provider",
+      "type": "gbc"
+    },
+    {
+      "text": "Now we make the same mistake: remove the default value, allowing missing keys to return None.",
+      "type": "say"
+    },
+    {
+      "desc": "Refactor code: remove default value",
+      "edits": [
+        {
+          "newText": "        # 'Simplified': removing the default value — missing keys now return None\n        return self._config.get(key)",
+          "oldText": "        # Critical line: the \"\" default is what keeps \"never None\" true\n        return self._config.get(key, \"\")"
+        }
+      ],
+      "file": "config_loader.py",
+      "type": "edit"
+    },
+    {
+      "desc": "Result: the behavior for missing keys is now broken, but since our test doesn't check that path, it still looks fine.",
+      "file": "config_loader.py",
+      "highlight": "line 21: .get(key) — default value removed",
+      "type": "show"
+    },
+    {
+      "text": "Let's see if the GBC gate can catch this break...",
+      "type": "say"
+    },
+    {
+      "args": {
+        "provider": "config_loader.py"
+      },
+      "desc": "Gate validation — checking for regressions",
+      "tool": "verify_provider",
+      "type": "gbc"
+    },
+    {
+      "text": "💔 Block failed! The gate is still green.\n\nWhy? Because the weak test only verifies the existing 'port' key. That path still works, while the path that returns None—and triggers downstream crashes—was never tested.\n\nGBC relies on the tests you provide. If your tests have blind spots, the gate has blind spots.\n\nCompare this with the 'Strong' scenario (python demo/run_demo.py run config-service-strong-en) to see how adding a single assertion for edge cases can prevent such failures.",
+      "type": "say"
+    }
+  ]
+}

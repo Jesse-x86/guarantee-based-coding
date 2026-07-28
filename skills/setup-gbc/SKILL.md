@@ -1,7 +1,6 @@
 ---
 name: setup-gbc
-description: Set up GBC in the project you're working in — make the gbc MCP server available, register a test executor, set up a gbc-doc intent skill, and add GBC's operating rules to the project's instruction file. Run once per project you onboard, and again whenever the interpreter, environment, language, or test runner changes. Assumes GBC the tool is already installed (see the GBC tool repo's docs/for-agents.md, step ①).
-disable-model-invocation: true
+description: Set up GBC in the project you're working in — make the gbc MCP server available, register a test executor, set up a gbc-doc intent skill, and add GBC's operating rules to the project's instruction file. Use this when the user is about to start editing code in a project but GBC isn't wired in yet (no gbc MCP server available or no executor registered), and again whenever the interpreter, environment, language, or test runner changes. Assumes GBC the tool is already installed (see the GBC tool repo's docs/for-agents.md, step ①).
 ---
 
 # Set up GBC in the working project
@@ -23,6 +22,13 @@ This is prompt-driven, not a script: look at the project, show your human what y
 details, then set things up — taking the decisions one at a time, each opened with a sentence of plain
 context (your human may not know the terms).
 
+## Locate the GBC tool repo (read `gbc.config.json` first)
+
+Almost every step below needs the GBC tool repo's absolute path and the interpreter that runs it. They're cached in `gbc.config.json` next to this `SKILL.md`, shaped as `{"gbc_repo": "...", "gbc_interpreter": "..."}`.
+
+- **File exists and both paths still work** (the repo dir is there, the interpreter runs) — use them.
+- **File missing, or a path empty/wrong/stale** — it's out of date. Resolve the correct paths yourself — you usually know where you cloned the GBC tool repo and which interpreter you installed its deps into. If not, follow your human's autonomy preference: if they run you autonomous (or their rules say not to keep asking), search the obvious places yourself; if they prefer you ask before acting, ask them for the path. Then **write them back into `gbc.config.json`** so every later run reuses them. This is a one-time burn-in that re-heals whenever it goes stale — no environment variable, no asking afresh each project.
+
 ## 1. Look at the working project
 
 - **What runs its tests** — `pyproject.toml` / `pytest.ini` (pytest), `package.json` (jest/vitest),
@@ -30,7 +36,6 @@ context (your human may not know the terms).
 - **Which instruction file** it uses for agent guidance (e.g. `CLAUDE.md`, `AGENTS.md`), and whether GBC
   rules are already in it.
 - **Whether a `gbc-doc` skill** is already set up for it.
-- **Where the GBC tool repo lives**, and which interpreter runs it — ask your human if you're unsure.
 
 ## 2. Agree on the details, one at a time
 

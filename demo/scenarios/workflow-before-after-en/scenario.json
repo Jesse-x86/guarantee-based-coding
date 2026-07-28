@@ -1,0 +1,75 @@
+{
+  "delay": 1.2,
+  "name": "Integration Before & After: Comparing Workflows",
+  "project": "workflow-mini",
+  "steps": [
+    {
+      "text": "This is a role-play scenario showing how an agent's thinking and actions fundamentally change after GBC integration.\n\nProject context: `llm_client/` is for model interactions only; `config/` handles all settings and I/O. A new human requirement arrives:\n\n> 'Chat needs an API key—connect it for me.'",
+      "type": "say"
+    },
+    {
+      "desc": "Initial state: The LLM client is a stub without any configuration loading logic.",
+      "file": "llm_client/client.py",
+      "highlight": "Currently only contains a chat() stub",
+      "type": "show"
+    },
+    {
+      "text": "[Before GBC · Agent Logic]\n\n'Requirement received. Adding API key support... Keys are usually in environment variables. It's fastest to read them directly inside the client file—that's one less path to manage.'",
+      "type": "say"
+    },
+    {
+      "text": "[Before GBC · Agent Action] (Imagined edit)\n\nThe agent would likely inject this into `llm_client/client.py`:\n\n  import os\n  def chat(prompt):\n      key = os.environ[\"OPENAI_API_KEY\"]  # Opportunistic environment read\n      ...\n\nWithout explicit constraints, the agent has no incentive to check what this folder is allowed to own. If it runs, it ships.\n\nOutcome: Configuration I/O has quietly leaked into the LLM package—violating the architectural separation while all tests remain green.",
+      "type": "say"
+    },
+    {
+      "text": "--- Cut to: The same requirement, with GBC and its operating rules already in place ---",
+      "type": "say"
+    },
+    {
+      "desc": "The Agent's System Instructions now include GBC operating rules: top-level planning, mandatory human approval for architectural changes, restricted subagent scopes, and strict registration of all guarantees.",
+      "file": "instruction-excerpt.md",
+      "highlight": "Excerpt from the GBC-injected rules in the instruction file",
+      "type": "show"
+    },
+    {
+      "text": "[After GBC · Top-level Planner]\n\n'My instructions say I must plan by default—I won't just open client.py. First, I'll read the architecture intent (gbc.md) in the .gbc/ folder for both llm_client and config to understand their responsibilities.'",
+      "type": "say"
+    },
+    {
+      "desc": "The Intent layer explicitly forbids configuration and secret loading inside the LLM folder.",
+      "file": ".gbc/llm_client/gbc.md",
+      "highlight": "Internal constraint: configuration I/O is prohibited here",
+      "type": "show"
+    },
+    {
+      "desc": "The responsibility for loading secrets and settings belongs strictly to config/.",
+      "file": ".gbc/config/gbc.md",
+      "highlight": "Configuration loading is centralized here",
+      "type": "show"
+    },
+    {
+      "text": "[After GBC · Top-level Planner]\n\n'The architecture is clear: Key loading belongs in config, and chat should receive the key as an argument. I will dispatch tasks accordingly.'\n\n(Note: If changing the architectural intent was required, I would follow a strict 'draft -> get explicit human approval -> update gbc.md' workflow to prevent silent drift.)",
+      "type": "say"
+    },
+    {
+      "text": "[After GBC · Task Brief to Subagent]\n\n```\nWritable: config/settings.py\nRead-only: llm_client/ and others (reference only, no drive-by changes)\nIntent from gbc.md:\n  - config: handles settings loading; no LLM calls\n  - llm_client: LLM interactions only; no config I/O; inject secrets via args\nTask: implement load_api_key(); add testing and create_guarantee; self-verify via GBC tools\n```",
+      "type": "say"
+    },
+    {
+      "text": "[After GBC · Subagent Behavior]\n\nThe Subagent strictly adheres to the brief. It only modifies `settings.py`. After implementing the feature and adding tests, it calls `create_guarantee` to register the behavioral promise. It finishes by self-verifying and handing control back to the planner.",
+      "type": "say"
+    },
+    {
+      "text": "[After GBC · Final Acceptance]\n\nSubagent verification is not the end. As the planner, I re-run all affected guarantees through GBC to ensure global consistency. Green means it's ready; red means fix it—we never loosen a test just to 'paint the gate green'.",
+      "type": "say"
+    },
+    {
+      "text": "Comparison: The same human demand no longer results in an architectural violation. This isn't because the model became 'smarter', but because the 'force field' created by Instructions + gbc.md + task boundaries blocked the 'convenient' mistake before the first line of code was even written.",
+      "type": "say"
+    },
+    {
+      "text": "This scenario highlights the **changes in process and philosophy**. For details on the automated gating itself, see the 'config-service-strong' scenario.",
+      "type": "say"
+    }
+  ]
+}

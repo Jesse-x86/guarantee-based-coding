@@ -14,20 +14,36 @@ Two roles you'll use throughout:
 
 Do this once; every project reuses it. This step only touches the **GBC tool repo**.
 
-1. **Find the GBC tool repo.** If you're not sure where it is, ask your human for the path.
+1. **Find the GBC tool repo.** If you're not sure where it is, follow your human's autonomy preference: if they run you autonomous (or their rules say not to keep asking), search the obvious places yourself; if they prefer you ask before acting, ask them for the path.
 2. **Install its dependencies.** It ships a `requirements.txt` — install it into a suitable Python
    environment. Which environment and how is up to you and your human's conventions.
 3. **Install the `setup-gbc` skill.** It's under the GBC tool repo's `skills/setup-gbc/`; install it
    the way you install skills. You'll use it every time you onboard a project.
+4. **Know how `setup-gbc` remembers the repo.** It caches the GBC repo path and the interpreter in
+   `gbc.config.json` next to its `SKILL.md` (`{"gbc_repo": "...", "gbc_interpreter": "..."}`).
+   Rule: file exists and the paths work → use them; file missing or a path stale/wrong → write them
+   back in (one-time burn-in that re-heals whenever it goes stale). So the first time you run
+   `setup-gbc` after installing, it burns the paths in — nothing to do by hand at install, just be
+   aware that's where the path lives.
 
-Once done, these three are good for all projects.
+Once done, these four are good for all projects.
 
 ## ② Each project: run setup-gbc to onboard
 
 Run the `setup-gbc` skill inside the **working project** and it walks you through wiring GBC in —
 usually within one session. It registers the gbc MCP server, a test executor, a `gbc-doc` intent
-skill, and drops GBC's operating rules into the project's instruction file (those rules cover the
-conventions you'll follow, including how to write references and how to move/rename code safely).
+skill, and drops GBC's operating rules into the project's instruction file.
+
+Those rules assume **you are the top-level agent**: preferred default is plan → align intent
+(default install **requires explicit human approval** before landing gbc.md; if your human asks
+you to delete that line from the instruction file, the rule simply disappears from your context
+and autonomy goes up — drift risk too) → dispatch subagents (brief = sliced intent **and**
+internal constraints, **writable target file(s)**, everything else **read-only**) → subagent
+self-verifies and registers guarantees for new behavior → **you** final-gate via GBC tools (MCP
+by default — never hand-run the underlying test runner). Planning and implementation in one agent
+is allowed for small changes; day-to-day coding is not the default role of the top-level agent.
+After onboarding, treat the block in the instruction file as the living workflow — including
+`[[ ]]` references, refactor tools, and how to move/rename safely.
 
 > Why once per project? GBC points at the working project, and the test executor follows that
 > project's environment and language — switch projects and it naturally needs reconfiguring. That's

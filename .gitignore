@@ -8,3 +8,4 @@ config/executors.json
 .mcp.json
 AGENTS.md
 demo/workspace/
+skills/setup-gbc/gbc.config.json

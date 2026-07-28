@@ -1,43 +1,43 @@
 {
-  "name": "错误测试：出生即绿拒之门外",
-  "project": "config-service",
   "delay": 1.5,
+  "name": "错误测试：注册即验证 (Born-Green)",
+  "project": "config-service",
   "steps": [
     {
-      "type": "say",
-      "text": "这次的场景：测试本身是错的。来看看 GBC 的「出生即绿」机制怎么处理。"
+      "text": "在这个场景中，测试用例本身编写有误。我们将演示 GBC 的「出生即绿」(Born-Green) 机制如何处理这种情况。",
+      "type": "say"
     },
     {
-      "type": "show",
+      "desc": "提供方代码：get_config(\"nonexistent\") 返回 \"\"（空字符串）。这是符合预期的正确行为。",
       "file": "config_loader.py",
-      "highlight": "第21行：.get(key, \"\") — 找不到 key 返回 \"\"",
-      "desc": "Provider 代码：get_config(\"nonexistent\") 返回 \"\"（空字符串）。这是正确的行为。"
+      "highlight": "第21行：.get(key, \"\") — 键不存在时返回空字符串",
+      "type": "show"
     },
     {
-      "type": "show",
+      "desc": "注意第 19 行：测试代码错误地断言结果应为 \"default\"。由于代码实际返回 \"\"，该测试无法通过。",
       "file": "tests/test_never_none.py",
-      "highlight": "第19行：断言错误 — 期待 \"default\"，实际返回 \"\"",
-      "desc": "注意第 19 行！测试写的是 assert get_config(\"nonexistent\") == \"default\"，但代码实际返回 \"\"。这个测试跑不过。"
+      "highlight": "第19行：断言错误 — 预期为 \"default\"，实际为 \"\"",
+      "type": "show"
     },
     {
-      "type": "say",
-      "text": "现在试着登记这条保证。GBC 会立刻跑测试——如果测试过不了，连登记都不让。这就是「出生即绿」。"
+      "text": "现在尝试登记这条「永不为 None」的保证。GBC 会立即运行关联测试——如果测试失败，登记请求将被直接拒绝。这就是「出生即绿」。",
+      "type": "say"
     },
     {
-      "type": "gbc",
-      "tool": "create_guarantee",
-      "desc": "登记保证 — 但测试写错了，会被拒绝",
       "args": {
-        "provider": "config_loader.py",
+        "desc": "get_config(key) 始终返回字符串，绝不返回 None。",
+        "executor": "demo-pytest",
         "id": "config_loader.get_config.never_none",
-        "desc": "get_config(key) 永远返回 str，绝不返回 None。",
-        "test": "tests/test_never_none.py::test_get_config_never_returns_none",
-        "executor": "demo-pytest"
-      }
+        "provider": "config_loader.py",
+        "test": "tests/test_never_none.py::test_get_config_never_returns_none"
+      },
+      "desc": "尝试登记保证 — 但测试有误，将被拒绝",
+      "tool": "create_guarantee",
+      "type": "gbc"
     },
     {
-      "type": "say",
-      "text": "看到了吗？GBC 拒绝登记这条保证。\n\n「出生即绿」意味着：你连一条跑不过的保证都注册不了，更别提后续带着这个 bug 去修改代码了。GBC 不仅在改代码后拦住破坏——它在登记时就确保你的测试本身就是对的。\n\n这就是保证系统的第一道防线：不是「改了之后发现坏了」，而是「坏的测试根本进不来」。"
+      "text": "如你所见，GBC 拒绝了该保证的登记。\n\n「出生即绿」意味着：你无法注册一个当前失败的保证，更无法在此基础上构建后续的依赖。GBC 不仅在代码变更后拦截破坏，更在登记阶段就确保了测试的真实性。\n\n这是保证系统的第一道防线：与其在「坏了之后才发现」，不如「根本不让有问题的测试进入系统」。",
+      "type": "say"
     }
   ]
 }

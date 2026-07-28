@@ -1,7 +1,22 @@
-"""测试：get_config() 永不为 None —— 强测试版。
+# Copyright 2026 Jesse-x86
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
-本测试同时覆盖 productive path 和 edge path（missing key），
-能捕获 "missing key 分支返回 None" 的回归。
+"""
+测试：get_config() 永不为 None —— 强测试版。
+
+本测试同时覆盖了正常路径（存在键）和边界路径（缺失键），
+能够精准捕获「缺失键时返回 None」的回归问题。
 """
 
 from config_loader import ConfigLoader

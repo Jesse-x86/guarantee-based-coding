@@ -13,6 +13,29 @@
 
 想亲自动手、或弄清每一步:[docs/manual.md](./docs/manual.md)(手动 / 详细文档)。
 
+## 🎬 先看演示
+
+几乎零配置就能跑；菜单里中/英剧本都有。
+
+```bash
+pip install -r demo/requirements.txt
+python demo/run_demo.py
+```
+
+| 剧本 | 演示什么 |
+|------|----------|
+| `config-service-strong` / `*-en` | **成功拦截**——强测试覆盖边缘路径 (Edge Path)，改坏代码后触发 RED 拦截 |
+| `config-service-weak` / `*-en` | **拦截失败**——弱测试只覆盖正常路径 (Happy Path)，改坏代码后仍为 GREEN |
+| `config-service-bad-test` / `*-en` | **注册即验证 (Born-Green)**——测试本身有 Bug，登记保证时当场拒绝 |
+| `workflow-before-after` / `*-en` | **作业模式对比**——对比集成 GBC 前后的开发逻辑：从「随意修改」到「规划、对齐意图、派发任务、登记保证与最终验收」的流程演进 |
+
+每个门禁剧本都是真跑 MCP + pytest。工作流剧本偏「agent 怎么想、怎么做」的叙事对照。
+
+> **交给 agent 走读**：[demo/EXAMPLE.md](./demo/EXAMPLE.md)（中）/ [demo/EXAMPLE_EN.md](./demo/EXAMPLE_EN.md)（英）——对它说「按这个走一遍」。
+
+详见 [demo/](./demo/)。
+
+
 ## 问题
 
 Coding agents（Cursor, Aider, Devin 等）的核心失败模式不是写错代码——写错可以重试。真正的问题是**静默地破坏已有代码的隐含假设**。
@@ -33,7 +56,11 @@ Coding agents（Cursor, Aider, Devin 等）的核心失败模式不是写错代�
 - 如果某个保证被打破，精确知道是哪个保证、谁依赖它
 - **正确性的判定从"AI 觉得自己改对了"变成"所有保证仍然通过"**——一个可以机械验证的布尔条件
 
+![无 GBC vs 有 GBC](docs/workflow-comparison.svg)
+
 ## 它怎么工作
+
+![GBC Architecture](docs/architecture.svg)
 
 ### 设计原则
 
@@ -69,7 +96,7 @@ my-project/
 - **Guarantee**：一条**具名**（全局唯一 id）的行为承诺，对应一个测试 + 一段描述；**多个 consumer 可共享同一条保证**
 - **Executor**：定义如何运行测试的配置（命令模板、工作目录、环境变量等）
 
-依赖边有两级:免费的**符号依赖**（依赖签名/符号存在）与**具名保证依赖**（依赖具体行为）。后者**双向登记**——provider 的 `provides[id].dependents` ⇄ consumer 的 `depends_on[].guarantees`，由工具兜底同步。
+依赖边分为两个层级：轻量级的**符号依赖**（仅依赖签名或符号存在）与强约束的**具名保证依赖**（依赖具体行为）。后者通过反向边机制实现**双向登记**——提供方的 `provides[id].dependents` ⇄ 消费者的 `depends_on[].guarantees`，由工具链确保状态同步。
 
 ### Meta 文件示例
 
@@ -160,29 +187,6 @@ GBC 提供两组集成点，CLI 与 MCP 皆可：
 上下文大小取决于当前文件的 guarantee 数量，**与项目整体规模无关**。
 
 GBC 同时提供 **CLI 和 MCP** 两种接口；并给出一套**推荐的 agent 工作流**——把 [docs/for-agents.md](./docs/for-agents.md) 交给你的 agent 即可上手。
-
-## 🎬 演示
-
-项目内置了一个交互式 Demo Runner，用真实的 GBC 门禁演示「弱测试 vs 强测试」的对比效果：
-
-```bash
-pip install -r demo/requirements.txt
-python demo/run_demo.py
-```
-
-弹出菜单后选择要运行的剧本：
-
-| 剧本 | 演示什么 |
-|------|----------|
-| `config-service-bad-test` | **出生即绿拒之门外**——测试有 bug，登记时当场被拒 |
-| `config-service-strong` | **门禁成功拦截**——强测试覆盖所有路径，改坏后亮 RED |
-| `config-service-weak` | **门禁没拦住**——弱测试只测一条路径，改坏后仍是 GREEN |
-
-每个剧本会逐步展示：源码 → 测试代码 → 登记保证 → 模拟破坏性修改 → 门禁结果，全部是真实执行（Runner 通过 MCP 启动 GBC server 真正跑 pytest）。
-
-> 💡 **更自然的体验**：如果你已经有一个 coding agent（Cursor、Pi、Claude Code 等），直接把 [demo/EXAMPLE.md](./demo/EXAMPLE.md) 交给它，对它说「按这个走一遍」——你的 agent 会**亲自**操作 GBC 工具，一边改代码一边跑门禁，你在旁边看着它一步步演示。
-
-详见 [demo/](./demo/) 目录。
 
 ## 和现有方案的对比
 

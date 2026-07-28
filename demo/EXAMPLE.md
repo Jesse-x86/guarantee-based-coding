@@ -1,5 +1,7 @@
 # GBC Interactive Demo (for Agents)
 
+> 英文平行版 → [`EXAMPLE_EN.md`](./EXAMPLE_EN.md)（`config-service-en` / `*-en` 剧本）
+
 **你是人类** → 把本文交给你的 coding agent，对它说："按这个走一遍，每步停一下解释给我听。"
 
 **你是 agent** → 你好！你的任务是用 GBC 工具做一次交互式演示，让人类看到它怎么工作。
