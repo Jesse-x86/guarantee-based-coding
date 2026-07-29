@@ -16,7 +16,7 @@
 2. `pip install -r requirements.txt`（装进合适的 Python 环境）。
 3. 用 `gbc mcp up <项目根>` 启动 MCP server（Python 用上一步的环境），然后在 `.mcp.json` 中注册。
 
-> 详细说明见 [docs/for-agents.md](../docs/for-agents.md)。
+> 详细说明见 [docs/zh/onboarding-agent.md](../docs/zh/onboarding-agent.md)。
 
 你需要这些 MCP 工具：`create_guarantee`、`add_dependency`、`verify_provider`、`upsert_executor`。
 
@@ -123,4 +123,4 @@
 2. **门禁的强度 = 测试的强度**：弱测试覆盖不到的边界，门禁也看不见
 3. **出生即绿**：保证登记的那一刻就跑测试——坏的测试进不来
 
-然后告诉人类：想在自己的项目里用 GBC → 把 [docs/for-agents.md](../docs/for-agents.md) 交给你就行。
+然后告诉人类：想在自己的项目里用 GBC → 把 [docs/zh/onboarding-agent.md](../docs/zh/onboarding-agent.md) 交给你就行。

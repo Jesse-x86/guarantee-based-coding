@@ -1,6 +1,6 @@
 ---
 name: setup-gbc
-description: Set up GBC in the project you're working in — make the gbc MCP server available, register a test executor, set up a gbc-doc intent skill, and add GBC's operating rules to the project's instruction file. Use this when the user is about to start editing code in a project but GBC isn't wired in yet (no gbc MCP server available or no executor registered), and again whenever the interpreter, environment, language, or test runner changes. Assumes GBC the tool is already installed (see the GBC tool repo's docs/for-agents.md, step ①).
+description: Set up GBC in the project you're working in — make the gbc MCP server available, register a test executor, set up a gbc-doc intent skill, and add GBC's operating rules to the project's instruction file. Use this when the user is about to start editing code in a project but GBC isn't wired in yet (no gbc MCP server available or no executor registered), and again whenever the interpreter, environment, language, or test runner changes. Assumes GBC the tool is already installed (see the GBC tool repo's docs/en/onboarding-agent.md, step ①).
 ---
 
 # Set up GBC in the working project

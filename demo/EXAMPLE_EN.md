@@ -17,7 +17,7 @@ Confirm the GBC MCP server is wired in. If not:
 2. `pip install -r requirements.txt` into a suitable Python environment.
 3. Start the MCP server with `gbc mcp up <project-root>` (interpreter from step 2), then register it in `.mcp.json`.
 
-> Details: [docs/for-agents.md](../docs/for-agents.md).
+> Details: [docs/en/onboarding-agent.md](../docs/en/onboarding-agent.md).
 
 Tools you need: `create_guarantee`, `add_dependency`, `verify_provider`, `upsert_executor`.
 
@@ -135,4 +135,4 @@ Three points for your human:
 2. **Gate strength = test strength**: untested edges are blind to the gate
 3. **Born-green**: the test runs the moment a guarantee is registered — bad tests never enter
 
-Then: want GBC in your own project → hand them [docs/for-agents.md](../docs/for-agents.md).
+Then: want GBC in your own project → hand them [docs/en/onboarding-agent.md](../docs/en/onboarding-agent.md).
