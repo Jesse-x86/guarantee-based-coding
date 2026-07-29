@@ -1,0 +1,29 @@
+# Copyright 2026 Jesse-x86
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+import os
+from pathlib import Path
+
+
+def get_project_root() -> Path:
+    """获取工具仓根目录。
+
+    注意:文件已迁入 `gbc/app/config/base.py`,比旧布局(`app/config/base.py`)多一层
+    `gbc/`,故上溯四层(base.py -> config -> app -> gbc -> 仓根)。
+    """
+    return Path(__file__).resolve().parent.parent.parent.parent
+
+
+PROJECT_ROOT = get_project_root()
+CONFIG_DIR = PROJECT_ROOT / "config"

@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "config.executor.state_externalized_to_project": {
+            "desc": "executor 配置状态外置到目标项目的 .gbc/executors.json（随 get_current_project 走，工具仓无状态、可 pip 安装）；惰性加载不在 import 时读盘；example 清单脱敏只留名字+comment、绝不含原始机器相关值。",
+            "test": "tests/test_executor_externalized.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

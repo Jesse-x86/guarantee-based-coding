@@ -1,0 +1,7 @@
+{
+    "executors": {
+        "pytest-gbc-v2": {
+            "comment": "测 gbc/ 新代码：cwd=仓库根，import gbc.app.* 走源码优先；填你自己的解释器路径与仓库根"
+        }
+    }
+}

@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "i18n.lang.resolve_priority": {
+            "desc": "语言判定遵循优先级：显式 lang > 环境变量 GBC_LANG > 系统 locale > 默认 en；永远返回受支持语言码。受支持语言从 catalog/<lang>.json 文件自动发现——放文件即加语言、零改代码，en 永远兜底置首。",
+            "test": "tests/test_i18n.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

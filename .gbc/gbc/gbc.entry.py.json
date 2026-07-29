@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "entry.command_tree_composed": {
+            "desc": "唯一入口把两子系统表面组合成命令树：保证命令(interface.cli) + doc(intent.cli) + mcp up(interface.mcp 启动器) + editor up(intent.editor) + rules/init；rules 双语并声明非强制沙箱；init 透明建 .gbc；面向用户文本走 i18n。",
+            "test": "tests/test_cli_commands.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

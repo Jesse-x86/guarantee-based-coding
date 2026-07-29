@@ -1,0 +1,45 @@
+# Copyright 2026 Jesse-x86
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# see the LICENSE file for the full text.
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "guarantee-based-coding"
+dynamic = ["version"]
+description = "Make code safely modifiable even when not fully understood — turn implicit inter-module dependencies into explicit, executable, verifiable guarantees."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Jesse-x86" }]
+keywords = ["guarantee", "testing", "ai-coding", "mcp", "code-safety"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Testing",
+]
+dependencies = [
+    "typer[all]",
+    "pydantic",
+    "mcp",
+]
+
+[project.urls]
+Homepage = "https://github.com/Jesse-x86/guarantee-based-coding"
+Repository = "https://github.com/Jesse-x86/guarantee-based-coding"
+
+# 入口点：安装后 PATH 上出现 `gbc` 命令，塌缩掉手填绝对路径的旧模型。
+[project.scripts]
+gbc = "gbc.entry:app"
+
+# 只打包工具本体 `gbc/`及其子包；demo/ docs/ tools/ 留在仓库里但不进 wheel。
+[tool.setuptools.packages.find]
+include = ["gbc", "gbc.*"]
+
+[tool.setuptools.dynamic]
+version = { attr = "gbc.__version__" }
