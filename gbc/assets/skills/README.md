@@ -9,6 +9,8 @@ inconvenient.
 wherever their agent discovers skills is up to them (every framework reads skills
 from a different place — GBC materializes the files, the user places them).
 
-> The skill files themselves are added in a later batch. This README keeps the
-> directory present so it ships in the wheel and `gbc setup` always has a real path
-> to hand out.
+## What's here
+
+- **`gbc-cli/`** — teaches an agent to drive GBC through its `gbc ...` commands
+  (the CLI-side equivalent of the MCP tool descriptions). Point your agent at
+  `gbc-cli/SKILL.md`.
