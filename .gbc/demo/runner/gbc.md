@@ -13,4 +13,4 @@ ScenarioRunner：读 JSON 剧本 → 清空并搭建 workspace（复制项目源
 Rich 可视化：say_bubble（LLM 聊天气泡）、render_diff（彩色 unified diff 面板）、render_gbc_start/result（命令执行状态）、title/divider/summary。
 
 ## mcp_client.py
-最小 MCP JSON-RPC stdio 客户端：启动 serve.py 子进程，通过 stdin/stdout 行分隔 JSON 与 GBC MCP server 通信。纯 stdlib，零外部依赖。这是 Runner 与 GBC 主库的唯一边界——主库从 Python 迁 TS 时只换 serve.py 启动命令即可。
+最小 MCP JSON-RPC stdio 客户端：启动 gbc mcp up 子进程，通过 stdin/stdout 行分隔 JSON 与 GBC MCP server 通信。纯 stdlib，零外部依赖。

@@ -21,11 +21,10 @@
   gbc doc <...>                                            → 意图文档(intent.cli)
   gbc mcp up [root]                                        → 保证引擎的 MCP 表面(interface.mcp)
   gbc editor up                                            → 意图文档的 web 表面(intent.editor)
-  gbc rules / init                                         → 跨子系统的辅助命令
+  gbc rules / setup                                        → 跨子系统的辅助命令
 
 [project.scripts] 的 `gbc` 指向本模块的 app。
 """
-from pathlib import Path
 from typing import Optional
 
 import typer
@@ -79,19 +78,17 @@ def rules_cmd(
     print(load_text("rules"))
 
 
-@app.command("init")
-def init_cmd(
-    project_root: Optional[str] = typer.Argument(None, help="要初始化的项目根；省略则当前目录"),
-    lang: Optional[str] = typer.Option(None, "--lang", help="提示语言 zh/en"),
+@app.command("setup")
+def setup_cmd(
+    lang: Optional[str] = typer.Option(None, "--lang", help="输出语言 zh/en"),
 ):
-    """透明初始化：在项目下建立 .gbc/ 骨架，并打印它做了什么。"""
-    from gbc.app.i18n import set_lang, resolve_lang, t
+    """打印本地化的接线指南到 stdout：怎么把 MCP / skills 接入你的 agent。"""
+    from gbc.app.i18n import set_lang, resolve_lang, load_text
+    from gbc.app.assets import SKILLS_DIR
     set_lang(resolve_lang(lang))
-    root = Path(project_root).expanduser().resolve() if project_root else Path.cwd()
-    gbc_dir = root / ".gbc"
-    gbc_dir.mkdir(parents=True, exist_ok=True)
-    typer.echo(t("init.done", path=str(root)))
-    typer.echo(f"· {t('init.created', path=str(gbc_dir))}")
+    # 与 rules 同构：纯文本发射器。只给坐标(skills 目录/MCP 入口)，
+    # 具体怎么接入取决于用户 agent——{skills_dir} 填入随包 skills 的真实路径。
+    print(load_text("setup").format(skills_dir=str(SKILLS_DIR)))
 
 
 def main() -> None:

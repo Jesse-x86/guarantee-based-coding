@@ -22,9 +22,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 
+from gbc.app.assets import EDITOR_FRONTEND_DIR as FRONTEND_DIR
 from gbc.app.intent import base
-
-FRONTEND_DIR = Path(__file__).resolve().parent / "editor_static"
 
 # 前端预填 + 自动加载的默认项目路径(经 --root 设定)。
 DEFAULT_ROOT = ""

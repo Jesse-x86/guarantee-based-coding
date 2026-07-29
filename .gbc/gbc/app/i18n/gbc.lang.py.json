@@ -10,5 +10,12 @@
             "disabled": false
         }
     },
-    "depends_on": []
+    "depends_on": [
+        {
+            "symbol": "gbc/app/assets.py:I18N_CATALOG_DIR",
+            "guarantees": [
+                "assets.resources_present"
+            ]
+        }
+    ]
 }

@@ -15,7 +15,7 @@ Confirm the GBC MCP server is wired in. If not:
 
 1. Your human has cloned the `guarantee-based-coding` repo. Find it.
 2. `pip install -r requirements.txt` into a suitable Python environment.
-3. Register `serve.py` as an MCP server (entry is the repo-root `serve.py`, interpreter from step 2).
+3. Start the MCP server with `gbc mcp up <project-root>` (interpreter from step 2), then register it in `.mcp.json`.
 
 > Details: [docs/for-agents.md](../docs/for-agents.md).
 

@@ -1,0 +1,21 @@
+{
+    "provides": {
+        "mcp.doc_tools_exposed": {
+            "desc": "MCP 表面把意图文档能力也暴露成工具：读(doc_show/doc_check)与写(doc_set_intent/set_constraints/set_file/rm_entry/sync/migrate)对称可达，且真的调到 intent.base（经 MCP 写意图再读回内容落地）。写入的人类确认闸门由用户 agent 框架(hook/rules)承担，不在此层设阻——MCP 与 CLI 对称。",
+            "test": "tests/test_mcp_doc_tools.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": [
+        {
+            "symbol": "gbc/app/intent/base.py:show",
+            "guarantees": [
+                "intent.base.io_and_consistency"
+            ]
+        }
+    ]
+}

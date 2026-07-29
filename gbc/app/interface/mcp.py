@@ -30,6 +30,7 @@ import json
 from mcp.server.fastmcp import FastMCP
 
 from . import base
+from gbc.app.intent import base as intent_base
 from gbc.app.models.errors import GBCError
 
 mcp = FastMCP("gbc")
@@ -447,6 +448,137 @@ def upsert_executor(config_name: str, config_data: dict) -> str:
     try:
         base.upsert_executor(config_name, config_data)
         return "upserted"
+    except Exception as e:
+        return _err(e)
+
+
+# ======== 意图文档（gbc.md：与 cli(gbc doc)/editor 对称的第三个薄表面）========
+# 读(show/check)与写(set-*/sync/migrate)都经 MCP；写入的「改前须人类确认」闸门
+# 由用户 agent 框架(hook/rules)承担——MCP 与 CLI 对称，隐藏写入通道不产生额外安全。
+
+def _doc_root():
+    """当前目标项目的 gbc 根(镜像层)。与 intent.cli._gbc_root 同源。"""
+    from gbc.app.config.project import get_current_project
+    gbc_root, _ = intent_base.resolve_gbc(str(get_current_project()))
+    return gbc_root
+
+
+@mcp.tool()
+def doc_show(folder: str = "") -> str:
+    """Show a folder's intent / internal constraints / entries from its gbc.md.
+
+    Args:
+        folder: project-relative folder path; use "" for the root.
+
+    Returns: plain text rendering (same as `gbc doc show`).
+    """
+    try:
+        return intent_base.show(_doc_root(), folder)
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_check() -> str:
+    """Whole-tree intent consistency check (DRIFT/ORPHAN are errors, STUB is a note).
+
+    Returns: JSON {errors: [...], notes: [...]} (errors empty = tree consistent).
+    """
+    try:
+        errors, notes = intent_base.check(_doc_root())
+        return _ok({"errors": errors, "notes": notes})
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_set_intent(folder: str, text: str) -> str:
+    """Set a folder's intent (auto single-source projection into the parent doc entry).
+
+    Writing intent changes the human-held architecture truth — your agent framework's
+    hook/rules decide whether this needs human sign-off; GBC does not gate it here.
+
+    Args:
+        folder: project-relative folder path ("" for root).
+        text: the intent prose.
+
+    Returns: JSON list of written gbc.md paths.
+    """
+    try:
+        return _ok([str(p) for p in intent_base.set_intent(_doc_root(), folder, text)])
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_set_constraints(folder: str, text: str) -> str:
+    """Set a folder's internal constraints (local only, not projected to the parent).
+
+    Args:
+        folder: project-relative folder path ("" for root).
+        text: the constraints prose.
+
+    Returns: JSON list of written gbc.md paths.
+    """
+    try:
+        return _ok([str(p) for p in intent_base.set_constraints(_doc_root(), folder, text)])
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_set_file(folder: str, name: str, desc: str) -> str:
+    """Add/update a file entry in a folder's gbc.md (name must not contain '/').
+
+    Args:
+        folder: project-relative folder path ("" for root).
+        name: file name (no slash).
+        desc: the file's description.
+
+    Returns: JSON list of written gbc.md paths.
+    """
+    try:
+        return _ok([str(p) for p in intent_base.set_file(_doc_root(), folder, name, desc)])
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_rm_entry(folder: str, name: str) -> str:
+    """Remove an entry from a folder's gbc.md (doc only; the on-disk file is left for git review).
+
+    Args:
+        folder: project-relative folder path ("" for root).
+        name: entry name to remove.
+
+    Returns: JSON list of written gbc.md paths.
+    """
+    try:
+        return _ok([str(p) for p in intent_base.rm_entry(_doc_root(), folder, name)])
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_sync() -> str:
+    """Deterministically fix DRIFT/ORPHAN: re-project child intents into parent entries.
+
+    Returns: JSON list of fix descriptions (empty = nothing to sync).
+    """
+    try:
+        return _ok(intent_base.sync(_doc_root()))
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_migrate() -> str:
+    """Upgrade all gbc.md files to the latest format.
+
+    Returns: JSON list of migrated paths (empty = all up to date).
+    """
+    try:
+        return _ok(intent_base.migrate(_doc_root()))
     except Exception as e:
         return _err(e)
 

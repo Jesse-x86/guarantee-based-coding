@@ -8,7 +8,7 @@
 - 唯一入口暴露两子系统的表面 + 服务/辅助命令。
 - gbc rules 输出双语规则文本,声明"非强制沙箱"。
 - gbc doc 经 intent 子系统合规读意图。
-- gbc init 透明建立 .gbc/ 骨架。
+- gbc setup 输出本地化接线指南，只给坐标(MCP 入口/skills 目录)。
 """
 from typer.testing import CliRunner
 
@@ -18,10 +18,10 @@ runner = CliRunner()
 
 
 def test_command_tree_has_all_commands():
-    """承诺:保证命令 + doc/mcp/editor/rules/init 都在唯一入口下。"""
+    """承诺:保证命令 + doc/mcp/editor/rules/setup 都在唯一入口下。"""
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
-    for cmd in ("guarantee", "verify", "doc", "mcp", "editor", "rules", "init"):
+    for cmd in ("guarantee", "verify", "doc", "mcp", "editor", "rules", "setup"):
         assert cmd in result.output
 
 
@@ -41,11 +41,15 @@ def test_mcp_up_is_a_command():
     assert "up" in result.output
 
 
-def test_init_creates_gbc_dir(tmp_path):
-    """承诺:init 在目标项目建立 .gbc/ 骨架。"""
-    result = runner.invoke(app, ["init", str(tmp_path)])
-    assert result.exit_code == 0
-    assert (tmp_path / ".gbc").is_dir()
+def test_setup_prints_wiring_guide():
+    """承诺:setup 输出接线指南，含 MCP 入口与 skills 目录坐标，且双语可出。"""
+    zh = runner.invoke(app, ["setup", "--lang", "zh"])
+    en = runner.invoke(app, ["setup", "--lang", "en"])
+    assert zh.exit_code == 0 and en.exit_code == 0
+    # 只给坐标：MCP 启动入口 + skills 目录路径(占位符已填充)。
+    for out in (zh.output, en.output):
+        assert "gbc mcp up" in out
+        assert "assets/skills" in out
 
 
 def test_doc_show_reads_intent(tmp_path):

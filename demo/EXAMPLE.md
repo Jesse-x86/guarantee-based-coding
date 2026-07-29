@@ -14,7 +14,7 @@
 
 1. 人类已经 clone 了 `guarantee-based-coding` 仓。找它。
 2. `pip install -r requirements.txt`（装进合适的 Python 环境）。
-3. 把 `serve.py` 注册为 MCP server（入口是仓根的 `serve.py`，Python 用上一步的环境）。
+3. 用 `gbc mcp up <项目根>` 启动 MCP server（Python 用上一步的环境），然后在 `.mcp.json` 中注册。
 
 > 详细说明见 [docs/for-agents.md](../docs/for-agents.md)。
 

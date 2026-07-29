@@ -21,12 +21,9 @@
 """
 import locale
 import os
-from pathlib import Path
+from gbc.app.assets import I18N_CATALOG_DIR as _CATALOG_DIR
 
 DEFAULT_LANG = "en"
-
-_I18N_DIR = Path(__file__).resolve().parent
-_CATALOG_DIR = _I18N_DIR / "catalog"
 
 # 进程内当前语言(命令入口解析一次后 set_lang 固定;库函数读 current_lang)。
 _current: str = DEFAULT_LANG

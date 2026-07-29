@@ -29,9 +29,6 @@
     "doctor.missing_executor": "This project requires executor '{name}' but it is not configured locally. Run `gbc executor upsert` to add it.",
     "doctor.executors_ok": "All executors required by this project are configured.",
 
-    "init.done": "Initialized GBC in {path}",
-    "init.created": "created: {path}",
-
     "mcp.starting": "Starting GBC MCP server for project: {path}",
     "editor.starting": "GBC intent editor running at http://{host}:{port}"
 }

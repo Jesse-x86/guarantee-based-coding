@@ -4,6 +4,6 @@ GBC 工具本体的可分发 Python 包(pip install 后经 [project.scripts] 暴
 # 文件
 
 ## entry.py
-唯一入口 gbc 命令的纯分发器：组合 interface.cli(保证命令) + intent.cli(doc) + mcp up + editor up + rules/init。不实现业务，只做命令树组合。[project.scripts] 的 gbc 指向本模块 app。
+唯一入口 gbc 命令的纯分发器：组合 interface.cli(保证命令) + intent.cli(doc) + mcp up + editor up + rules/setup。不实现业务，只做命令树组合。[project.scripts] 的 gbc 指向本模块 app。
 
 ## app/

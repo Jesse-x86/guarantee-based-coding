@@ -10,7 +10,7 @@ Nice — you're wiring GBC into a project. This walks you through it; it should 
 Two things stay distinct throughout:
 
 - **The working project** — the project you're in right now. Everything here is set up for it.
-- **The GBC tool repo** — `guarantee-based-coding` (its `serve.py`, the interpreter that runs it, and the
+- **The GBC tool repo** — `guarantee-based-coding` (its `gbc` package, the interpreter that runs it, and the
   templates next to this skill). You read from it and point at it.
 
 **You know your own environment** — how you register an MCP server, how you install a skill, which Python
@@ -54,11 +54,9 @@ Each item below says *what to achieve* for the working project. *How* you achiev
 
 - **Make the gbc MCP server available to yourself**, pointed at the working project. The server starts as:
   ```
-  <interpreter>  <gbc-tool-repo>/serve.py  <working-project-root>
+  <interpreter> -m gbc.entry mcp up <working-project-root>
   ```
-  Register it whatever way you add MCP servers. (The working-project root is passed as that argument, not
-  through an environment variable. If your interpreter is a Windows Python called from WSL, the two paths
-  are handed to a Windows process, so write them in Windows form.) Once the server is available, GBC's
+  Register it whatever way you add MCP servers. Once the server is available, GBC's
   tools show up — **read their descriptions**; they tell you how to create guarantees, register executors,
   verify, and look up dependencies. This skill won't restate them.
 - **Register the test executor** from step 2A, using GBC's own tooling (its description has the exact

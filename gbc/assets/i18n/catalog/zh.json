@@ -29,9 +29,6 @@
     "doctor.missing_executor": "本项目需要 executor「{name}」，但你尚未在本地配置。请运行 `gbc executor upsert` 添加。",
     "doctor.executors_ok": "本项目所需的 executor 均已配置。",
 
-    "init.done": "已在 {path} 初始化 GBC",
-    "init.created": "已创建：{path}",
-
     "mcp.starting": "正在为项目启动 GBC MCP 服务：{path}",
     "editor.starting": "GBC 意图编辑器已启动：http://{host}:{port}"
 }

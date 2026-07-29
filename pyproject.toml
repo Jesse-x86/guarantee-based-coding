@@ -37,9 +37,14 @@ Repository = "https://github.com/Jesse-x86/guarantee-based-coding"
 [project.scripts]
 gbc = "gbc.entry:app"
 
-# 只打包工具本体 `gbc/`及其子包；demo/ docs/ tools/ 留在仓库里但不进 wheel。
+# 只打包工具本体 `gbc/`及其子包；demo/ docs/ 留在仓库里但不进 wheel。
 [tool.setuptools.packages.find]
 include = ["gbc", "gbc.*"]
+
+# 静态资源全集中在 gbc/assets/（i18n catalog/texts + editor 前端）。
+# 运行时靠 gbc.app.assets 的路径常量定位；集中一处 → 打包声明只需一条。
+[tool.setuptools.package-data]
+"gbc" = ["assets/**"]
 
 [tool.setuptools.dynamic]
 version = { attr = "gbc.__version__" }

@@ -19,13 +19,9 @@
 放文件即加语言,无需改代码。
 """
 import json
-from pathlib import Path
 
+from gbc.app.assets import I18N_CATALOG_DIR as _CATALOG_DIR, I18N_TEXTS_DIR as _TEXTS_DIR
 from gbc.app.i18n.lang import DEFAULT_LANG, current_lang
-
-_I18N_DIR = Path(__file__).resolve().parent
-_CATALOG_DIR = _I18N_DIR / "catalog"
-_TEXTS_DIR = _I18N_DIR / "texts"
 
 # 每语言 catalog 缓存:lang -> {key: str}
 _catalog_cache: dict[str, dict[str, str]] = {}
