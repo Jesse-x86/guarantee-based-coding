@@ -1,0 +1,41 @@
+{
+    "provides": {
+        "interface_base.consistency_and_reverse_lookup": {
+            "desc": "who_depends_on 反查(O(1)精确查+全局扫描认symbol过滤)、check_consistency 五类违规检测(dangling_guarantee/missing_reverse/missing_forward/disabled_guarantee/depends_on_disabled)、render_tree 树形渲染的窄测试保证",
+            "test": "tests/test_interface_base_query.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "interface_base.refactor_suite_rewrites_graph": {
+            "desc": "refactor_file/refactor_func/rename_guarantee 三件套正确重写全图引用(path前缀重映射、symbol改写、保证id改名且自动disable)、保持id不变、覆盖幂等场景与报错路径",
+            "test": "tests/test_interface_base_refactor.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "interface_base.crud_wraps_disk_and_boundary": {
+            "desc": "保证 CRUD 包装层（create/disable/enable/update/retire_guarantee）的承诺：真的落盘到 .gbc/<path>/gbc.<name>.json 并可被 list_provides 读回；路径越界（跳出当前项目根）拒绝并抛 IllegalFilePathError；核心层异常（MetaNotFoundError/GuaranteeNotFoundError/GuaranteeDuplicatedError/GuaranteeHasDependentsError/GuaranteeTestFailedError）正确穿透 meta_session 传播；改非 runner 字段（heavy/timeout_override）不触发门禁重跑但仍落盘。",
+            "test": "tests/test_interface_base_crud.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "interface_base.dependency_bookkeeping_persists": {
+            "desc": "验证 add/remove_dependency 包装层真实落盘到 .gbc 且双向一致：免费依赖只动consumer不动provider、行为级依赖双向落盘、gid不存在抛GuaranteeNotFoundError、整条边撤销与部分摘除均正确维护双边",
+            "test": "tests/test_interface_base_deps.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

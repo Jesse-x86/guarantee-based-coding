@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "json_model_operator.round_trip_and_error_paths": {
+            "desc": "窄测试覆盖 save/load round-trip（含缺失父目录自动建）、load 错误路径（FileNotFoundError / ValueError / pydantic.ValidationError），以及 ensure_ascii=False 写入中文不转义",
+            "test": "tests/test_json_model_and_file_utils.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

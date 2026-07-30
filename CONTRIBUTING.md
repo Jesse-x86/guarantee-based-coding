@@ -4,35 +4,36 @@
 
 欢迎贡献！本文讲清怎么在本项目里安全地改代码。
 
-## 特殊之处：GBC 自己吃自己的狗粮
+## 两种安装方式：贡献 vs 只用
 
-本项目既是 GBC 工具的实现，也是它的第一个使用者。你的开发环境需要**两套隔离的 Python 环境**：
+本项目既是 GBC 工具的实现，也是它的第一个使用者。按你的目的选安装方式：
 
-| 用途 | 环境 | 说明 |
-|------|------|------|
-| **跑测试 / 写代码** | conda / venv（你自己管理）| 装 `requirements.txt` 的依赖 |
-| **调 GBC 工具** | pipx | `pipx install .` 冻结工具本身 |
+| 目的 | 安装命令 | 说明 |
+|------|----------|------|
+| **贡献代码 / 跑测试** | `pip install -e .` | 可编辑安装，`import gbc` 直接命中源码——改完不用重装 |
+| **只想用工具** | `pipx install .` | 不带 `-e`，装的是定格包，不会被本地源码目录干扰 |
 
-**为什么分开？** 改源码时，你手里的 `gbc` 命令必须来自安装版——改坏代码不会炸掉自己脚下的梯子。
-
-## 搭环境
+## 搭环境（贡献者）
 
 ```bash
-# 1. 测试环境（你已有的 conda/venv）
+# 1. 测试依赖（你已有的 conda/venv）
 pip install -r requirements.txt
 
-# 2. GBC 工具本身（pipx 隔离安装）
-pipx install -e .    # 开发时从源码安装（--editable 仍经 pipx venv）
+# 2. GBC 工具本身，可编辑安装
+pip install -e .
 ```
+
+> **注：** 若项目目录位于某些特殊挂载文件系统上（比如 WSL 的 9p 共享盘），`pip install -e .`
+> 可能因为 `chmod` 不被支持而失败（setuptools 生成 egg-info 时会调 `chmod`）。遇到这种情况，
+> 先把仓库复制到普通本地文件系统路径（如 `/tmp` 或 home 目录下）再装。
 
 ## 跑测试
 
-**关键：不能从项目根跑。** 否则 `import gbc` 命中源码而非安装版，测试跑的不是你要验证的那个包。
+用 `pip install -e .` 装好后，`import gbc` 本来就该命中源码（editable 安装用 `.pth`/finder 直接映射），**在项目根里面跑 pytest 没有问题**：
 
 ```bash
-# 正确方式：从项目根外面跑
-cd /tmp
-pytest /path/to/guarantee-based-coding/tests/
+cd /path/to/guarantee-based-coding
+pytest tests/
 ```
 
 > GBC 的当前项目根默认是进程启动时的 cwd，无需环境变量。本仓测试都用 `set_current_project()` 直接

@@ -4,38 +4,39 @@
 
 Thanks for your interest! This guide covers how to safely change code in this project.
 
-## What makes this project different: dogfooding
+## Two install modes: contributing vs just using
 
-This project *is* the GBC tool implementation, and also its first user. Your dev setup needs
-**two isolated Python environments**:
+This project *is* the GBC tool implementation, and also its first user. Pick the install mode
+that matches your goal:
 
-| Purpose | Environment | Notes |
-|---------|------------|-------|
-| **Run tests / write code** | conda / venv (yours) | Install deps from `requirements.txt` |
-| **Use GBC tools** | pipx | `pipx install .` freezes the tool itself |
+| Goal | Command | Notes |
+|------|---------|-------|
+| **Contribute code / run tests** | `pip install -e .` | Editable install; `import gbc` hits the source directly — no reinstall needed after edits |
+| **Just use the tool** | `pipx install .` | No `-e`; installs a frozen package, unaffected by your local source tree |
 
-**Why separate?** While hacking on the source, the `gbc` command you're using must come from the
-installed version — breaking the source won't cut the ladder from under your feet.
-
-## Setting up
+## Setting up (contributors)
 
 ```bash
-# 1. Test environment (your existing conda/venv)
+# 1. Test dependencies (your existing conda/venv)
 pip install -r requirements.txt
 
-# 2. GBC tool itself (isolated via pipx)
-pipx install -e .    # editable from source, still through pipx venv
+# 2. GBC tool itself, editable
+pip install -e .
 ```
+
+> **Note:** If the project directory lives on some special mounted filesystem (e.g. a WSL 9p
+> share), `pip install -e .` may fail because `chmod` isn't supported there (setuptools calls
+> `chmod` while generating egg-info). If you hit this, copy the repo to a regular local
+> filesystem path (e.g. under `/tmp` or your home directory) and install from there.
 
 ## Running tests
 
-**Critical: do not run from the project root.** Otherwise `import gbc` resolves to the source
-directory, not the installed package — you're not testing what you think you are.
+With `pip install -e .`, `import gbc` should already resolve to source (editable installs map
+via a `.pth`/finder), so **running pytest from inside the project root is fine**:
 
 ```bash
-# Correct: run from outside the project root
-cd /tmp
-pytest /path/to/guarantee-based-coding/tests/
+cd /path/to/guarantee-based-coding
+pytest tests/
 ```
 
 > GBC's current project root defaults to the process's cwd — no environment variable needed.

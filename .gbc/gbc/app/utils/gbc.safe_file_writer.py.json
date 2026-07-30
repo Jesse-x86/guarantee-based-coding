@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "safe_file_writer.atomic_write_with_backup_rotation": {
+            "desc": "原子写入+异常回滚+备份轮转的承诺：成功时临时文件rename到目标路径，异常时目标文件不变且临时文件清理，num_backups>0时旧文件轮转为.bakN",
+            "test": "tests/test_safe_file_writer.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}
