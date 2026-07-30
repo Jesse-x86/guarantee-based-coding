@@ -24,36 +24,7 @@ gbc setup        # 打印本地化接线指南：怎么把 MCP / skills 接入�
 
 ---
 
-## 🎬 先看演示
-
-先看看 GBC 报错时的真实样子——精确定位：哪个保证坏了、报错信息是什么。
-
-```text
-RED  passed=0 failed=1 skipped=0
-failed: config_loader.get_config.never_none
-
-── config_loader.get_config.never_none ──
-E       AssertionError: assert None is not None
-E        +  where None = get_config()
-tests/test_never_none.py:12: AssertionError
-1 failed in 0.08s
-```
-
-几乎零配置就能跑；菜单里中/英剧本都有：
-
-```bash
-pip install -r demo/requirements.txt
-python demo/run_demo.py
-```
-
-| 剧本 | 演示什么 |
-|------|----------|
-| `config-service-strong` / `*-en` | **成功拦截**——强测试覆盖边缘路径，改坏代码后触发 RED 拦截 |
-| `config-service-weak` / `*-en` | **拦截失败**——弱测试只覆盖正常路径，改坏代码后仍为 GREEN |
-| `config-service-bad-test` / `*-en` | **出生即绿**——测试本身有 Bug，登记保证时当场拒绝 |
-| `workflow-before-after` / `*-en` | **作业模式对比**——集成 GBC 前后的开发逻辑演进 |
-
-> **交给 agent 走读**：[demo/EXAMPLE.md](./demo/EXAMPLE.md)（中）/ [demo/EXAMPLE_EN.md](./demo/EXAMPLE_EN.md)（英）——对它说「按这个走一遍」。详见 [demo/](./demo/)。
+> 🚧 **交互式 demo 施工中**：旧的演示套件已废弃，新的交互式演示正在筹备。目前请直接读文档上手。
 
 ---
 
@@ -99,7 +70,7 @@ GBC 目前是一个可用的 Python 分发包（`pipx install guarantee-based-co
 - ✅ 意图文档子系统（`gbc doc` / web 编辑器）
 - ✅ 随包分发的接线指南（`gbc setup`）与 CLI-only agent 的 skill 包
 - ✅ 原子文件写入 + 备份
-- ✅ 交互式 Demo Runner（弱/强测试门禁对比）
+
 
 **诚实的局限**：保护能力上限 = 测试质量（测试只走 happy path 就是虚假安全感）；依赖需主动登记，
 覆盖率随项目增长需持续投入；每次验证真实跑测试，有一定延迟。详见

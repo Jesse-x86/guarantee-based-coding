@@ -7,7 +7,7 @@
 PROJECT_ROOT / CONFIG_DIR(基于本包文件位置推算)。其他 config 模块的锚点。
 
 ## project.py
-当前目标项目根:默认是进程启动时的 cwd(无环境变量、不回退到包安装位置),set_current_project 可运行时显式覆盖、get_current_project 读取。一切 .gbc 路径都相对它。
+当前目标项目根的运行时状态：get_current_project() 黔回进程启动时的 cwd（CLI 单次命令「当前项目 = 跑命令时所在目录」，无环境变量、不回退包安装位置）；set_current_project() 供常驻服务（mcp up / editor up）显式覆盖。一切 .gbc 路径都相对它。
 
 ## backups.py
 META_BACKUPS:由环境变量 GBC_META_BACKUPS 决定,meta 落盘时保留几份备份。

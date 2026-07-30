@@ -169,8 +169,8 @@ themselves).
 ## Limitations (stated honestly)
 
 - **Protection ceiling = test quality**: GBC only catches what a test can catch. Tests that only
-  walk the happy path make guarantees a false sense of safety. (The demo includes a weak-test
-  scenario specifically to show this limit.)
+  walk the happy path make guarantees a false sense of safety. (Happy-path-only tests are the
+  textbook example.)
 - **Manual registration cost**: dependencies must be registered by an agent or human. The per-edge
   cost is small, but coverage takes ongoing investment as the project grows.
 - **Run performance**: every verification really runs tests, so there's some latency cost.

@@ -8,6 +8,13 @@
 # 文件
 
 ## demo/
+⚠️ OBSOLETE — 本目录已废弃，不再维护。
+
+原用途：GBC 的交互式演示套件（Runner + 剧本 + 演示项目源码），用于展示 GBC 三条核心机制（强测试门禁拦截 / 弱测试门禁失效 / 出生即绿）及集成前后工作方式对比。
+
+废弃原因：表现形式不佳，且当前无维护计划。文件保留供参考，但不应作为使用入口；新用户请直接读 docs/ 下的文档。
+
+下属子目录（runner / scenarios / projects）随本目录一并废弃。
 
 ## gbc/
 GBC 工具本体的可分发 Python 包(pip install 后经 [project.scripts] 暴露 gbc 命令)。entry.py 是唯一入口纯分发器，把 app/ 下两个子系统(保证引擎 interface + 意图文档 intent)的表面组合成命令树。工具仓自身只读无状态，一切可变状态落在目标项目的 .gbc/ 下。

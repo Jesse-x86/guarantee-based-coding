@@ -22,8 +22,8 @@
 - 意图编辑器 web 服务 / Intent editor web service：`gbc editor up`
 - 随包分发 `gbc-cli` skill：给 CLI-only agent 的操作手册。
   Bundled `gbc-cli` skill: an operations manual for CLI-only agents.
-- Demo Runner：交互式演示弱/强测试门禁对比。
-  Interactive demo contrasting weak vs. strong test gates.
+- Demo Runner：交互式演示弱/强测试门禁对比（**已废弃**，后续版本移除）。
+  Interactive demo contrasting weak vs. strong test gates (**deprecated**, to be removed in a later version).
 
 ### 变更 / Changed
 
@@ -31,8 +31,8 @@
   Retired old `app/` structure, old `serve.py`, old `tools/intent-editor`.
 - 删弃用的 `gbc init`（首次写入自动建 `.gbc`）。
   Removed deprecated `gbc init` (first write auto-creates `.gbc`).
-- Demo 从仓库内嵌 workspace 重构为独立的 Runner 执行引擎。
-  Demo restructured from in-repo workspaces to a standalone Runner engine.
+- Demo 从仓库内嵌 workspace 重构为独立的 Runner 执行引擎（该 Runner 已于后续废弃）。
+  Demo restructured from in-repo workspaces to a standalone Runner engine (the Runner was later deprecated).
 
 ## 0.1.x (2026-06 ~ 2026-07)
 
