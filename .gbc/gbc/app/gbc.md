@@ -1,4 +1,5 @@
 # 意图
+GBC 工具本体的源代码根（充当 src 的源代码仓库），经 [project.scripts] 暴露 gbc 命令。下分保证引擎（interface + core + models + config + utils）与意图文档（intent）两个对称子系统，i18n 为横切支撑。工具仓自身只读无状态，一切可变状态落在目标项目的 .gbc/ 下。
 
 # 文件
 

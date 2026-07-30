@@ -14,3 +14,6 @@ Rich 可视化：say_bubble（LLM 聊天气泡）、render_diff（彩色 unified
 
 ## mcp_client.py
 最小 MCP JSON-RPC stdio 客户端：启动 gbc mcp up 子进程，通过 stdin/stdout 行分隔 JSON 与 GBC MCP server 通信。纯 stdlib，零外部依赖。
+
+## cli.py
+Typer 入口（list/run 命令），调 engine.ScenarioRunner 执行剧本。

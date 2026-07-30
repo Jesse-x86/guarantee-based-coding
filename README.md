@@ -2,7 +2,7 @@
 
 **与其指望 AI 更聪明，不如让再笨的 agent 也改不坏你的代码。**
 
-**English version: [README_EN.md](./README_EN.md)**
+**English version: [docs/en/README.md](docs/en/README.md)**
 
 GBC 把「这次改动会不会悄悄碰坏别处」从一种担心，变成可以当场验证的事实：你在意的行为被登记成
 一条条带测试的**保证（guarantee）**，每次改完一跑——全绿就安心，有红就精确告诉你碰坏了谁、谁在

@@ -2,7 +2,7 @@
 
 **Instead of hoping the AI gets smarter, make it so even a dumb agent can't break your code.**
 
-**中文版本: [README.md](./README.md)**
+**中文版本: [README.md](../../README.md)**
 
 GBC turns "will this change quietly break something elsewhere?" from a worry into a fact you can
 verify on the spot: the behaviors you care about are registered as test-backed **guarantees**. Run
@@ -19,10 +19,10 @@ gbc setup        # prints a localized wiring guide: how to connect MCP / skills 
 ```
 
 The `gbc` command is now on your PATH. Full onboarding (install → wire into your agent → smoke
-test) is in **[docs/en/quick-start.md](./docs/en/quick-start.md)**.
+test) is in **[docs/en/quick-start.md](quick-start.md)**.
 
 Want your agent to wire it in for you? Hand it
-**[docs/en/onboarding-agent.md](./docs/en/onboarding-agent.md)**.
+**[docs/en/onboarding-agent.md](onboarding-agent.md)**.
 
 ---
 
@@ -55,7 +55,7 @@ python demo/run_demo.py
 | `config-service-bad-test` / `*-en` | **Born-green** — the test itself is buggy and registration is refused on the spot |
 | `workflow-before-after` / `*-en` | **Workflow contrast** — how development logic evolves before/after adopting GBC |
 
-> **Hand it to an agent**: [demo/EXAMPLE_EN.md](./demo/EXAMPLE_EN.md) (EN) / [demo/EXAMPLE.md](./demo/EXAMPLE.md) (ZH) — tell it "walk me through this." More in [demo/](./demo/).
+> **Hand it to an agent**: [demo/EXAMPLE_EN.md](../../demo/EXAMPLE_EN.md) (EN) / [demo/EXAMPLE.md](../../demo/EXAMPLE.md) (ZH) — tell it "walk me through this." More in [demo/](../../demo/).
 
 ---
 
@@ -63,13 +63,13 @@ python demo/run_demo.py
 
 | You want to | Go here |
 |-------------|---------|
-| Install and get running | [Quick Start](./docs/en/quick-start.md) |
-| Understand what GBC protects | [Core Concepts](./docs/en/concepts.md) |
-| Change code safely under GBC | [Working under GBC](./docs/en/workflow.md) |
-| Look up a command / tool / executor | [Reference](./docs/en/reference.md) |
-| You're an agent asked to wire GBC in | [Agent Onboarding](./docs/en/onboarding-agent.md) |
+| Install and get running | [Quick Start](quick-start.md) |
+| Understand what GBC protects | [Core Concepts](concepts.md) |
+| Change code safely under GBC | [Working under GBC](workflow.md) |
+| Look up a command / tool / executor | [Reference](reference.md) |
+| You're an agent asked to wire GBC in | [Agent Onboarding](onboarding-agent.md) |
 
-Chinese docs: [docs/zh/](./docs/zh/).
+Chinese docs: [docs/zh/](../zh/).
 
 ---
 
@@ -81,7 +81,7 @@ of return values. Make those guarantees **explicit, executable, and verifiable**
 shifts from "the AI thinks it got it right" to "every depended-on guarantee still passes" — a
 mechanically verifiable boolean.
 
-![Without GBC vs with GBC](docs/assets/workflow-comparison_en.svg)
+![Without GBC vs with GBC](../assets/workflow-comparison_en.svg)
 
 GBC is **not** another AI coding assistant challenging Cursor / Aider — it fills the piece they lack
 in large projects: a **machine-verifiable boundary for change**. It works *with* those agents
@@ -90,7 +90,7 @@ after-the-fact; GBC is an admission gate that catches errors before they land, i
 context).
 
 Full concepts, architecture diagram, and how it differs from existing ideas (Design by Contract /
-testing) are in [Core Concepts](./docs/en/concepts.md).
+testing) are in [Core Concepts](concepts.md).
 
 ---
 
@@ -111,13 +111,13 @@ its own `.gbc/` with GBC (dogfooding):
 **Honest limitations**: protection ceiling = test quality (happy-path-only tests are a false sense
 of safety); dependencies must be registered actively, and coverage takes ongoing investment as the
 project grows; every verification really runs tests, so there's some latency. See
-[Core Concepts · Limitations](./docs/en/concepts.md#limitations-stated-honestly).
+[Core Concepts · Limitations](concepts.md#limitations-stated-honestly).
 
 ---
 
 ## License
 
-This project is licensed under [Apache-2.0](./LICENSE).
+This project is licensed under [Apache-2.0](../../LICENSE).
 
 ## Contact
 
