@@ -30,5 +30,23 @@
     "doctor.executors_ok": "All executors required by this project are configured.",
 
     "mcp.starting": "Starting GBC MCP server for project: {path}",
-    "editor.starting": "GBC intent editor running at http://{host}:{port}"
+    "editor.starting": "GBC intent editor running at http://{host}:{port}",
+
+    "cli.app.help": "GBC — Guarantee-Based Coding CLI tool",
+    "cli.guarantee.help": "Guarantee CRUD",
+    "cli.dep.help": "Dependency edge registration and reverse lookup",
+    "cli.verify.help": "Run verification",
+    "cli.doctor.help": "Consistency check",
+    "cli.executor.help": "Manage executor configurations",
+    "cli.refactor.help": "Relocate: move files/directories and fix all graph references",
+    "cli.mcp.help": "MCP server (persistent channel for agents)",
+    "cli.editor.help": "Intent editor (persistent web service for humans)",
+    "cli.option.lang.help": "UI/message language zh/en (also via GBC_LANG env var)",
+    "cli.rules.help": "Print the recommended guardrail ruleset to stdout (advisory, not a sandbox)",
+    "cli.setup.help": "Print a localized wiring guide to stdout: how to connect MCP / skills to your agent",
+    "cli.tree.help": "Render the entire .gbc tree as one AI-readable dependency document",
+    "cli.tree.option.detail": "Expand guarantee desc/test/heavy + other artifacts (.pyi) in each .gbc directory",
+    "cli.tree.option.gaps": "Append registration gaps derived from the graph (has json/is depended on but unregistered)",
+    "cli.mcp_up.arg.project_root": "Absolute path to target project root; omit to auto-detect",
+    "cli.doc.help": "Compliant read/write entry for intent docs (gbc.md)"
 }

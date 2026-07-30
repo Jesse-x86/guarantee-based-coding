@@ -12,6 +12,8 @@ state under the **target project's** `.gbc/` directory and never touches your so
 
 ## 1. Install
 
+**Python >=3.10 is required.**
+
 ```bash
 pipx install guarantee-based-coding
 ```
@@ -22,7 +24,7 @@ The `gbc` command is now on your PATH:
 gbc --help
 ```
 
-> **`pipx` is recommended**: GBC is a standalone CLI tool (like `black` / `ruff`) — you want it
+> **`pipx` is recommended** ([installation guide](https://pipx.pypa.io/stable/installation/)): GBC is a standalone CLI tool (like `black` / `ruff`) — you want it
 > installed once and usable everywhere, not polluting the Python environment of whatever project
 > you're working on. You can still use `pip install guarantee-based-coding` (into your current
 > environment) or `uvx guarantee-based-coding` (ephemeral). GBC's dependencies are light (typer /
@@ -32,15 +34,17 @@ gbc --help
 
 ## 2. Give your agent GBC
 
-GBC's abilities reach an agent through two paths — use whichever yours supports (or both).
-**Running `gbc setup` prints a localized wiring guide** telling you where the endpoints and files
-are:
+Have your coding agent run `gbc setup` inside the target project and follow the output:
 
 ```bash
 gbc setup
 ```
 
-Here are the essentials of both paths.
+`gbc setup` prints a complete, localized wiring guide — MCP endpoints, skill file paths, and a
+smoke-test command to verify everything works. Your agent doesn't need to memorize `gbc`
+subcommands; it just reads the output and does what it says.
+
+The sections below explain what the two wiring paths look like under the hood, for reference.
 
 ### Path A — MCP (recommended when your agent speaks MCP)
 

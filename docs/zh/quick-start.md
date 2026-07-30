@@ -11,6 +11,8 @@ GBC 是一个独立命令行工具。装一次，任意项目都能用；它把�
 
 ## 1. 安装
 
+**需要 Python >=3.10。**
+
 ```bash
 pipx install guarantee-based-coding
 ```
@@ -21,7 +23,7 @@ pipx install guarantee-based-coding
 gbc --help
 ```
 
-> 推荐 `pipx`：GBC 是一个独立命令行工具（类似 `black` / `ruff`），你想的是“装一次到处用”，而不是
+> 推荐 `pipx`（[安装说明](https://pipx.pypa.io/stable/installation/)）：GBC 是一个独立命令行工具（类似 `black` / `ruff`），你想的是“装一次到处用”，而不是
 > 让它的依赖污染你正在开发的项目的 Python 环境。你仍可以用 `pip install guarantee-based-coding`
 > （装进当前环境）或 `uvx guarantee-based-coding`（即用即弃）。GBC 的依赖很轻（typer / pydantic / mcp）。
 
@@ -29,14 +31,16 @@ gbc --help
 
 ## 2. 让你的 agent 用上 GBC
 
-GBC 的能力有两条接入路径，用你的 agent 支持的那条即可（也可以都用）。**运行 `gbc setup`
-会打印一份本地化的接线指南**，讲清端点和文件在哪：
+让你的 coding agent 在目标项目内执行 `gbc setup` 并遵循输出：
 
 ```bash
 gbc setup
 ```
 
-下面是两条路径的要点。
+`gbc setup` 输出一份完整的本地化接线指南——MCP 端点、skill 文件路径、以及验证一切正常的冒烟
+命令。你的 agent 不需要预先记住 `gbc` 的子命令；它只需阅读输出并按指示操作。
+
+以下解释两种接线路径的底层机制，供参考。
 
 ### 路径 A — MCP（你的 agent 会说 MCP 时推荐）
 

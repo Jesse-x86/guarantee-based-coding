@@ -37,15 +37,15 @@ from gbc.app.intent.cli import doc_app
 app = guarantee_cli
 app.add_typer(doc_app, name="doc")
 
-mcp_app = typer.Typer(help="MCP 服务（给 agent 的常驻通道）")
-editor_app = typer.Typer(help="意图编辑器（给人的 web 常驻服务）")
+mcp_app = typer.Typer(help="cli.mcp.help")
+editor_app = typer.Typer(help="cli.editor.help")
 app.add_typer(mcp_app, name="mcp")
 app.add_typer(editor_app, name="editor")
 
 
 @mcp_app.command("up")
 def mcp_up(
-    project_root: Optional[str] = typer.Argument(None, help="目标项目根的绝对路径；省略则用当前项目判定"),
+    project_root: Optional[str] = typer.Argument(None, help="cli.mcp_up.arg.project_root"),
 ):
     """启动 GBC 的 stdio MCP server（常驻）。由 MCP 表面自己的启动器承载。"""
     from gbc.app.interface.mcp import run_server
@@ -67,9 +67,9 @@ def editor_up(
     run_editor(host=host, port=port, root=root or "")
 
 
-@app.command("rules")
+@app.command("rules", help="cli.rules.help")
 def rules_cmd(
-    lang: Optional[str] = typer.Option(None, "--lang", help="输出语言 zh/en"),
+    lang: Optional[str] = typer.Option(None, "--lang", help="cli.option.lang.help"),
 ):
     """打印作者推荐的围栏规则集到 stdout（推荐默认，非强制沙箱）。"""
     from gbc.app.i18n import set_lang, resolve_lang, load_text
@@ -78,9 +78,9 @@ def rules_cmd(
     print(load_text("rules"))
 
 
-@app.command("setup")
+@app.command("setup", help="cli.setup.help")
 def setup_cmd(
-    lang: Optional[str] = typer.Option(None, "--lang", help="输出语言 zh/en"),
+    lang: Optional[str] = typer.Option(None, "--lang", help="cli.option.lang.help"),
 ):
     """打印本地化的接线指南到 stdout：怎么把 MCP / skills 接入你的 agent。"""
     from gbc.app.i18n import set_lang, resolve_lang, load_text
@@ -91,8 +91,35 @@ def setup_cmd(
     print(load_text("setup").format(skills_dir=str(SKILLS_DIR)))
 
 
+def get_wrapped_app():
+    """返回经 i18n 完整包装的 Click Group（供 main_cli/main + CliRunner 共用）。
+
+    GBC 不在 typer.main.get_group 上做全局 monkey-patch——只在 GBC 自己的
+    命令树上做局部包装，不污染同一进程内其他 Typer 应用。
+    """
+    from gbc.app.interface.cli import i18n_wrap_click_tree
+    root = typer.main.get_command(app)
+    i18n_wrap_click_tree(root)
+    return root
+
+
+def main_cli() -> None:
+    """GBC console_scripts 入口：i18n 包装后交给 Click（含 sys.exit）。
+
+    这是 pyproject.toml [project.scripts] gbc 指向的入口。
+    pipx 安装后 PATH 上的 `gbc` 命令经此路径执行，与 main() 共用 get_wrapped_app()。
+    """
+    get_wrapped_app()(standalone_mode=True)
+
+
 def main() -> None:
-    app()
+    """GBC 唯一入口（python -m）：组合命令树 → i18n 包裹 → 交给 Click 执行。
+
+    与 main_cli 共用 get_wrapped_app()，差异只在 standalone_mode：
+    - main_cli(standalone_mode=True)  → sys.exit，给 pipx/setuptools console_scripts
+    - main(standalone_mode=False)     → 返 exit code，给 python -m 调用链
+    """
+    get_wrapped_app()(standalone_mode=False)
 
 
 if __name__ == "__main__":

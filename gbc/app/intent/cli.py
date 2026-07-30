@@ -23,7 +23,7 @@ from rich.console import Console
 
 from gbc.app.intent import base
 
-doc_app = typer.Typer(help="意图文档（gbc.md）的合规读写入口")
+doc_app = typer.Typer(help="cli.doc.help")
 console = Console()
 
 

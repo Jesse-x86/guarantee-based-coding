@@ -36,12 +36,12 @@ from gbc.app.models.errors import (
 
 # ======== App & Console ========
 
-app = typer.Typer(help="GBC - Guarantee-Based Coding 命令行工具")
-guarantee_app = typer.Typer(help="保证（Guarantee）增删改查")
-dep_app = typer.Typer(help="依赖边（Dependency）登记与反查")
-verify_app = typer.Typer(help="运行验证")
-doctor_app = typer.Typer(help="一致性体检")
-executor_app = typer.Typer(help="管理执行器配置")
+app = typer.Typer(help="cli.app.help")
+guarantee_app = typer.Typer(help="cli.guarantee.help")
+dep_app = typer.Typer(help="cli.dep.help")
+verify_app = typer.Typer(help="cli.verify.help")
+doctor_app = typer.Typer(help="cli.doctor.help")
+executor_app = typer.Typer(help="cli.executor.help")
 
 app.add_typer(guarantee_app, name="guarantee")
 app.add_typer(dep_app, name="dep")
@@ -56,11 +56,137 @@ console = Console()
 
 @app.callback()
 def _main(
-    lang: Optional[str] = typer.Option(None, "--lang", help="界面/消息语言 zh/en（也可用环境变量 GBC_LANG）"),
+    lang: Optional[str] = typer.Option(None, "--lang", help="cli.option.lang.help"),
 ):
     """在任何子命令执行前固定语言，使报错与提示都本地化。"""
     from gbc.app.i18n import set_lang, resolve_lang
     set_lang(resolve_lang(lang))
+
+
+# ======== i18n 帮助文本延迟翻译 ========
+
+import sys as _sys
+
+
+def _lang_from_argv():
+    """从 sys.argv 抓 --lang 值；没有或值非法则返回 None。
+
+    处理 --help 是 eager option 的场景：Click 在 --help 触发时可能尚未解析 --lang
+    （eager pass 优先），此时 ctx.params 里没有 lang。只好退而求其次扫 argv。
+
+    支持两种语法：`--lang zh`（分两 token）与 `--lang=zh`（合在一 token）。
+    """
+    for i, arg in enumerate(_sys.argv):
+        if arg == "--lang" and i + 1 < len(_sys.argv):
+            val = _sys.argv[i + 1]
+            if val and not val.startswith("-"):
+                return val
+            return None
+        if arg.startswith("--lang="):
+            val = arg.split("=", 1)[1]
+            if val and not val.startswith("-"):
+                return val
+            return None
+    return None
+
+
+# ======== Help i18n: save / translate / render / restore ========
+
+def _snapshot_tree_helps(node):
+    """深度保存 Click 节点树所有 .help 属性，返回可还原的快照 dict。
+
+    覆盖：(a) 节点自身的 .help  (b) 所有 param(Argument/Option) 的 .help
+    (c) 所有子命令(递归)。
+    """
+    snap: dict = {"_help": node.help if hasattr(node, "help") else None}
+    if hasattr(node, "params"):
+        snap["_params"] = [p.help for p in node.params]
+    else:
+        snap["_params"] = []
+    if hasattr(node, "commands"):
+        snap["_subs"] = {name: _snapshot_tree_helps(cmd) for name, cmd in node.commands.items()}
+    else:
+        snap["_subs"] = {}
+    return snap
+
+
+def _restore_tree_helps(node, snap):
+    """从快照恢复 Click 节点树的全部 .help 属性（_snapshot_tree_helps 的逆操作）。"""
+    if snap is None:
+        return
+    if hasattr(node, "help") and snap.get("_help") is not None:
+        node.help = snap["_help"]
+    if hasattr(node, "params"):
+        saved_params = snap.get("_params", [])
+        for i, p in enumerate(node.params):
+            if i < len(saved_params):
+                p.help = saved_params[i]
+    if hasattr(node, "commands"):
+        saved_subs = snap.get("_subs", {})
+        for name, cmd in node.commands.items():
+            if name in saved_subs:
+                _restore_tree_helps(cmd, saved_subs[name])
+
+
+def _translate_tree_helps(node):
+    """深度遍历 Click 节点树，把 i18n key 翻译成当前语言串（原地改写 .help）。
+
+    覆盖 Group/Command 的 .help 与 Parameter(Argument/Option) 的 .help。
+    非 key（如硬编码中文）由 t() 原样返回，不会被误翻。
+    """
+    from gbc.app.i18n import t
+
+    if hasattr(node, "help") and node.help is not None and isinstance(node.help, str):
+        translated = t(node.help)
+        if translated != node.help:
+            node.help = translated
+
+    if hasattr(node, "params"):
+        for param in node.params:
+            if param.help is not None and isinstance(param.help, str):
+                translated = t(param.help)
+                if translated != param.help:
+                    param.help = translated
+
+    if hasattr(node, "commands"):
+        for cmd in node.commands.values():
+            _translate_tree_helps(cmd)
+
+
+def i18n_wrap_click_tree(root):
+    """给 Click 命令树的每个节点注入 get_help 包装：求助时临时翻译 → 渲染 → 恢复。
+
+    不永久改写 Click 的 .help 属性——只在 get_help() 调用期间临时翻译，
+    finally 恢复原始 i18n key。这避免了「同一进程内语言被首次请求锁死」的问题。
+
+    解决 Typer/Click help 字符串是模块加载时求值、而语言要到运行时才确定的矛盾。
+    """
+    from gbc.app.i18n import resolve_lang, set_lang
+
+    def _wrap_node(node):
+        orig_get_help = node.get_help
+
+        def translated_get_help(ctx):
+            # 语言可能已由 _main callback 设置；若未设置(例如根 --help 绕过了 callback)
+            # 则从 argv / env / locale 自判。
+            explicit = _lang_from_argv()
+            set_lang(resolve_lang(explicit))
+
+            # 保存 → 翻译 → 渲染 → 恢复（保证 finally 恢复，不泄漏）
+            snap = _snapshot_tree_helps(node)
+            try:
+                _translate_tree_helps(node)
+                return orig_get_help(ctx)
+            finally:
+                _restore_tree_helps(node, snap)
+
+        node.get_help = translated_get_help
+
+        if hasattr(node, "commands"):
+            for cmd in node.commands.values():
+                _wrap_node(cmd)
+
+    _wrap_node(root)
 
 
 # ======== Error Handling ========
@@ -314,7 +440,7 @@ def verify_single(
 
 # ======== Refactor ========
 
-refactor_app = typer.Typer(help="重定位：移动文件/目录并修全图路径引用")
+refactor_app = typer.Typer(help="cli.refactor.help")
 app.add_typer(refactor_app, name="refactor")
 
 
@@ -377,10 +503,10 @@ def refactor_func_cmd(
 
 # ======== Tree ========
 
-@app.command("tree")
+@app.command("tree", help="cli.tree.help")
 def tree_cmd(
-    detail: bool = typer.Option(False, "--detail", "-d", help="展开保证 desc/test/heavy + 每个 .gbc 目录的其它产物(.pyi)"),
-    gaps: bool = typer.Option(False, "--gaps", "-g", help="末尾附图反推的登记缺口(有 json/被依赖却未登记)"),
+    detail: bool = typer.Option(False, "--detail", "-d", help="cli.tree.option.detail"),
+    gaps: bool = typer.Option(False, "--gaps", "-g", help="cli.tree.option.gaps"),
 ):
     """把整棵 .gbc 渲染成一份 AI 可读的依赖树（gbc.md 意图为骨 + json 依赖边）。"""
     try:

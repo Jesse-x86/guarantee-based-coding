@@ -30,5 +30,23 @@
     "doctor.executors_ok": "本项目所需的 executor 均已配置。",
 
     "mcp.starting": "正在为项目启动 GBC MCP 服务：{path}",
-    "editor.starting": "GBC 意图编辑器已启动：http://{host}:{port}"
+    "editor.starting": "GBC 意图编辑器已启动：http://{host}:{port}",
+
+    "cli.app.help": "GBC - Guarantee-Based Coding 命令行工具",
+    "cli.guarantee.help": "保证（Guarantee）增删改查",
+    "cli.dep.help": "依赖边（Dependency）登记与反查",
+    "cli.verify.help": "运行验证",
+    "cli.doctor.help": "一致性体检",
+    "cli.executor.help": "管理执行器配置",
+    "cli.refactor.help": "重定位：移动文件/目录并修全图路径引用",
+    "cli.mcp.help": "MCP 服务（给 agent 的常驻通道）",
+    "cli.editor.help": "意图编辑器（给人的 web 常驻服务）",
+    "cli.option.lang.help": "界面/消息语言 zh/en（也可用环境变量 GBC_LANG）",
+    "cli.rules.help": "打印作者推荐的围栏规则集到 stdout（推荐默认，非强制沙箱）",
+    "cli.setup.help": "打印本地化的接线指南到 stdout：怎么把 MCP / skills 接入你的 agent",
+    "cli.tree.help": "把整棵 .gbc 渲染成一份 AI 可读的依赖树（gbc.md 意图为骨 + json 依赖边）",
+    "cli.tree.option.detail": "展开保证 desc/test/heavy + 每个 .gbc 目录的其它产物(.pyi)",
+    "cli.tree.option.gaps": "末尾附图反推的登记缺口(有 json/被依赖却未登记)",
+    "cli.mcp_up.arg.project_root": "目标项目根的绝对路径；省略则用当前项目判定",
+    "cli.doc.help": "意图文档（gbc.md）的合规读写入口"
 }
