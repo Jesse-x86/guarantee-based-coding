@@ -14,7 +14,7 @@
 
 """最小 MCP JSON-RPC stdio 客户端。
 
-与 GBC MCP server（serve.py）通过 stdin/stdout 通信。
+与 GBC MCP server（gbc mcp up）通过 stdin/stdout 通信。
 协议：每行一个 JSON 消息，JSON-RPC 2.0。
 """
 

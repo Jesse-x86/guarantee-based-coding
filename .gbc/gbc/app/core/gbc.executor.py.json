@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "core_executor.subprocess_execution_and_timeout": {
+            "desc": "真实子进程执行、命令占位符替换、超时优先级、executor 未注册报错的承诺",
+            "test": "tests/test_core_executor.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

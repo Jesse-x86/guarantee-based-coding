@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "gbc_md.parse_serialize_round_trip": {
+            "desc": "解析/序列化 gbc.md 格式的 round-trip 保真 + 宽松解析兼容旧格式",
+            "test": "tests/test_gbc_md.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

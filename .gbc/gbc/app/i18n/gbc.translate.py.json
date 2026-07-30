@@ -1,0 +1,21 @@
+{
+    "provides": {
+        "i18n.translate.lookup_and_fallback": {
+            "desc": "短消息 t() 从 catalog/<lang>.json 按需加载、按当前语言取串、填充占位、缺失回退默认 en 再回退键本身；长文本 load_text() 按语言整篇读出、缺失回退 en。每门被发现的语言其 catalog 覆盖 en 全部键（漏译则测试飘红指名）。报错前缀（err.*）亦走 catalog、可本地化。",
+            "test": "tests/test_i18n.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": [
+        {
+            "symbol": "gbc/app/assets.py:I18N_CATALOG_DIR",
+            "guarantees": [
+                "assets.resources_present"
+            ]
+        }
+    ]
+}

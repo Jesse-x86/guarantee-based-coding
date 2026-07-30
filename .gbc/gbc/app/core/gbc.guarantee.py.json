@@ -1,0 +1,32 @@
+{
+    "provides": {
+        "guarantee.verify_gates_are_binary": {
+            "desc": "门禁二元性：passed/failed/skipped 三桶 + green 判定 = (failed 为空) + heavy 阈值跳过 + disabled 进 skipped(reason=disabled) 不进 results + verify_guarantee 点名验证无视 disabled 与 heavy，永远真跑一次",
+            "test": "tests/test_guarantee_verify.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "guarantee.dependency_bookkeeping": {
+            "desc": "验证 add_dependency/remove_dependency 双向依赖登记与撤销的一致性，以及 list_provides/list_depends_on/dependents_of 反查的正确性",
+            "test": "tests/test_guarantee_deps.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "guarantee.crud_lifecycle": {
+            "desc": "验证 guarantee.py 核心 CRUD 生命周期：create(出生即绿门禁 + disabled 跳过门禁 + 去重)、update(runner_changed 重新门禁 + 非 runner 字段不重跑)、disable/enable(门禁恢复) 以及 retire(退休保护——有 dependents 拒绝删除)。覆盖正确路径与异常/边界路径。",
+            "test": "tests/test_guarantee_crud.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

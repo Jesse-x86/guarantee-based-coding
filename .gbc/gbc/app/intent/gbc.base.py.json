@@ -1,0 +1,16 @@
+{
+    "provides": {
+        "intent.base.io_and_consistency": {
+            "desc": "意图文档子系统的唯一 IO/编排点：set_intent 落盘并单源投影到父条目；整树 read_tree/write_tree 往返保真；check 发现 DRIFT、sync 修复；非法操作抛 IntentDocError（GBCError 体系、本地化）而非裸 ValueError。",
+            "test": "tests/test_intent_base.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/interface/mcp.py"
+            ],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

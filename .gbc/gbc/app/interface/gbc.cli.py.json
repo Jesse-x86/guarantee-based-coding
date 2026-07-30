@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "cli.help_i18n": {
+            "desc": "Typer/Click help 文本延迟翻译：根 --help 与子命令 --help 的 app/subcommand 描述、选项帮助文本根据 --lang 参数 / GBC_LANG 环境变量 / 系统 locale 自动选择语言；缺语言回退默认 en。命令名与框架标签(如 --install-completion)不翻译。",
+            "test": "tests/test_cli_commands.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

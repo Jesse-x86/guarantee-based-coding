@@ -83,8 +83,9 @@ class ScenarioRunner:
 
     def _start_mcp(self) -> None:
         """启动 GBC MCP server，通过 stdio 通信。"""
-        serve_py = str(self.gbc_root / "serve.py")
-        self._mcp = McpClient([sys.executable, serve_py, str(self.workspace)])
+        self._mcp = McpClient([
+            sys.executable, "-m", "gbc.entry", "mcp", "up", str(self.workspace)
+        ])
 
     def _stop_mcp(self) -> None:
         if self._mcp:

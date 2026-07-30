@@ -1,0 +1,11 @@
+{
+    "provides": {},
+    "depends_on": [
+        {
+            "symbol": "gbc/app/assets.py:EDITOR_FRONTEND_DIR",
+            "guarantees": [
+                "assets.resources_present"
+            ]
+        }
+    ]
+}

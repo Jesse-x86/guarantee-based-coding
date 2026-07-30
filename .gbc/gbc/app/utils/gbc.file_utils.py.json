@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "file_utils.to_gbc_json_path_mapping": {
+            "desc": "窄测试覆盖 to_gbc_json_path：根级文件映射为 .gbc/gbc.<name>.json，嵌套子目录映射为 .gbc/<parent>/gbc.<name>.json",
+            "test": "tests/test_json_model_and_file_utils.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

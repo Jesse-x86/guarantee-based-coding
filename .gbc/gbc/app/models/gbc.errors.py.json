@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "models.errors.messages_localized": {
+            "desc": "所有带消息的 GBC 异常其 __str__ 经 i18n 本地化（惰性取串、不在 models 层模块级依赖 i18n、i18n 不可用时回退 key）；切语言时消息随之变化，且携带的关键信息（文件名/id/dependents 等）仍出现在消息中。",
+            "test": "tests/test_errors_i18n.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}
