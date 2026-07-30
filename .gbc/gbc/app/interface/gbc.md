@@ -19,3 +19,6 @@ MCP 工具面(FastMCP)：把两个子系统的能力暴露成 agent 可调用工
 
 ## cli.py
 Typer 命令面,镜像 base 能力(guarantee/dep/verify/doctor/executor/refactor/tree 子命令),rich 渲染。仅依赖 interface.base 与 models.errors。
+
+## base.py
+IO/编排层：路径解析(_resolve/_to_rel，相对当前项目根)、meta 文件加载/保存(meta_session/dual_session)、保证 CRUD 与依赖登记的落盘包装、refactor 三件套(refactor_file/refactor_func/rename_guarantee，重定位文件/改符号名/改保证 id 并全图重写引用)、全局反查与一致性检查(who_depends_on/check_consistency)、全树渲染(render_tree)。core 之下不碰磁盘，这里是唯一 IO/编排点。

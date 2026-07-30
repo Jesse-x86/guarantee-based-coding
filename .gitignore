@@ -4,7 +4,6 @@
 
 **/__pycache__/
 
-config/executors.json
 # 每台机器私有的 executor 真配置（含绝对路径/可能含密钥）——绝不提交；
 # 仅提交脱敏清单 .gbc/executors.example.json。
 .gbc/executors.json
