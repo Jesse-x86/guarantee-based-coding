@@ -94,6 +94,8 @@ gbc executor upsert pytest-myproject --json '{
 - 换语言只需换 `command`（如 `["npx", "jest", "{file}"]`）。
 - 给它一个**项目级的名字**（如 `pytest-<项目名>`）——executor 按名字跨项目共享，裸名 `pytest`
   会和别的项目撞车。
+- `env_ops` 的完整字段与 `action` 取值（`set`/`append`/`prepend`/`remove`）见
+  [reference.md](./reference.md#executor-配置)。
 
 ---
 

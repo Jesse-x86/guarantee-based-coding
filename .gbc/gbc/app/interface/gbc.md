@@ -16,3 +16,6 @@
 
 ## mcp.py
 MCP 工具面(FastMCP)：把两个子系统的能力暴露成 agent 可调用工具——保证引擎(guarantee/dep/verify/refactor/tree/consistency/executor) + 意图文档(doc show/check/set-*/sync/migrate)。所有工具只调 base(interface.base 或 intent.base)、返回 JSON 字符串，出错统一 {error}。run_server 以 stdio 启动，项目根经显式参数传入。
+
+## cli.py
+Typer 命令面,镜像 base 能力(guarantee/dep/verify/doctor/executor/refactor/tree 子命令),rich 渲染。仅依赖 interface.base 与 models.errors。

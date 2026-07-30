@@ -15,3 +15,15 @@ GBC 面向用户输出的多语言资源与语言判定。当前支持简体中�
 
 ## assets.py
 静态资源定位的单一入口：把随包分发的数据(i18n catalog/texts、editor 前端、给 CLI-only agent 的预组 skills)集中到 gbc/assets/ 下并暴露路径常量(I18N_CATALOG_DIR/I18N_TEXTS_DIR/EDITOR_FRONTEND_DIR/SKILLS_DIR)。代码与数据分离；加一类资源只需在此登记一处 + 打包声明一条。
+
+## config/
+回答三个问题:在哪个项目上工作、meta 写入保留几份备份、怎么跑测试。多为进程内单例 + 环境变量驱动。
+
+## models/
+所有层共享的 pydantic 模型。模型即契约:无业务逻辑、无 IO。改一个字段就是改契约,下游(core / interface / 落盘的 .gbc json)全靠它,要慎重。
+
+## core/
+保证系统的核心逻辑与"怎么真的把测试跑起来"。纯模型操作:不解析路径、不读写 .gbc 文件(那是 base 的活)。进出本层的文件路径一律是项目相对字符串。
+
+## utils/
+无业务语义的通用工具:.gbc 路径映射、json↔模型、原子写文件。被各层使用,不依赖业务层。

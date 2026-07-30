@@ -100,6 +100,8 @@ gbc executor upsert pytest-myproject --json '{
 - Switch languages by swapping `command` (e.g. `["npx", "jest", "{file}"]`).
 - Give it a **project-scoped name** (e.g. `pytest-<project>`) — executors are shared across
   projects by name, so a bare `pytest` would collide with another project's.
+- Full `env_ops` fields and `action` values (`set`/`append`/`prepend`/`remove`) are in
+  [reference.md](./reference.md#executor-config).
 
 ---
 

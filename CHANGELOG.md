@@ -1,0 +1,45 @@
+# Changelog
+
+> 中文 / English
+
+## 0.2.0 (2026-07-30)
+
+### 架构重构 / Architecture
+
+- **可分发 pip 包** / Distributable pip package：项目从源码仓库重构为标准 Python 分发包，`pip install guarantee-based-coding` 即可安装。
+  Restructured from a source repo into a standard Python distribution.
+- **对称双子系统** / Symmetric dual subsystems：保证引擎（guarantee/dep/verify/refactor）与意图文档（gbc doc）各自拥有完整的 CLI + MCP + base 层。
+  The guarantee engine and intent docs subsystem each have a full CLI + MCP + base layer.
+- **集中静态资源** / Centralized static assets：i18n catalog/texts、editor 前端、skills 统一收进 `gbc/assets/`，解决资源不进 wheel 的打包缺陷。
+  All static assets consolidated under `gbc/assets/`, fixing the wheel packaging gap.
+
+### 新增 / Added
+
+- `gbc setup`：打印本地化接线指南（MCP 端点 / skill 文件位置），与 `gbc rules` 同构。
+  Prints a localized wiring guide (MCP endpoints / skill file locations), same shape as `gbc rules`.
+- `gbc doc` 全进 MCP：新增 8 个 doc 工具（show/check/set-*/sync/migrate）。
+  Full doc coverage over MCP: 8 new doc tools (show/check/set-*/sync/migrate).
+- 意图编辑器 web 服务 / Intent editor web service：`gbc editor up`
+- 随包分发 `gbc-cli` skill：给 CLI-only agent 的操作手册。
+  Bundled `gbc-cli` skill: an operations manual for CLI-only agents.
+- Demo Runner：交互式演示弱/强测试门禁对比。
+  Interactive demo contrasting weak vs. strong test gates.
+
+### 变更 / Changed
+
+- 退休旧 `app/` 结构、旧 `serve.py`、旧 `tools/intent-editor`。
+  Retired old `app/` structure, old `serve.py`, old `tools/intent-editor`.
+- 删弃用的 `gbc init`（首次写入自动建 `.gbc`）。
+  Removed deprecated `gbc init` (first write auto-creates `.gbc`).
+- Demo 从仓库内嵌 workspace 重构为独立的 Runner 执行引擎。
+  Demo restructured from in-repo workspaces to a standalone Runner engine.
+
+## 0.1.x (2026-06 ~ 2026-07)
+
+- 核心保证机制（具名 id、多对一、出生即绿、退休保护、反查）
+  Core guarantee mechanism (named ids, many-to-one, born-green, retirement protection, reverse lookup)
+- 多语言 executor 配置 / Language-agnostic executor config
+- CLI + MCP 双接口 / CLI + MCP dual interface
+- 意图文档子系统初版 / Initial intent-doc subsystem
+- 原子文件写入 + 备份 / Atomic file writes + backups
+- 中英双语文档 / Bilingual (zh/en) documentation

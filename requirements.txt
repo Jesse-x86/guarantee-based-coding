@@ -1,6 +1,6 @@
+# GBC 开发/测试环境依赖（非安装 GBC 本身——用户用 pipx install）
+# 装到你的 conda/pip 环境里，仅用于跑 pytest
 typer[all]
-
 pydantic
-
-mcp
+mcp>=1.0,<2.0
 
