@@ -13,9 +13,9 @@ commands realize those abilities, so you can use GBC without an MCP connection.
 Everything here is a plain shell command. If `gbc` is not on PATH, substitute
 `python -m gbc.entry` for `gbc` (same subcommands).
 
-> **Which project am I acting on?** Commands act on the current GBC target project. Set it with
-> the `GBC_PROJECT_PATH` environment variable (absolute path to the project root), e.g.
-> `export GBC_PROJECT_PATH=/abs/path/to/project`. All paths you pass to commands are
+> **Which project am I acting on?** Commands act on the current GBC target project, which
+> defaults to the directory you run `gbc` from (its cwd) — no environment variable needed. Just
+> `cd` into the project root before running commands. All paths you pass to commands are
 > **project-relative** (e.g. `app/core/config.py`).
 
 ---

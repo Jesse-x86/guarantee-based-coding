@@ -20,7 +20,7 @@ GBC 作为一个独立命令行工具分发。确认它已安装：
 gbc --help
 ```
 
-若没有，请人类装（或在你被授权时自己装）：`pip install guarantee-based-coding`。装好后 `gbc`
+若没有，请人类装（或在你被授权时自己装）：`pipx install guarantee-based-coding`。装好后 `gbc`
 命令在 PATH 上，任意项目复用同一个安装。
 
 > 想看一份本地化的接线指南（端点 / skill 文件在哪），随时可跑 `gbc setup`。

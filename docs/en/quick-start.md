@@ -13,7 +13,7 @@ state under the **target project's** `.gbc/` directory and never touches your so
 ## 1. Install
 
 ```bash
-pip install guarantee-based-coding
+pipx install guarantee-based-coding
 ```
 
 The `gbc` command is now on your PATH:
@@ -22,8 +22,11 @@ The `gbc` command is now on your PATH:
 gbc --help
 ```
 
-> You can also use `pipx install guarantee-based-coding` (isolated env) or
-> `uvx guarantee-based-coding` (ephemeral). GBC's dependencies are light (typer / pydantic / mcp).
+> **`pipx` is recommended**: GBC is a standalone CLI tool (like `black` / `ruff`) — you want it
+> installed once and usable everywhere, not polluting the Python environment of whatever project
+> you're working on. You can still use `pip install guarantee-based-coding` (into your current
+> environment) or `uvx guarantee-based-coding` (ephemeral). GBC's dependencies are light (typer /
+> pydantic / mcp).
 
 ---
 

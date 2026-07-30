@@ -17,7 +17,7 @@ GBC 面向用户输出的多语言资源与语言判定。当前支持简体中�
 静态资源定位的单一入口：把随包分发的数据(i18n catalog/texts、editor 前端、给 CLI-only agent 的预组 skills)集中到 gbc/assets/ 下并暴露路径常量(I18N_CATALOG_DIR/I18N_TEXTS_DIR/EDITOR_FRONTEND_DIR/SKILLS_DIR)。代码与数据分离；加一类资源只需在此登记一处 + 打包声明一条。
 
 ## config/
-回答三个问题:在哪个项目上工作、meta 写入保留几份备份、怎么跑测试。多为进程内单例 + 环境变量驱动。
+回答三个问题:在哪个项目上工作、meta 写入保留几份备份、怎么跑测试。当前项目根默认是进程启动时的 cwd,可运行时用 set_current_project 显式覆盖(常驻服务如 mcp up/editor up 靠这个接收显式参数);其余(备份份数、executor 配置)仍是进程内单例 + 环境变量驱动。
 
 ## models/
 所有层共享的 pydantic 模型。模型即契约:无业务逻辑、无 IO。改一个字段就是改契约,下游(core / interface / 落盘的 .gbc json)全靠它,要慎重。

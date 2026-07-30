@@ -35,9 +35,12 @@ directory, not the installed package — you're not testing what you think you a
 ```bash
 # Correct: run from outside the project root
 cd /tmp
-GBC_PROJECT_PATH=/path/to/guarantee-based-coding \
-  pytest /path/to/guarantee-based-coding/tests/
+pytest /path/to/guarantee-based-coding/tests/
 ```
+
+> GBC's current project root defaults to the process's cwd — no environment variable needed.
+> This repo's own tests inject a temp directory directly via `set_current_project()`, so they
+> don't depend on cwd or any env var.
 
 ## Workflow
 

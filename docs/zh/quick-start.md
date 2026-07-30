@@ -12,7 +12,7 @@ GBC 是一个独立命令行工具。装一次，任意项目都能用；它把�
 ## 1. 安装
 
 ```bash
-pip install guarantee-based-coding
+pipx install guarantee-based-coding
 ```
 
 装好后 `gbc` 命令就在 PATH 上：
@@ -21,8 +21,9 @@ pip install guarantee-based-coding
 gbc --help
 ```
 
-> 也可以用 `pipx install guarantee-based-coding`（隔离环境）或 `uvx guarantee-based-coding`
-> （即用即弃）。GBC 的依赖很轻（typer / pydantic / mcp）。
+> 推荐 `pipx`：GBC 是一个独立命令行工具（类似 `black` / `ruff`），你想的是“装一次到处用”，而不是
+> 让它的依赖污染你正在开发的项目的 Python 环境。你仍可以用 `pip install guarantee-based-coding`
+> （装进当前环境）或 `uvx guarantee-based-coding`（即用即弃）。GBC 的依赖很轻（typer / pydantic / mcp）。
 
 ---
 

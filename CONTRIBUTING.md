@@ -32,9 +32,11 @@ pipx install -e .    # 开发时从源码安装（--editable 仍经 pipx venv）
 ```bash
 # 正确方式：从项目根外面跑
 cd /tmp
-GBC_PROJECT_PATH=/path/to/guarantee-based-coding \
-  pytest /path/to/guarantee-based-coding/tests/
+pytest /path/to/guarantee-based-coding/tests/
 ```
+
+> GBC 的当前项目根默认是进程启动时的 cwd，无需环境变量。本仓测试都用 `set_current_project()` 直接
+> 注入临时目录，不依赖 cwd 或环境变量。
 
 ## 工作流
 

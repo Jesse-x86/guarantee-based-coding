@@ -13,7 +13,7 @@ GBC 把「这次改动会不会悄悄碰坏别处」从一种担心，变成可�
 ## 🚀 快速开始
 
 ```bash
-pip install guarantee-based-coding
+pipx install guarantee-based-coding
 gbc setup        # 打印本地化接线指南：怎么把 MCP / skills 接入你的 agent
 ```
 
@@ -90,7 +90,7 @@ GBC **不是**另一个要挑战 Cursor / Aider 的 AI 编程助手，而是填�
 
 ## 当前状态
 
-GBC 目前是一个可用的 Python 分发包（`pip install guarantee-based-coding`），自身用 GBC 管理自己的
+GBC 目前是一个可用的 Python 分发包（`pipx install guarantee-based-coding`），自身用 GBC 管理自己的
 `.gbc/`（dogfooding）：
 
 - ✅ 核心保证机制（具名 id、多对一、出生即绿、退休保护、反查）

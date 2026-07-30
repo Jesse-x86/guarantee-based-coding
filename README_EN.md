@@ -14,7 +14,7 @@ depends on it.
 ## 🚀 Quick start
 
 ```bash
-pip install guarantee-based-coding
+pipx install guarantee-based-coding
 gbc setup        # prints a localized wiring guide: how to connect MCP / skills to your agent
 ```
 
@@ -96,7 +96,7 @@ testing) are in [Core Concepts](./docs/en/concepts.md).
 
 ## Current status
 
-GBC is a working Python distribution package (`pip install guarantee-based-coding`), and it manages
+GBC is a working Python distribution package (`pipx install guarantee-based-coding`), and it manages
 its own `.gbc/` with GBC (dogfooding):
 
 - ✅ Core guarantee mechanism (named ids, many-to-one, born-green, retirement protection, reverse

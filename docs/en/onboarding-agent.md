@@ -23,7 +23,7 @@ gbc --help
 ```
 
 If not, have your human install it (or install it yourself when authorized):
-`pip install guarantee-based-coding`. Once installed, the `gbc` command is on PATH and the same
+`pipx install guarantee-based-coding`. Once installed, the `gbc` command is on PATH and the same
 install is reused across projects.
 
 > For a localized wiring guide (where the endpoints / skill files are), run `gbc setup` any time.

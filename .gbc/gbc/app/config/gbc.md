@@ -1,5 +1,5 @@
 # 意图
-回答三个问题:在哪个项目上工作、meta 写入保留几份备份、怎么跑测试。多为进程内单例 + 环境变量驱动。
+回答三个问题:在哪个项目上工作、meta 写入保留几份备份、怎么跑测试。当前项目根默认是进程启动时的 cwd,可运行时用 set_current_project 显式覆盖(常驻服务如 mcp up/editor up 靠这个接收显式参数);其余(备份份数、executor 配置)仍是进程内单例 + 环境变量驱动。
 
 # 文件
 
@@ -7,7 +7,7 @@
 PROJECT_ROOT / CONFIG_DIR(基于本包文件位置推算)。其他 config 模块的锚点。
 
 ## project.py
-当前目标项目根:由环境变量 GBC_PROJECT_PATH 决定,set_current_project 可运行时改、get_current_project 读取。一切 .gbc 路径都相对它。
+当前目标项目根:默认是进程启动时的 cwd(无环境变量、不回退到包安装位置),set_current_project 可运行时显式覆盖、get_current_project 读取。一切 .gbc 路径都相对它。
 
 ## backups.py
 META_BACKUPS:由环境变量 GBC_META_BACKUPS 决定,meta 落盘时保留几份备份。
