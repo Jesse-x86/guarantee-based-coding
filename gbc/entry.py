@@ -151,10 +151,11 @@ def main() -> None:
     """GBC 唯一入口（python -m）：组合命令树 → i18n 包裹 → 交给 Click 执行。
 
     与 main_cli 共用 get_wrapped_app()，差异只在 standalone_mode：
-    - main_cli(standalone_mode=True)  → sys.exit，给 pipx/setuptools console_scripts
-    - main(standalone_mode=False)     → 返 exit code，给 python -m 调用链
+    - main_cli(standalone_mode=True)  → Click 自行 sys.exit，供 console_scripts 使用
+    - main(standalone_mode=False)     → 将 Click 返回码转成 SystemExit，供 python -m 使用
     """
-    get_wrapped_app()(standalone_mode=False)
+    exit_code = get_wrapped_app()(standalone_mode=False)
+    raise SystemExit(0 if exit_code is None else exit_code)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 {
     "provides": {
         "entry.command_tree_composed": {
-            "desc": "唯一入口组合保证/意图/MCP/editor/rules/setup 与 gbc lang；用户持久语言偏好跨进程生效，auto 清除；根 --lang 不再被 setup/rules/editor 的空局部参数覆盖；命令树与 console_scripts/help 全路径经 i18n。",
+            "desc": "唯一入口组合保证/意图/MCP/editor/rules/setup 与 gbc lang；用户持久语言偏好跨进程生效，auto 清除；根 --lang 不被空局部参数覆盖；console_scripts 与 python -m 均经 i18n 且正确传播非零退出码。",
             "test": "tests/test_cli_commands.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,

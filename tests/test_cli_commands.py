@@ -420,6 +420,22 @@ def _gbc(*args, env=None):
     )
 
 
+def test_e2e_doctor_missing_gbc_propagates_nonzero_exit(tmp_path):
+    """承诺:python -m 将 doctor 的失败返回码传播给真实子进程。"""
+    missing = tmp_path / "missing"
+    config_home = tmp_path / "config"
+    missing.mkdir()
+    config_home.mkdir()
+
+    p = _gbc(
+        "doctor", "check", "--project", str(missing),
+        env={"GBC_CONFIG_HOME": str(config_home)},
+    )
+
+    assert p.returncode != 0, p.stdout + p.stderr
+    assert "consistent" not in (p.stdout + p.stderr).lower()
+
+
 def test_e2e_default_en():
     """承诺:真实子进程，无 env/--lang 时根 --help 输出英文。"""
     p = _gbc("--help")
