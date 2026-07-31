@@ -18,10 +18,19 @@ GBC 的每项能力都有三种等价形态：**CLI**（`gbc ...`）、**MCP 工
 |------|------|
 | `gbc mcp up [项目根]` | 启动 stdio MCP server（常驻）。省略项目根则用当前项目判定。 |
 | `gbc editor up` | 启动意图编辑器 web 服务（常驻，给人用）。`--port` / `--host` / `--root`。 |
-| `gbc setup` | 打印本地化接线指南：怎么把 MCP / skills 接入你的 agent。`--lang zh/en`。 |
-| `gbc rules` | 打印作者推荐的围栏规则集（推荐默认，非强制沙箱）。`--lang zh/en`。 |
+| `gbc lang [zh\|en\|auto]` | 查看或设置用户级持久语言偏好；省略参数显示当前偏好与实际语言，`auto` 清除显式偏好并恢复自动选择。日常使用建议只设置一次。 |
+| `gbc setup` | 打印本地化接线指南：怎么把 MCP / skills 接入你的 agent。末尾的 `--lang zh/en` 仅覆盖本次调用。 |
+| `gbc rules` | 打印作者推荐的围栏规则集（推荐默认，非强制沙箱）。末尾的 `--lang zh/en` 仅覆盖本次调用。 |
 | `gbc tree` | 渲染整棵 `.gbc` 依赖树。`--detail` 展开保证详情，`--gaps` 附登记缺口。 |
 | `gbc doctor check` | 全局一致性体检：悬空引用 + 双向边漂移 + 停用保证（响亮报出）。 |
+
+日常使用先运行一次 `gbc lang zh` 或 `gbc lang en`；只有临时切换 `setup` / `rules` 输出时才使用末尾的 `--lang`。
+
+### 项目根
+
+保证引擎的叶命令（`guarantee`、`dep`、`verify`、`refactor`、`tree`、`doctor`、`executor`）默认按
+`GBC_PROJECT_ROOT` > 当前工作目录（cwd）选择项目根，不会向父目录搜索。可在具体叶命令末尾用
+`--project <项目根>` 或 `-C <项目根>` 显式覆盖，例如 `gbc doctor check -C /path/to/project`。
 
 ---
 
