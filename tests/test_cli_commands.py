@@ -18,6 +18,7 @@ import subprocess
 import sys
 
 from click.testing import CliRunner
+import pytest
 
 from gbc.app.assets import SKILLS_DIR
 from gbc.entry import get_wrapped_app
@@ -25,11 +26,20 @@ from gbc.entry import get_wrapped_app
 runner = CliRunner()
 
 
+@pytest.fixture(autouse=True)
+def _isolate_language_preference(monkeypatch, tmp_path):
+    """任何 CLI 测试都不得读取开发者真实的用户语言偏好。"""
+    monkeypatch.setenv("GBC_CONFIG_HOME", str(tmp_path))
+    monkeypatch.delenv("GBC_LANG", raising=False)
+
+
 def test_command_tree_has_all_commands():
     """承诺:保证命令 + doc/mcp/editor/rules/setup 都在唯一入口下。"""
     result = runner.invoke(get_wrapped_app(), ["--help"])
     assert result.exit_code == 0
-    for cmd in ("guarantee", "verify", "doc", "mcp", "editor", "rules", "setup"):
+    for cmd in (
+        "guarantee", "verify", "doc", "mcp", "editor", "rules", "setup", "lang"
+    ):
         assert cmd in result.output
 
 
@@ -177,6 +187,108 @@ def test_doc_show_reads_intent(tmp_path):
 
 
 # ============================================================================
+# Persistent language preference CLI
+# ============================================================================
+
+
+def test_lang_status_reports_effective_and_automatic_preference(monkeypatch, tmp_path):
+    """承诺:无持久偏好时 lang 只报告有效语言与 automatic，不落盘。"""
+    monkeypatch.setenv("GBC_LANG", "en")
+
+    result = runner.invoke(get_wrapped_app(), ["lang"])
+
+    assert result.exit_code == 0, result.output
+    assert "Language: en" in result.output
+    assert "preference: automatic" in result.output
+    assert not (tmp_path / "lang").exists()
+
+
+def test_lang_persists_across_processes_for_setup_and_rules(tmp_path):
+    """承诺:lang zh/en 精确持久化，并成为后续独立进程的默认语言。"""
+    preference_file = tmp_path / "lang"
+
+    zh = runner.invoke(get_wrapped_app(), ["lang", "zh"])
+    assert zh.exit_code == 0, zh.output
+    assert preference_file.read_bytes() == b"zh\n"
+    assert "语言偏好已设为 zh" in zh.output
+    assert "zh" in zh.output
+
+    setup = _gbc("setup")
+    assert setup.returncode == 0, setup.stderr
+    assert "把 GBC 接入你的 agent" in setup.stdout
+
+    en = runner.invoke(get_wrapped_app(), ["lang", "en"])
+    assert en.exit_code == 0, en.output
+    assert preference_file.read_bytes() == b"en\n"
+    assert "Language preference set to en." in en.output
+    assert "en" in en.output
+
+    rules = _gbc("rules")
+    assert rules.returncode == 0, rules.stderr
+    assert "GBC Recommended Guardrails" in rules.stdout
+    assert "GBC 推荐围栏" not in rules.stdout
+
+
+def test_lang_auto_is_idempotent_and_status_reports_auto(monkeypatch, tmp_path):
+    """承诺:lang auto 幂等清除偏好，之后 status 报告 automatic。"""
+    monkeypatch.setenv("GBC_LANG", "en")
+    preference_file = tmp_path / "lang"
+    persisted = runner.invoke(get_wrapped_app(), ["lang", "zh"])
+    assert persisted.exit_code == 0, persisted.output
+    assert preference_file.exists()
+
+    first = runner.invoke(get_wrapped_app(), ["lang", "auto"])
+    second = runner.invoke(get_wrapped_app(), ["lang", "auto"])
+    assert first.exit_code == 0, first.output
+    assert second.exit_code == 0, second.output
+    assert "Language preference cleared" in first.output
+    assert "Language preference cleared" in second.output
+    assert not preference_file.exists()
+
+    status = runner.invoke(get_wrapped_app(), ["lang"])
+    assert status.exit_code == 0, status.output
+    assert "Language: en" in status.output
+    assert "preference: automatic" in status.output
+
+
+def test_lang_unsupported_is_nonzero_and_preserves_preference(tmp_path):
+    """承诺:不支持的语言以人类可读错误失败，且不改已有偏好文件。"""
+    preference_file = tmp_path / "lang"
+    persisted = runner.invoke(get_wrapped_app(), ["lang", "zh"])
+    assert persisted.exit_code == 0, persisted.output
+    before = preference_file.read_bytes()
+
+    result = runner.invoke(get_wrapped_app(), ["lang", "klingon"])
+
+    assert result.exit_code != 0
+    assert "unsupported language" in result.output
+    assert preference_file.read_bytes() == before == b"zh\n"
+
+
+def test_root_lang_survives_local_none_and_trailing_lang_is_invocation_only(tmp_path):
+    """承诺:局部空 --lang 不重置根选择；后置显式值只覆盖该次调用。"""
+    root_setup = _gbc("--lang", "zh", "setup")
+    root_rules = _gbc("--lang", "zh", "rules")
+    assert root_setup.returncode == 0, root_setup.stderr
+    assert root_rules.returncode == 0, root_rules.stderr
+    assert "把 GBC 接入你的 agent" in root_setup.stdout
+    assert "GBC 推荐围栏" in root_rules.stdout
+
+    persisted = _gbc("lang", "zh")
+    assert persisted.returncode == 0, persisted.stderr
+    assert (tmp_path / "lang").read_bytes() == b"zh\n"
+
+    local_en = _gbc("setup", "--lang", "en")
+    assert local_en.returncode == 0, local_en.stderr
+    assert "Wiring GBC into your agent" in local_en.stdout
+    assert (tmp_path / "lang").read_bytes() == b"zh\n"
+
+    next_invocation = _gbc("setup")
+    assert next_invocation.returncode == 0, next_invocation.stderr
+    assert "把 GBC 接入你的 agent" in next_invocation.stdout
+
+
+# ============================================================================
 # Help i18n — CliRunner（等价于进程内调用，覆盖 i18n_wrap_click_tree 路径）
 # ============================================================================
 
@@ -300,7 +412,11 @@ def _gbc(*args, env=None):
     """
     return subprocess.run(
         [_PYTHON, "-m", _ENTRY_MOD, *args],
-        capture_output=True, text=True, timeout=30, env=_child_env(env),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+        env=_child_env(env),
     )
 
 
@@ -404,7 +520,7 @@ main_cli()
 """
     p = subprocess.run(
         [_PYTHON, "-c", code],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
         env=_child_env(),
     )
     assert p.returncode == 0
@@ -426,7 +542,7 @@ main_cli()
 """
     p = subprocess.run(
         [_PYTHON, "-c", code],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
         env=_child_env(),
     )
     assert p.returncode == 0
@@ -444,7 +560,7 @@ main_cli()
 """
     p = subprocess.run(
         [_PYTHON, "-c", code],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, encoding="utf-8", timeout=30,
         env=_child_env(),
     )
     assert p.returncode != 0

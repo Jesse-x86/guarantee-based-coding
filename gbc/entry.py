@@ -43,6 +43,38 @@ app.add_typer(mcp_app, name="mcp")
 app.add_typer(editor_app, name="editor")
 
 
+@app.command("lang", help="cli.lang.help")
+def lang_cmd(
+    value: Optional[str] = typer.Argument(None, help="cli.lang.arg.value"),
+):
+    """查看或设置用户级持久语言偏好。"""
+    from gbc.app.i18n import current_lang, resolve_lang, set_lang, t
+    from gbc.app.i18n.lang import (
+        read_language_preference,
+        set_language_preference,
+    )
+
+    if value is None:
+        preference = read_language_preference() or t("lang.preference.auto")
+        typer.echo(
+            t("lang.status", effective=current_lang(), preference=preference)
+        )
+        return
+
+    if value == "auto":
+        set_language_preference(value)
+        set_lang(resolve_lang(None))
+        typer.echo(t("lang.cleared"))
+        return
+
+    try:
+        set_language_preference(value)
+    except ValueError as exc:
+        raise typer.BadParameter(str(exc), param_hint="VALUE") from exc
+    set_lang(value)
+    typer.echo(t("lang.updated", value=value))
+
+
 @mcp_app.command("up")
 def mcp_up(
     project_root: Optional[str] = typer.Argument(None, help="cli.mcp_up.arg.project_root"),
@@ -62,7 +94,8 @@ def editor_up(
     """启动意图编辑器 web 服务（常驻）。"""
     from gbc.app.i18n import set_lang, resolve_lang, t
     from gbc.app.intent.editor import run_editor
-    set_lang(resolve_lang(lang))
+    if lang is not None:
+        set_lang(resolve_lang(lang))
     typer.echo(t("editor.starting", host=host, port=port))
     run_editor(host=host, port=port, root=root or "")
 
@@ -73,7 +106,8 @@ def rules_cmd(
 ):
     """打印作者推荐的围栏规则集到 stdout（推荐默认，非强制沙箱）。"""
     from gbc.app.i18n import set_lang, resolve_lang, load_text
-    set_lang(resolve_lang(lang))
+    if lang is not None:
+        set_lang(resolve_lang(lang))
     # 纯文本发射器：用 print 而非 rich，便于管道/复制。
     print(load_text("rules"))
 
@@ -85,7 +119,8 @@ def setup_cmd(
     """打印本地化的接线指南到 stdout：怎么把 MCP / skills 接入你的 agent。"""
     from gbc.app.i18n import set_lang, resolve_lang, load_text
     from gbc.app.assets import SKILLS_DIR
-    set_lang(resolve_lang(lang))
+    if lang is not None:
+        set_lang(resolve_lang(lang))
     # 与 rules 同构：纯文本发射器。只给坐标(skills 目录/MCP 入口)，
     # 具体怎么接入取决于用户 agent——{skills_dir} 填入随包 skills 的真实路径。
     print(load_text("setup").format(skills_dir=str(SKILLS_DIR)))

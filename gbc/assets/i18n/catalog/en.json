@@ -33,6 +33,8 @@
     "editor.starting": "GBC intent editor running at http://{host}:{port}",
 
     "cli.app.help": "GBC — Guarantee-Based Coding CLI tool",
+    "cli.lang.help": "View or set the persistent user language preference",
+    "cli.lang.arg.value": "Supported language code or 'auto'; omit to view",
     "cli.guarantee.help": "Guarantee CRUD",
     "cli.dep.help": "Dependency edge registration and reverse lookup",
     "cli.verify.help": "Run verification",
@@ -48,5 +50,10 @@
     "cli.tree.option.detail": "Expand guarantee desc/test/heavy + other artifacts (.pyi) in each .gbc directory",
     "cli.tree.option.gaps": "Append registration gaps derived from the graph (has json/is depended on but unregistered)",
     "cli.mcp_up.arg.project_root": "Absolute path to target project root; omit to auto-detect",
-    "cli.doc.help": "Compliant read/write entry for intent docs (gbc.md)"
+    "cli.doc.help": "Compliant read/write entry for intent docs (gbc.md)",
+
+    "lang.status": "Language: {effective} (preference: {preference})",
+    "lang.preference.auto": "automatic",
+    "lang.updated": "Language preference set to {value}.",
+    "lang.cleared": "Language preference cleared; automatic resolution restored."
 }

@@ -6,7 +6,9 @@
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
             "heavy": 0,
-            "dependents": [],
+            "dependents": [
+                "gbc/entry.py"
+            ],
             "disabled": false
         }
     },
