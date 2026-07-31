@@ -17,12 +17,21 @@ If `gbc` is not on PATH, any `gbc` can be replaced with `python -m gbc.entry`.
 
 | Command | What it does |
 |---------|--------------|
-| `gbc mcp up [project-root]` | Start the stdio MCP server (long-running). Omit the root to infer from the current project. |
+| `gbc mcp up [project-root]` | Start the stdio MCP server (long-running). Omit the root to use `GBC_PROJECT_ROOT`, then the current working directory. |
 | `gbc editor up` | Start the intent-editor web service (long-running, for humans). `--port` / `--host` / `--root`. |
-| `gbc setup` | Print a localized wiring guide: how to connect MCP / skills to your agent. `--lang zh/en`. |
-| `gbc rules` | Print the author's recommended guardrails (recommended defaults, not an enforced sandbox). `--lang zh/en`. |
+| `gbc lang [zh\|en\|auto]` | View or set the persistent user language preference. With no argument, shows the preference and effective language; `auto` clears the explicit preference and restores automatic selection. |
+| `gbc setup` | Print a localized wiring guide: how to connect MCP / skills to your agent. A trailing `--lang zh/en` overrides the language for this invocation only. |
+| `gbc rules` | Print the author's recommended guardrails (recommended defaults, not an enforced sandbox). A trailing `--lang zh/en` overrides the language for this invocation only. |
 | `gbc tree` | Render the whole `.gbc` dependency tree. `--detail` expands guarantee details, `--gaps` appends registration gaps. |
 | `gbc doctor check` | Global consistency lint: dangling refs + two-way edge drift + disabled guarantees (reported loudly). |
+
+For normal use, run `gbc lang zh` or `gbc lang en` once; use the trailing `--lang` on `setup` or
+`rules` only for a temporary override.
+
+By default, GBC selects the project root in this order: `GBC_PROJECT_ROOT` > current working
+directory (cwd). It does **not** search parent directories. Where supported, append
+`--project <project-root>` or `-C <project-root>` to an engine leaf command to override it, for
+example `gbc doctor check -C /path/to/project`.
 
 ---
 
