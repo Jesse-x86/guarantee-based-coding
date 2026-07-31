@@ -3,34 +3,91 @@
 # Licensed under the Apache License, Version 2.0 (the "License");
 # see the LICENSE file for the full text.
 
-"""保证: config.project 管理当前目标项目根的运行时状态。
+"""Guarantees for selecting and overriding the current project root."""
 
-窄测试验证**承诺**而非实现:
-- get_current_project() 默认返回进程启动时的 cwd（无环境变量、不回退包安装位置）
-- set_current_project() 显式覆盖后，get_current_project() 返回新值
-- 一切 .gbc 路径都相对它（这是 GBC 工具仓无状态、可 pip 安装的前提）
-"""
+import os
 from pathlib import Path
+
+import pytest
 
 from gbc.app.config import project
 
 
-def test_default_is_cwd():
-    """承诺: 默认当前项目 = 进程启动时的 cwd（不是环境变量、不是包安装位置）。"""
-    # get_current_project 返回的路径应等于当前进程的 cwd
-    assert Path(project.get_current_project()) == Path.cwd()
+def _initialize_project(monkeypatch, cwd: Path, env_value: str | None) -> Path:
+    """Exercise initialization deterministically without relying on import state."""
+    monkeypatch.chdir(cwd)
+    if env_value is None:
+        monkeypatch.delenv(project.GBC_PROJECT_ROOT, raising=False)
+    else:
+        monkeypatch.setenv(project.GBC_PROJECT_ROOT, env_value)
+    return project._init_current_project()
 
 
-def test_set_then_get_roundtrip(tmp_path):
-    """承诺: set_current_project 显式覆盖后，get_current_project 返回新值。"""
-    project.set_current_project(str(tmp_path))
+def test_project_root_constant_is_exported():
+    assert project.GBC_PROJECT_ROOT == "GBC_PROJECT_ROOT"
+
+
+def test_environment_root_wins_over_cwd(monkeypatch, tmp_path):
+    cwd = tmp_path / "cwd"
+    configured = tmp_path / "configured" / "new-project"
+    cwd.mkdir()
+
+    result = _initialize_project(monkeypatch, cwd, str(configured))
+
+    assert result == configured.resolve(strict=False)
+    assert isinstance(result, Path)
+
+
+def test_cwd_is_used_when_environment_is_absent(monkeypatch, tmp_path):
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    assert _initialize_project(monkeypatch, cwd, None) == cwd.resolve(strict=False)
+
+
+@pytest.mark.parametrize("env_value", ["", "   ", "\t\n"])
+def test_blank_environment_falls_back_to_cwd(monkeypatch, tmp_path, env_value):
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+
+    assert _initialize_project(monkeypatch, cwd, env_value) == cwd.resolve(strict=False)
+
+
+def test_initialization_does_not_search_parent_for_gbc(monkeypatch, tmp_path):
+    parent = tmp_path / "parent"
+    cwd = parent / "nested" / "working-directory"
+    (parent / ".gbc").mkdir(parents=True)
+    cwd.mkdir(parents=True)
+
+    assert _initialize_project(monkeypatch, cwd, None) == cwd.resolve(strict=False)
+
+
+def test_set_current_project_explicitly_overrides_and_expands_pathlike(
+    monkeypatch, tmp_path
+):
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    if os.name == "nt":
+        monkeypatch.setenv("USERPROFILE", str(home))
+    monkeypatch.setattr(project, "CURRENT_PROJECT", project.get_current_project())
+
+    project.set_current_project(Path("~") / "projects" / ".." / "new-project")
     result = project.get_current_project()
-    assert Path(result) == tmp_path
+
+    assert result == (home / "new-project").resolve(strict=False)
+    assert isinstance(result, Path)
 
 
-def test_set_accepts_string_and_returns_pathlike(tmp_path):
-    """承诺: set_current_project 收字符串，get_current_project 返回的对象可当路径用。"""
-    project.set_current_project(str(tmp_path))
-    # get_current_project 的返回值能被 Path() 接受并用于拼接 .gbc 路径
-    gbc_dir = Path(project.get_current_project()) / ".gbc"
-    assert str(gbc_dir).endswith("/.gbc")
+def test_set_current_project_accepts_and_normalizes_string(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(project, "CURRENT_PROJECT", project.get_current_project())
+
+    project.set_current_project(str(Path("nested") / ".." / "new-project"))
+
+    assert project.get_current_project() == (tmp_path / "new-project").resolve(strict=False)
+
+
+def test_set_current_project_rejects_blank_string():
+    with pytest.raises(ValueError, match="must not be blank"):
+        project.set_current_project("   ")

@@ -12,24 +12,37 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
 from pathlib import Path
 
 
-# 初始化当前路径：进程启动时的 cwd。CLI 单次命令默认就用这个——“当前项目 = 跑命令时所在目录”，
-# 无需环境变量，不会静默回退到包安装位置。常驻服务（mcp up / editor up）cwd 不可靠，
-# 它们自己收显式参数覆盖，不依赖这个默认值。
-def _init_current_project() -> Path:
-    return Path.cwd()
+GBC_PROJECT_ROOT = "GBC_PROJECT_ROOT"
 
-# 会被使用的当前路径变量
+
+def _normalize_project_path(path: str | os.PathLike[str]) -> Path:
+    """Return an absolute, normalized project path without requiring it to exist."""
+    raw_path = os.fspath(path)
+    if not raw_path.strip():
+        raise ValueError("project path must not be blank")
+    return Path(raw_path).expanduser().resolve(strict=False)
+
+
+# 初始化当前路径：进程启动时固定按 GBC_PROJECT_ROOT > cwd 选择一次，不向上搜索。
+def _init_current_project() -> Path:
+    configured_root = os.environ.get(GBC_PROJECT_ROOT)
+    if configured_root is not None and configured_root.strip():
+        return _normalize_project_path(configured_root)
+    return _normalize_project_path(Path.cwd())
+
+
 CURRENT_PROJECT = _init_current_project()
 
-# 更新当前路径
-def set_current_project(new_path: str):
-    new_path = Path(new_path)
 
+def set_current_project(new_path: str | os.PathLike[str]) -> None:
+    """Explicitly override the current project root."""
     global CURRENT_PROJECT
-    CURRENT_PROJECT = new_path
+    CURRENT_PROJECT = _normalize_project_path(new_path)
 
-def get_current_project():
+
+def get_current_project() -> Path:
     return CURRENT_PROJECT
