@@ -16,7 +16,7 @@ GBC 的每项能力都有三种等价形态：**CLI**（`gbc ...`）、**MCP 工
 
 | 命令 | 作用 |
 |------|------|
-| `gbc mcp up [项目根]` | 启动 stdio MCP server（常驻）。省略项目根则用当前项目判定。 |
+| `gbc mcp up [项目根]` | 启动 stdio MCP server（常驻）。省略时依次使用 `GBC_PROJECT_ROOT`、当前工作目录。 |
 | `gbc editor up` | 启动意图编辑器 web 服务（常驻，给人用）。`--port` / `--host` / `--root`。 |
 | `gbc lang [zh\|en\|auto]` | 查看或设置用户级持久语言偏好；省略参数显示当前偏好与实际语言，`auto` 清除显式偏好并恢复自动选择。日常使用建议只设置一次。 |
 | `gbc setup` | 打印本地化接线指南：怎么把 MCP / skills 接入你的 agent。末尾的 `--lang zh/en` 仅覆盖本次调用。 |
