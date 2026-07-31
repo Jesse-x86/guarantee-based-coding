@@ -622,6 +622,11 @@ def check_consistency() -> list[dict]:
     只要存在停用保证，返回列表就**非空**——意即「在所有 disabled 被 enable 回去之前，
     check 永远不干净」，逼着停用态被收掉而非烂在那。调用方可按 type 区分错误与提示。
     """
+    project = get_current_project()
+    gbc_root = project / ".gbc"
+    if not gbc_root.exists():
+        raise MetaNotFoundError(original_file=project, target_file=gbc_root)
+
     # 先建 provides 索引：(provider_rel, gid) -> dependents；并记停用态。
     provides_index: dict[tuple[str, str], list[str]] = {}
     disabled_index: dict[tuple[str, str], bool] = {}

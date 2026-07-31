@@ -1,7 +1,7 @@
 {
     "provides": {
         "interface_base.consistency_and_reverse_lookup": {
-            "desc": "who_depends_on 反查(O(1)精确查+全局扫描认symbol过滤)、check_consistency 五类违规检测(dangling_guarantee/missing_reverse/missing_forward/disabled_guarantee/depends_on_disabled)、render_tree 树形渲染的窄测试保证",
+            "desc": "who_depends_on 反查、check_consistency 五类图违规与 render_tree 树渲染；目标根缺少 .gbc 时 check_consistency 必须响亮失败，现存空 .gbc 才可视为空一致图，杜绝未检查却假绿。",
             "test": "tests/test_interface_base_query.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
