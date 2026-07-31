@@ -4,8 +4,7 @@ GBC 工具本体的源代码根（充当 src 的源代码仓库），经 [projec
 # 文件
 
 ## i18n/
-GBC 面向用户输出的多语言资源与语言判定。当前支持简体中文(zh)与英文(en)，默认回退 en(发布英文优先)。语言判定优先级：显式 --lang > 环境变量 GBC_LANG > 系统 locale > en。
-两类文本分治：**短消息**(错误信息、命令成功提示、help)走查表式 catalog(键→多语言串)；**长文本**(gbc rules 规则集、gbc setup 接线指南)按语言存独立 Markdown 资源文件、按当前语言整篇读出。资源随包分发。
+GBC 面向用户输出的多语言资源、持久偏好与语言判定。当前支持简体中文(zh)与英文(en)，默认回退 en。日常偏好由 gbc lang zh|en|auto 写入用户级纯文本语言文件（不进项目 .gbc）；判定优先级：单次显式 --lang > GBC_LANG > 持久偏好 > 系统 locale > en。两类文本分治：短消息走 catalog，长文本按语言读取 Markdown 资源。
 
 ## interface/
 把引擎能力暴露成「人/agent 能用的形态」，并把「外部形态」与「内部实现」彻底解耦：cli、mcp、web 编辑器都只是薄表面，真正的编排、路径解析、文件读写收在 base 一处。换表面不动引擎。
@@ -18,7 +17,7 @@ GBC 面向用户输出的多语言资源与语言判定。当前支持简体中�
 静态资源定位的单一入口：把随包分发的数据(i18n catalog/texts、editor 前端、给 CLI-only agent 的预组 skills)集中到 gbc/assets/ 下并暴露路径常量(I18N_CATALOG_DIR/I18N_TEXTS_DIR/EDITOR_FRONTEND_DIR/SKILLS_DIR)。代码与数据分离；加一类资源只需在此登记一处 + 打包声明一条。
 
 ## config/
-回答三个问题:在哪个项目上工作、meta 写入保留几份备份、怎么跑测试。当前项目根默认是进程启动时的 cwd,可运行时用 set_current_project 显式覆盖(常驻服务如 mcp up/editor up 靠这个接收显式参数);其余(备份份数、executor 配置)仍是进程内单例 + 环境变量驱动。
+回答四个问题：在哪个项目上工作、用户级偏好存在哪里、meta 写入保留几份备份、怎么跑测试。当前项目根在进程启动时按固定优先级 GBC_PROJECT_ROOT > cwd 确定，不向上猜；set_current_project() 供 CLI --project/-C、MCP/editor 与测试显式覆盖。用户级偏好独立于目标项目，绝不落进项目 .gbc。其余（备份份数、executor 配置）仍是进程内单例 + 环境变量驱动。
 
 ## models/
 所有层共享的 pydantic 模型。模型即契约:无业务逻辑、无 IO。改一个字段就是改契约,下游(core / interface / 落盘的 .gbc json)全靠它,要慎重。
