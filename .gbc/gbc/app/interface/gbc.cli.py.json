@@ -1,7 +1,7 @@
 {
     "provides": {
         "cli.help_i18n": {
-            "desc": "Typer/Click help 文本延迟翻译：根 --help 与子命令 --help 的 app/subcommand 描述、选项帮助文本根据 --lang 参数 / GBC_LANG 环境变量 / 系统 locale 自动选择语言；缺语言回退默认 en。命令名与框架标签(如 --install-completion)不翻译。",
+            "desc": "唯一 CLI 入口的命令树/help i18n 与项目根接线：保证所有保证引擎叶子暴露后置 --project/-C 并覆盖 GBC_PROJECT_ROOT/cwd；doctor 缺图非零；setup skills 路径与子进程 UTF-8 测试跨平台。",
             "test": "tests/test_cli_commands.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
@@ -10,5 +10,12 @@
             "disabled": false
         }
     },
-    "depends_on": []
+    "depends_on": [
+        {
+            "symbol": "gbc/app/config/project.py:set_current_project",
+            "guarantees": [
+                "config.project.current_project_runtime_state"
+            ]
+        }
+    ]
 }

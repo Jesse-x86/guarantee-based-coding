@@ -11,12 +11,15 @@
 - gbc setup 输出本地化接线指南，只给坐标(MCP 入口/skills 目录)。
 - 根 --help 根据 --lang / GBC_LANG 输出对应语言文本。
 """
+import importlib
 import os
+from pathlib import Path
 import subprocess
 import sys
 
 from click.testing import CliRunner
 
+from gbc.app.assets import SKILLS_DIR
 from gbc.entry import get_wrapped_app
 
 runner = CliRunner()
@@ -28,6 +31,111 @@ def test_command_tree_has_all_commands():
     assert result.exit_code == 0
     for cmd in ("guarantee", "verify", "doc", "mcp", "editor", "rules", "setup"):
         assert cmd in result.output
+
+
+_PROJECT_COMMAND_PATHS = (
+    ("guarantee", "create"),
+    ("guarantee", "update"),
+    ("guarantee", "retire"),
+    ("guarantee", "disable"),
+    ("guarantee", "enable"),
+    ("guarantee", "list"),
+    ("dep", "add"),
+    ("dep", "remove"),
+    ("dep", "of"),
+    ("dep", "who"),
+    ("verify", "provider"),
+    ("verify", "single"),
+    ("refactor", "file"),
+    ("refactor", "rename-id"),
+    ("refactor", "func"),
+    ("tree",),
+    ("doctor", "check"),
+    ("executor", "upsert"),
+)
+
+
+def test_all_guarantee_engine_project_leaves_expose_project_option():
+    """承诺:每个保证引擎项目操作叶子都暴露后置 --project/-C。"""
+    command = get_wrapped_app()
+    for path in _PROJECT_COMMAND_PATHS:
+        result = runner.invoke(command, [*path, "--help"])
+        assert result.exit_code == 0, (path, result.output)
+        assert "--project" in result.output, path
+        assert "-C" in result.output, path
+
+
+def test_doctor_project_option_overrides_unrelated_cwd(monkeypatch, tmp_path):
+    """承诺:doctor 的后置 --project 可从无关嵌套 cwd 指向目标项目。"""
+    from gbc.app.config import project as project_config
+
+    original_project = project_config.get_current_project()
+    target = tmp_path / "target"
+    (target / ".gbc").mkdir(parents=True)
+    unrelated = tmp_path / "unrelated" / "nested"
+    unrelated.mkdir(parents=True)
+    monkeypatch.chdir(unrelated)
+    project_config.set_current_project(unrelated)
+    try:
+        result = runner.invoke(
+            get_wrapped_app(), ["doctor", "check", "--project", str(target)]
+        )
+        assert result.exit_code == 0, result.output
+        assert "consistent" in result.output
+        assert project_config.get_current_project() == target.resolve()
+    finally:
+        project_config.set_current_project(original_project)
+
+
+def test_doctor_missing_gbc_is_nonzero_and_not_consistent(tmp_path):
+    """承诺:目标根缺少 .gbc 时 CLI 体检失败，不能假绿。"""
+    from gbc.app.config import project as project_config
+
+    original_project = project_config.get_current_project()
+    missing = tmp_path / "missing"
+    missing.mkdir()
+    try:
+        result = runner.invoke(
+            get_wrapped_app(), ["doctor", "check", "--project", str(missing)]
+        )
+        assert result.exit_code != 0
+        assert "consistent" not in result.output.lower()
+    finally:
+        project_config.set_current_project(original_project)
+
+
+def test_doctor_uses_environment_project_and_trailing_option_overrides_it(
+    monkeypatch, tmp_path
+):
+    """承诺:GBC_PROJECT_ROOT 是默认值，后置 --project 可显式覆盖。"""
+    from gbc.app.config import project as project_config
+
+    original_project = project_config.get_current_project()
+    environment_project = tmp_path / "from-env"
+    explicit_project = tmp_path / "explicit"
+    (environment_project / ".gbc").mkdir(parents=True)
+    (explicit_project / ".gbc").mkdir(parents=True)
+    try:
+        monkeypatch.setenv(project_config.GBC_PROJECT_ROOT, str(environment_project))
+        importlib.reload(project_config)
+
+        from_environment = runner.invoke(get_wrapped_app(), ["doctor", "check"])
+        assert from_environment.exit_code == 0, from_environment.output
+        assert "consistent" in from_environment.output
+        assert project_config.get_current_project() == environment_project.resolve()
+
+        # CliRunner reuses this process, so restore the expected default before
+        # proving that the trailing explicit option replaces it.
+        project_config.set_current_project(environment_project)
+        explicit = runner.invoke(
+            get_wrapped_app(),
+            ["doctor", "check", "--project", str(explicit_project)],
+        )
+        assert explicit.exit_code == 0, explicit.output
+        assert "consistent" in explicit.output
+        assert project_config.get_current_project() == explicit_project.resolve()
+    finally:
+        project_config.set_current_project(original_project)
 
 
 def test_rules_outputs_bilingual_and_non_sandbox():
@@ -54,7 +162,7 @@ def test_setup_prints_wiring_guide():
     # 只给坐标：MCP 启动入口 + skills 目录路径(占位符已填充)。
     for out in (zh.output, en.output):
         assert "gbc mcp up" in out
-        assert "assets/skills" in out
+        assert str(SKILLS_DIR) in out
 
 
 def test_doc_show_reads_intent(tmp_path):
@@ -177,16 +285,22 @@ _PYTHON = sys.executable
 _ENTRY_MOD = "gbc.entry"
 
 
+def _child_env(overrides=None):
+    """构建隔离语言设置且固定 UTF-8 的子 Python 环境。"""
+    env = {k: v for k, v in os.environ.items() if k != "GBC_LANG"}
+    env.update(overrides or {})
+    env["PYTHONUTF8"] = "1"
+    return env
+
+
 def _gbc(*args, env=None):
     """运行 `python -m gbc.entry ...` 子进程，返回 CompletedProcess。
 
     默认剥离外部 GBC_LANG，避免开发者环境泄漏到测试。
     """
-    base = {k: v for k, v in os.environ.items() if k != "GBC_LANG"}
-    full_env = {**base, **(env or {})}
     return subprocess.run(
         [_PYTHON, "-m", _ENTRY_MOD, *args],
-        capture_output=True, text=True, timeout=30, env=full_env,
+        capture_output=True, text=True, timeout=30, env=_child_env(env),
     )
 
 
@@ -253,10 +367,9 @@ def test_pyproject_scripts_is_main_cli():
     用文本级解析（regex 限定 section），兼容 Python 3.10。
     """
     import re
-    from pathlib import Path
 
     root = Path(__file__).resolve().parent.parent
-    text = (root / "pyproject.toml").read_text()
+    text = (root / "pyproject.toml").read_text(encoding="utf-8")
 
     # 定位 [project.scripts] section：从该行到下一个 [section] 或 EOF
     sec = re.search(r"^\[project\.scripts\]", text, re.MULTILINE)
@@ -292,7 +405,7 @@ main_cli()
     p = subprocess.run(
         [_PYTHON, "-c", code],
         capture_output=True, text=True, timeout=30,
-        env={k: v for k, v in os.environ.items() if k != "GBC_LANG"},
+        env=_child_env(),
     )
     assert p.returncode == 0
     # 英文翻译（默认）出现在输出中
@@ -314,7 +427,7 @@ main_cli()
     p = subprocess.run(
         [_PYTHON, "-c", code],
         capture_output=True, text=True, timeout=30,
-        env={k: v for k, v in os.environ.items() if k != "GBC_LANG"},
+        env=_child_env(),
     )
     assert p.returncode == 0
     assert "命令行工具" in p.stdout
@@ -332,6 +445,6 @@ main_cli()
     p = subprocess.run(
         [_PYTHON, "-c", code],
         capture_output=True, text=True, timeout=30,
-        env={k: v for k, v in os.environ.items() if k != "GBC_LANG"},
+        env=_child_env(),
     )
     assert p.returncode != 0
