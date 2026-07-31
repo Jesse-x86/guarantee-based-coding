@@ -211,17 +211,38 @@ def add_dependency(consumer: str, provider: str, symbol: str, guarantee_id: str 
 
 
 def remove_dependency(consumer: str, provider: str, symbol: str, guarantee_id: str | None = None) -> None:
-    consumer_rel = _to_rel(consumer)
-    provider_rel = _to_rel(provider)
+    """撤销依赖；consumer meta 丢失时可按 guarantee_id 精确清理 provider 孤儿反向边。
 
-    if guarantee_id is None:
-        # 撤销整条 symbol 边：可能涉及 provider 反向边，走双文件
+    正常模式仍由 core 按 symbol 维护双边。孤儿模式无法校验 symbol，因为 provider 的反向边
+    不存 symbol；因此 guarantee_id 才是安全身份，且必须由调用方明确提供。
+    """
+    consumer_path = _resolve(consumer)
+    provider_path = _resolve(provider)
+    project = get_current_project()
+    consumer_rel = consumer_path.relative_to(project).as_posix()
+    provider_rel = provider_path.relative_to(project).as_posix()
+    consumer_json = to_gbc_json_path(consumer_path)
+
+    # 必须在任何 create_if_missing session 前判断；正常存在时保持 core 双向删除语义不变。
+    if consumer_json.exists():
         with dual_session(consumer, provider) as (cmeta, pmeta):
-            gtee.remove_dependency(cmeta, consumer_rel, pmeta, provider_rel, symbol, None)
+            gtee.remove_dependency(
+                cmeta, consumer_rel, pmeta, provider_rel, symbol, guarantee_id
+            )
         return
 
-    with dual_session(consumer, provider) as (cmeta, pmeta):
-        gtee.remove_dependency(cmeta, consumer_rel, pmeta, provider_rel, symbol, guarantee_id)
+    if guarantee_id is None:
+        raise MetaNotFoundError(original_file=consumer_path, target_file=consumer_json)
+
+    # provider 反向边没有 symbol，孤儿清理只能相信明确 gid，并只改该保证的 dependents。
+    provider_meta = _load_meta(provider_path, create_if_missing=False)
+    guarantee = provider_meta.provides.get(guarantee_id)
+    if guarantee is None or consumer_rel not in guarantee.dependents:
+        raise GuaranteeNotFoundError(
+            target_file=provider_rel, guarantee_path=guarantee_id
+        )
+    guarantee.dependents.remove(consumer_rel)
+    _save_meta(provider_meta, provider_path)
 
 
 # ============================================================================

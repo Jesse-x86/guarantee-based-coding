@@ -25,8 +25,10 @@ from gbc.app.interface.base import (
     list_provides,
     list_depends_on,
     create_guarantee,
+    check_consistency,
 )
-from gbc.app.models.errors import GuaranteeNotFoundError
+from gbc.app.models.errors import GuaranteeNotFoundError, MetaNotFoundError
+from gbc.app.utils.file_utils import to_gbc_json_path
 
 
 # ============================================================================
@@ -178,3 +180,99 @@ class TestRemoveDependency:
 
         with pytest.raises(GuaranteeNotFoundError):
             remove_dependency("consumer.py", "provider.py", "nonexistent_func")
+
+    def test_orphan_cleanup_removes_reverse_only_and_restores_consistency(
+        self, fake_project, passing_test_file,
+    ):
+        """consumer meta 丢失后，gid 精确清理 provider 反向边且不重建空 meta。"""
+        consumer_source = fake_project / "consumer.py"
+        consumer_source.write_text("# consumer\n", encoding="utf-8")
+        create_guarantee(
+            "provider.py", "my_gid",
+            desc="test guarantee",
+            test=passing_test_file,
+            executor_name="pytest-fake",
+        )
+        add_dependency(
+            "consumer.py", "provider.py", "my_func", guarantee_id="my_gid",
+        )
+
+        consumer_json = to_gbc_json_path(consumer_source)
+        consumer_json.unlink()
+        consumer_source.unlink()
+        assert {
+            (v["type"], v.get("guarantee")) for v in check_consistency()
+        } == {("missing_forward", "my_gid")}
+
+        # orphan reverse edges do not retain symbol; explicit gid is the safe identity.
+        remove_dependency(
+            "consumer.py", "provider.py", "unverifiable_symbol", guarantee_id="my_gid",
+        )
+
+        assert "consumer.py" not in list_provides("provider.py")["my_gid"].dependents
+        assert not consumer_json.exists()
+        assert check_consistency() == []
+
+    def test_orphan_cleanup_without_gid_rejected(self, fake_project, passing_test_file):
+        """consumer meta 不存在时不可按无法验证的 symbol 猜测反向边。"""
+        create_guarantee(
+            "provider.py", "my_gid", "test guarantee", passing_test_file, "pytest-fake",
+        )
+        with pytest.raises(MetaNotFoundError):
+            remove_dependency("consumer.py", "provider.py", "my_func")
+
+        assert list_provides("provider.py")["my_gid"].dependents == []
+        assert not to_gbc_json_path(fake_project / "consumer.py").exists()
+
+    def test_orphan_cleanup_missing_provider_guarantee_rejected(
+        self, fake_project, passing_test_file,
+    ):
+        """点名 gid 不在 provider 时拒绝，且不创建 consumer meta。"""
+        create_guarantee(
+            "provider.py", "existing_gid",
+            "test guarantee", passing_test_file, "pytest-fake",
+        )
+        with pytest.raises(GuaranteeNotFoundError):
+            remove_dependency(
+                "consumer.py", "provider.py", "my_func", guarantee_id="missing_gid",
+            )
+
+        assert not to_gbc_json_path(fake_project / "consumer.py").exists()
+
+    def test_orphan_cleanup_unlisted_consumer_rejected(
+        self, fake_project, passing_test_file,
+    ):
+        """provider 保证存在但未列该 consumer 时拒绝。"""
+        create_guarantee(
+            "provider.py", "my_gid", "test guarantee", passing_test_file, "pytest-fake",
+        )
+        with pytest.raises(GuaranteeNotFoundError):
+            remove_dependency(
+                "consumer.py", "provider.py", "my_func", guarantee_id="my_gid",
+            )
+
+        assert list_provides("provider.py")["my_gid"].dependents == []
+        assert not to_gbc_json_path(fake_project / "consumer.py").exists()
+
+    def test_existing_consumer_wrong_symbol_does_not_detach_valid_edge(
+        self, fake_project, passing_test_file,
+    ):
+        """consumer meta 存在时仍按 core symbol 语义；错 symbol 不得摘反向边。"""
+        create_guarantee(
+            "provider.py", "my_gid", "test guarantee", passing_test_file, "pytest-fake",
+        )
+        add_dependency(
+            "consumer.py", "provider.py", "valid_func", guarantee_id="my_gid",
+        )
+
+        with pytest.raises(GuaranteeNotFoundError):
+            remove_dependency(
+                "consumer.py", "provider.py", "wrong_func", guarantee_id="my_gid",
+            )
+
+        deps = list_depends_on("consumer.py")
+        assert any(
+            d.symbol == "provider.py:valid_func" and "my_gid" in d.guarantees
+            for d in deps
+        )
+        assert "consumer.py" in list_provides("provider.py")["my_gid"].dependents

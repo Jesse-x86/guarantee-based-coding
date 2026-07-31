@@ -28,7 +28,7 @@
             "disabled": false
         },
         "interface_base.dependency_bookkeeping_persists": {
-            "desc": "验证 add/remove_dependency 包装层真实落盘到 .gbc 且双向一致：免费依赖只动consumer不动provider、行为级依赖双向落盘、gid不存在抛GuaranteeNotFoundError、整条边撤销与部分摘除均正确维护双边",
+            "desc": "add/remove_dependency 包装层真实双向落盘；正常删除保持 symbol 语义；consumer meta 已丢失时仅允许明确 gid 且 provider 反向边确含 consumer 的 provider-only 清理，不重建空 consumer meta，清理后一致性恢复。",
             "test": "tests/test_interface_base_deps.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
