@@ -9,12 +9,12 @@ Adopting the following rules in your agent instructions (or enforcing them via y
 framework) will markedly improve the GBC experience:
 
 1. **The top-level agent never edits files inside `.gbc/` directly.** Intent
-   documents are changed only through the gbc-doc entry point; the guarantee graph
+   documents are changed only through the gbc doc entry point (MCP doc tools / CLI); the guarantee graph
    is touched only through GBC's tools (MCP / CLI). Never hand-edit anything under
    `.gbc` — its parent/child consistency is a deterministic constraint that stays
    correct only when maintained through the tools.
 
-2. **Subagents touch neither `.gbc/` files nor any mutating GBC tool / gbc-doc.**
+2. **Subagents touch neither `.gbc/` files nor any mutating GBC tool / gbc doc.**
    A subagent only implements and self-proves via `verify_*`; making commitments
    (registering guarantees, changing intent) is reserved for the top-level agent.
 

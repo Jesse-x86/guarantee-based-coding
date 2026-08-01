@@ -92,7 +92,7 @@ right now, would a test actually go red?"** If no, fix that first.
 ## ⑤ Hierarchy and authority: stay within your scope
 
 - **Top-level agent (architect / lead)**: you lead the intent. Draft `gbc.md` changes through
-  `gbc doc` (or the `gbc-doc` skill) — never hand-edit — register guarantees through GBC tools, and
+  `gbc doc` (MCP doc tools / CLI) — never hand-edit — register guarantees through GBC tools, and
   do the final integration check after subtasks return.
 - **Subagent (task worker)**: a focused laborer. **Read-only** access to the GBC graph and intent
   docs: read gbc.md to understand the target's intent and internal constraints, and use

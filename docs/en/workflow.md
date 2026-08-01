@@ -34,8 +34,8 @@ top-level agent's default role.
 ## Two layers of contract
 
 - **Intent (gbc.md)** — the single source of truth for the architecture, the highest contract,
-  **held and approved by the human**; the agent drafts it. Change it through `gbc doc` (or the
-  `gbc-doc` skill), never by hand.
+  **held and approved by the human**; the agent drafts it. Change it through `gbc doc` (MCP doc
+  tools / CLI), never by hand.
 - **Guarantee** — a **named behavioral promise** a module currently provides and others depend on.
   It may evolve, but the moment you intend to break one, tell every dependent so they fix in step.
 

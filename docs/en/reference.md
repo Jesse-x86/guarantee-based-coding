@@ -6,7 +6,7 @@ Command / tool cheat sheet, executor config, cross-platform wiring. For getting 
 [quick-start.md](./quick-start.md); for the workflow see [workflow.md](./workflow.md).
 
 Every GBC ability has three equivalent forms: **CLI** (`gbc ...`), **MCP tool** (agent-called), and
-the bundled **gbc-doc / gbc-cli skills**. The tables below lead with the CLI and note the matching
+the **gbc-cli skill**. The tables below lead with the CLI and note the matching
 MCP tool name.
 
 If `gbc` is not on PATH, any `gbc` can be replaced with `python -m gbc.entry`.

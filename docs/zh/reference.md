@@ -6,7 +6,7 @@
 工作流见 [workflow.md](./workflow.md)。
 
 GBC 的每项能力都有三种等价形态：**CLI**（`gbc ...`）、**MCP 工具**（agent 调用）、以及
-**gbc-doc / gbc-cli skill**（随包分发）。下表以 CLI 为主，标注对应的 MCP 工具名。
+**gbc-cli skill**。下表以 CLI 为主，标注对应的 MCP 工具名。
 
 若 `gbc` 不在 PATH 上，任何 `gbc` 都可换成 `python -m gbc.entry`。
 

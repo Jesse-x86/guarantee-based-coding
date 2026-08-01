@@ -81,7 +81,7 @@ GBC 指向工作项目，测试 executor 跟着该项目的环境和语言走—
 
 ## ⑤ 分层与权限：守在自己的范围内
 
-- **顶层 agent（架构 / 主导）**：你主导意图。经 `gbc doc`（或 `gbc-doc` skill）起草 gbc.md
+- **顶层 agent（架构 / 主导）**：你主导意图。经 `gbc doc`（MCP doc 工具 / CLI）起草 gbc.md
   改动（绝不手编），经 GBC 工具登记保证，子任务交回后做最终集成验证。
 - **Subagent（任务执行）**：聚焦的执行者。应对 GBC 图和意图文档**只读**：读 gbc.md 懂目标的
   意图和内部约束，用 `verify_provider` / `verify_guarantee` 自证。
