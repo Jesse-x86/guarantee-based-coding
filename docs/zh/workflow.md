@@ -98,8 +98,8 @@
 
 ## 用 `[[项目相对路径]]` 引用代码
 
-gbc.md 散文指向代码文件或符号时，写成 `[[app/core/models/game.py]]` 或
-`[[app/core/models/game.py:GameSpec]]`——从仓库根出发、包在 `[[ ]]` 里的路径。**别用 `../`
+gbc.md 散文指向代码文件或符号时，写成 `[[gbc/app/core/models/game.py]]` 或
+`[[gbc/app/core/models/game.py:GameSpec]]`——从仓库根出发、包在 `[[ ]]` 里的路径。**别用 `../`
 相对路径**：相对引用在任一侧移动时失效，且从不同引用者看读起来不一样；而 `[[ ]]` 引用对每个
 目标是一个规范字符串，目标移动时 `refactor_file` / `refactor_func` 会自动重写它。（数据目录、
 HTTP 路由、ADR 链接不需要 `[[ ]]`。）

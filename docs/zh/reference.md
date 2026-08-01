@@ -166,4 +166,4 @@ gbc executor upsert <name> --file <path.json>
 - 一个 MCP server 实例 = 一个项目根。多项目配多个条目（不同项目根参数）。
 - MCP 现在暴露**两个子系统**：保证引擎 + 意图文档（doc 工具）。写意图的人类确认闸门由你的
   框架承担，不靠藏通道。
-- 路径参数一律用**项目根相对**的 posix 路径（`app/core/maker.py`），不是绝对路径。
+- 路径参数一律用**项目根相对**的 posix 路径（`gbc/app/core/maker.py`），不是绝对路径。

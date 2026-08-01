@@ -81,7 +81,8 @@ Register it as an MCP server. For Claude Code, drop a `.mcp.json` in the project
 }
 ```
 
-- One server instance is pinned to one project root (passed as the argument, not an env var). For
+- One server instance is pinned to one project root (passed as the argument; when omitted it
+  falls back to `GBC_PROJECT_ROOT`, then the current working directory). For
   multiple projects, register multiple entries.
 - If `gbc` is not on the launcher's PATH, use the interpreter form:
   `python -m gbc.entry mcp up <project-root>`.

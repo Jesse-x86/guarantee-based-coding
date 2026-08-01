@@ -119,8 +119,8 @@ its intent / `# 文件` entry first**, don't backfill after the code.
 
 ## Reference code with `[[project-relative-path]]`
 
-When gbc.md prose points at a code file or symbol, write `[[app/core/models/game.py]]` or
-`[[app/core/models/game.py:GameSpec]]` — a path from the repo root, wrapped in `[[ ]]`. **Don't use
+When gbc.md prose points at a code file or symbol, write `[[gbc/app/core/models/game.py]]` or
+`[[gbc/app/core/models/game.py:GameSpec]]` — a path from the repo root, wrapped in `[[ ]]`. **Don't use
 `../` relative paths**: they break when either side moves and read differently from each referrer,
 whereas a `[[ ]]` ref is one canonical string per target that `refactor_file` / `refactor_func`
 rewrite automatically when the target moves. (Data dirs, HTTP routes, and ADR links don't need

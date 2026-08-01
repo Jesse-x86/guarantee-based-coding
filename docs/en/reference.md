@@ -174,5 +174,5 @@ the start contract:
 - MCP now exposes **both subsystems**: the guarantee engine + intent documents (doc tools). The
   human-confirmation gate for writing intent is carried by your framework, not by hiding the
   channel.
-- Path arguments are always **project-root-relative** posix paths (`app/core/maker.py`), not
+- Path arguments are always **project-root-relative** posix paths (`gbc/app/core/maker.py`), not
   absolute.

@@ -77,7 +77,7 @@ gbc mcp up <你项目根的绝对路径>
 }
 ```
 
-- 一个 server 实例锁定一个项目根（作为参数传入，不靠环境变量）。多项目就配多个条目。
+- 一个 server 实例锁定一个项目根（作为参数传入；省略时依次使用 `GBC_PROJECT_ROOT`、当前工作目录）。多项目就配多个条目。
 - 若启动器的 PATH 上没有 `gbc`，改用解释器形式：`python -m gbc.entry mcp up <项目根>`。
 - 注册后重连 / 重启 agent，工具就会出现（Claude Code 里形如 `mcp__gbc__*`）。
 
