@@ -2,6 +2,31 @@
 
 > 中文 / English
 
+## 0.2.1 (2026-07-31)
+
+### 新增 / Added
+
+- `GBC_PROJECT_ROOT` 环境变量：确定性指定项目根（优先级高于 cwd，不向上搜索）。
+  Deterministic project-root override (`GBC_PROJECT_ROOT` > cwd, no upward search).
+- `gbc lang zh|en|auto`：查看 / 设置持久语言偏好（存于 `~/.config/gbc/lang`）。
+  Persistent language preference via `gbc lang` (stored in `~/.config/gbc/lang`).
+- 叶子命令支持 `--project/-C` 后置项目覆盖。
+  Trailing `--project/-C` project override on leaf commands.
+
+### 修复 / Fixed
+
+- 依赖图孤儿反向边安全清理（consumer 元数据缺失时仅凭显式 guarantee id）。
+  Safe orphaned reverse-edge cleanup (provider-only removal by explicit guarantee id).
+- 无 `.gbc` 图时一致性检查直接报错，杜绝空图假绿。
+  Consistency checks reject a missing graph instead of reporting false green.
+- `python -m gbc` 失败退出码正确传播。
+  Module-entry failure exit codes are now propagated.
+
+### 文档 / Docs
+
+- quick-start 补充「界面语言」说明（zh/en）。
+  quick-start now covers the `gbc lang` language preference (zh/en).
+
 ## 0.2.0 (2026-07-30)
 
 ### 架构重构 / Architecture
