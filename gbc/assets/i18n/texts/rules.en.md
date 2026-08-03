@@ -1,12 +1,20 @@
 # GBC Recommended Guardrails (author's suggestions)
 
-> These are **recommended defaults, not an enforced sandbox.** GBC only provides
-> the rule text and guidance; the actual enforcement boundary must be established
-> by your agent framework (e.g. Claude Code's `pre-tool-use` hook).
-> **Installing GBC does NOT make you automatically safe.**
+> What follows is only **one recommended orchestration shaped by the author's personal
+> development philosophy**. It is neither GBC's only valid use nor permission for an agent
+> to make governance decisions on its owner's behalf. Agents should first fit the owner's
+> existing development philosophy and authority model; humans are equally welcome to design,
+> adapt, or explore other divisions of work and agent orchestration.
+>
+> At heart, GBC is only a tool for turning behavioral dependencies into repeatable automated
+> tests. It does not prescribe who must write code, maintain tests, or invoke tools. Treat it
+> as a foundation and develop the workflow that fits your project. The rules below are
+> recommended defaults, not an enforced sandbox; actual enforcement still belongs to your
+> agent framework (e.g. Claude Code's `pre-tool-use` hook).
+> **Installing GBC does NOT make you automatically safe, nor does it adopt the author's workflow.**
 
-Adopting the following rules in your agent instructions (or enforcing them via your
-framework) will markedly improve the GBC experience:
+If this philosophy fits your project, adopt the following rules in your agent instructions
+(or enforce them through your framework):
 
 1. **No agent hand-edits GBC-managed graph or intent files.** Change `gbc.md`
    only through GBC doc tools, and change dependency / guarantee JSON only through
