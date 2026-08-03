@@ -91,16 +91,20 @@ right now, would a test actually go red?"** If no, fix that first.
 
 ## ⑤ Hierarchy and authority: stay within your scope
 
-- **Top-level agent (architect / lead)**: you lead the intent. Draft `gbc.md` changes through
-  `gbc doc` (or the `gbc-doc` skill) — never hand-edit — register guarantees through GBC tools, and
-  do the final integration check after subtasks return.
-- **Subagent (task worker)**: a focused laborer. **Read-only** access to the GBC graph and intent
-  docs: read gbc.md to understand the target's intent and internal constraints, and use
-  `verify_provider` / `verify_guarantee` to prove your work.
-- **Guardrails**: if your framework supports hooks (e.g. Claude Code's `pre-tool-use`), recommend
-  your human **block all GBC-modifying tools for subagents**. Only the top-level agent should be
-  able to alter intent or the guarantee map. Enforcement comes from the framework, independent of
-  MCP vs CLI.
+- **Top-level agent (architect / lead)**: you lead the intent. Draft `gbc.md` changes through GBC
+  doc tools—never hand-edit—bound each subtask, review the local contracts it registers, and do
+  the final integration check after subtasks return.
+- **Subagent (task worker)**: a focused implementer. It reads `gbc.md` without changing intent,
+  maintains any interface artifact required by that language/project (a Python project may use
+  `.pyi`) with the code, and owns the local GBC contracts introduced by its implementation:
+  query/reuse guarantees, register actual dependencies, and when a needed
+  guarantee is missing, write a narrow test that can genuinely go red and create it. Then self-prove with `verify_provider` /
+  `verify_guarantee`. An unregistered behavioral dependency means the task is not done.
+- **Guardrails**: if your framework supports hooks (e.g. Claude Code's `pre-tool-use`), block every
+  agent from hand-editing GBC-managed files, and block subagents from changing intent or performing
+  unauthorized cross-scope operations such as retiring/disabling guarantees or refactoring other
+  files. **Do not blanket-block dependency registration, guarantee creation, or verification for
+  subagents.** Enforcement comes from the framework, independent of MCP vs CLI.
 
 ---
 
