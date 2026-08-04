@@ -81,13 +81,15 @@ GBC 指向工作项目，测试 executor 跟着该项目的环境和语言走—
 
 ## ⑤ 分层与权限：守在自己的范围内
 
-- **顶层 agent（架构 / 主导）**：你主导意图。经 `gbc doc`（或 `gbc-doc` skill）起草 gbc.md
-  改动（绝不手编），经 GBC 工具登记保证，子任务交回后做最终集成验证。
-- **Subagent（任务执行）**：聚焦的执行者。应对 GBC 图和意图文档**只读**：读 gbc.md 懂目标的
-  意图和内部约束，用 `verify_provider` / `verify_guarantee` 自证。
-- **护栏**：若框架支持 hook（如 Claude Code 的 `pre-tool-use`），建议人类**对 subagent 屏蔽
-  所有 GBC 修改类工具**。只有顶层 agent 能改意图或保证图。强制力来自框架，跟走 MCP 还是 CLI
-  无关。
+- **顶层 agent（架构 / 主导）**：你主导意图。经 `gbc doc`（MCP doc 工具 / CLI）起草 gbc.md
+  改动（绝不手编），限定子任务范围，复核子任务登记的局部契约，并在交回后做最终集成验证。
+- **Subagent（任务执行）**：聚焦的实现者。它只读 `gbc.md`，但应随代码维护该语言/项目要求的
+  接口产物（Python 项目可能是 `.pyi`）和自己引入的局部 GBC 契约：查询/复用已有保证、登记实际依赖；
+  缺保证时写能真正变红的窄测试并
+  创建保证，最后用 `verify_provider` / `verify_guarantee` 自证。未登记的行为依赖 = 任务未完成。
+- **护栏**：若框架支持 hook（如 Claude Code 的 `pre-tool-use`），应阻止所有 agent 手编 GBC
+  管理文件，并阻止 subagent 修改意图或擅自做退休/停用保证、跨文件重构等越界操作；**不要一刀切
+  屏蔽 subagent 的依赖登记、保证创建与验证**。强制力来自框架，跟走 MCP 还是 CLI 无关。
 
 ---
 

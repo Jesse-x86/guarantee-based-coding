@@ -23,6 +23,16 @@ pipx install guarantee-based-coding
 gbc --help
 ```
 
+GBC 的界面输出支持简体中文与英文，用 `gbc lang` 随时切换：
+
+```bash
+gbc lang        # 查看当前生效语言
+gbc lang zh     # 固定为简体中文
+gbc lang auto   # 恢复自动选择（跟随系统 locale）
+```
+
+不设置时自动跟随系统 locale，缺省回退英文。
+
 > 推荐 `pipx`（[安装说明](https://pipx.pypa.io/stable/installation/)）：GBC 是一个独立命令行工具（类似 `black` / `ruff`），你想的是“装一次到处用”，而不是
 > 让它的依赖污染你正在开发的项目的 Python 环境。你仍可以用 `pip install guarantee-based-coding`
 > （装进当前环境）或 `uvx guarantee-based-coding`（即用即弃）。GBC 的依赖很轻（typer / pydantic / mcp）。
@@ -67,7 +77,7 @@ gbc mcp up <你项目根的绝对路径>
 }
 ```
 
-- 一个 server 实例锁定一个项目根（作为参数传入，不靠环境变量）。多项目就配多个条目。
+- 一个 server 实例锁定一个项目根（作为参数传入；省略时依次使用 `GBC_PROJECT_ROOT`、当前工作目录）。多项目就配多个条目。
 - 若启动器的 PATH 上没有 `gbc`，改用解释器形式：`python -m gbc.entry mcp up <项目根>`。
 - 注册后重连 / 重启 agent，工具就会出现（Claude Code 里形如 `mcp__gbc__*`）。
 

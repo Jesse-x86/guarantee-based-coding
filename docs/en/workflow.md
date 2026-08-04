@@ -34,8 +34,8 @@ top-level agent's default role.
 ## Two layers of contract
 
 - **Intent (gbc.md)** — the single source of truth for the architecture, the highest contract,
-  **held and approved by the human**; the agent drafts it. Change it through `gbc doc` (or the
-  `gbc-doc` skill), never by hand.
+  **held and approved by the human**; the agent drafts it. Change it through `gbc doc` (MCP doc
+  tools / CLI), never by hand.
 - **Guarantee** — a **named behavioral promise** a module currently provides and others depend on.
   It may evolve, but the moment you intend to break one, tell every dependent so they fix in step.
 
@@ -119,8 +119,8 @@ its intent / `# 文件` entry first**, don't backfill after the code.
 
 ## Reference code with `[[project-relative-path]]`
 
-When gbc.md prose points at a code file or symbol, write `[[app/core/models/game.py]]` or
-`[[app/core/models/game.py:GameSpec]]` — a path from the repo root, wrapped in `[[ ]]`. **Don't use
+When gbc.md prose points at a code file or symbol, write `[[gbc/app/core/models/game.py]]` or
+`[[gbc/app/core/models/game.py:GameSpec]]` — a path from the repo root, wrapped in `[[ ]]`. **Don't use
 `../` relative paths**: they break when either side moves and read differently from each referrer,
 whereas a `[[ ]]` ref is one canonical string per target that `refactor_file` / `refactor_func`
 rewrite automatically when the target moves. (Data dirs, HTTP routes, and ADR links don't need
@@ -133,15 +133,22 @@ Guarantee ids follow a similar principle but are **path-free**: `<symbol>.<behav
 
 ## Agent authority constraints (a safety recommendation)
 
-To prevent architectural drift and to stop a subagent from "faking" guarantees to pass a task,
-constrain authority through framework config (e.g. Claude Code's `pre-tool-use` hook):
+Prevent architectural drift and "editing tests to green" without stopping the agent closest to an
+implementation from closing its contract loop. Configure framework enforcement (e.g. Claude Code's
+`pre-tool-use` hook) by **operation type**, not with a blanket "no GBC mutation" rule:
 
-- **Top-level agent**: full authority. Maintains intent through `gbc doc`, manages the guarantee
-  graph through GBC tools, does final acceptance.
-- **Subagent**: **GBC-modifying tools blocked** (guarantee / dependency CRUD, intent edits).
-  Configured to "read gbc.md only + self-verify via `verify_*`".
-- Enforcement comes from your framework and is independent of MCP vs CLI — the same hook blocks
-  both sides.
+- **Every agent**: never hand-edit `gbc.md` or graph JSON; use GBC tools. Language/project-specific
+  interface artifacts (a Python project may use `.pyi`) and guarantee tests are not mechanical graph
+  metadata and stay with the implementer.
+- **Top-level agent**: maintains human-held intent through GBC doc tools, bounds task scope, reviews
+  new dependencies/guarantees, coordinates cross-scope breakage, and does final acceptance.
+- **Subagent**: reads intent without editing it, maintains required interface artifacts with the code,
+  and owns the local contracts introduced by the implementation—register actual dependencies, reuse or create required guarantees, maintain
+  narrow tests that can genuinely go red, and run `verify_*`. By default it may not retire/disable
+  guarantees, change intent, or refactor outside its brief; escalate or obtain explicit authority.
+- Hooks block hand-edited metadata, intent changes, and unauthorized overreach; **do not block
+  dependency registration, guarantee creation, or verification for subagents.** Enforcement is
+  independent of MCP vs CLI.
 
 ---
 

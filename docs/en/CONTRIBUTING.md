@@ -39,9 +39,8 @@ cd /path/to/guarantee-based-coding
 pytest tests/
 ```
 
-> GBC's current project root defaults to the process's cwd — no environment variable needed.
-> This repo's own tests inject a temp directory directly via `set_current_project()`, so they
-> don't depend on cwd or any env var.
+> GBC resolves the project root from `GBC_PROJECT_ROOT`, falling back to the startup cwd; it
+> does not search upward. Tests explicitly inject temporary roots via `set_current_project()`.
 
 ## Workflow
 

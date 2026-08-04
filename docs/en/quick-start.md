@@ -24,6 +24,16 @@ The `gbc` command is now on your PATH:
 gbc --help
 ```
 
+GBC's interface output supports Simplified Chinese and English; switch anytime with `gbc lang`:
+
+```bash
+gbc lang        # show the current effective language
+gbc lang zh     # force Simplified Chinese
+gbc lang auto   # restore automatic selection (follows the system locale)
+```
+
+Without an explicit preference, GBC follows the system locale and falls back to English.
+
 > **`pipx` is recommended** ([installation guide](https://pipx.pypa.io/stable/installation/)): GBC is a standalone CLI tool (like `black` / `ruff`) — you want it
 > installed once and usable everywhere, not polluting the Python environment of whatever project
 > you're working on. You can still use `pip install guarantee-based-coding` (into your current
@@ -71,7 +81,8 @@ Register it as an MCP server. For Claude Code, drop a `.mcp.json` in the project
 }
 ```
 
-- One server instance is pinned to one project root (passed as the argument, not an env var). For
+- One server instance is pinned to one project root (passed as the argument; when omitted it
+  falls back to `GBC_PROJECT_ROOT`, then the current working directory). For
   multiple projects, register multiple entries.
 - If `gbc` is not on the launcher's PATH, use the interpreter form:
   `python -m gbc.entry mcp up <project-root>`.

@@ -1,12 +1,14 @@
 {
     "provides": {
         "config.project.current_project_runtime_state": {
-            "desc": "当前目标项目根的运行时状态管理：get_current_project() 默认返回进程启动时的 cwd（无环境变量、不回退包安装位置，CLI 单次命令「当前项目 = 跑命令时所在目录」）；set_current_project(str) 显式覆盖（常驻服务如 mcp up / editor up 靠这个接收显式参数）；一切 .gbc 路径都相对它——这是 GBC 工具仓无状态、可 pip 安装的前提。",
+            "desc": "当前目标项目根在进程初始化时按 GBC_PROJECT_ROOT > cwd 固定，不向上猜；路径 expanduser+resolve，空环境回退 cwd；set_current_project(str|PathLike) 显式规范化覆盖且空值拒绝。",
             "test": "tests/test_config_project.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
             "heavy": 0,
-            "dependents": [],
+            "dependents": [
+                "gbc/app/interface/cli.py"
+            ],
             "disabled": false
         }
     },

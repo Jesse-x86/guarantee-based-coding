@@ -36,8 +36,8 @@ cd /path/to/guarantee-based-coding
 pytest tests/
 ```
 
-> GBC 的当前项目根默认是进程启动时的 cwd，无需环境变量。本仓测试都用 `set_current_project()` 直接
-> 注入临时目录，不依赖 cwd 或环境变量。
+> GBC 默认项目根优先级为 `GBC_PROJECT_ROOT` > 进程启动时的 cwd，不会向上搜索。本仓测试通过
+> `set_current_project()` 显式注入临时项目根。
 
 ## 工作流
 

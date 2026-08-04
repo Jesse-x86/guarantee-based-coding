@@ -16,7 +16,7 @@ Everything here is a plain shell command. If `gbc` is not on PATH, substitute
 > **Which project am I acting on?** Commands act on the current GBC target project, which
 > defaults to the directory you run `gbc` from (its cwd) — no environment variable needed. Just
 > `cd` into the project root before running commands. All paths you pass to commands are
-> **project-relative** (e.g. `app/core/config.py`).
+> **project-relative** (e.g. `gbc/app/core/config.py`).
 
 ---
 

@@ -3,6 +3,8 @@
 测试 target: who_depends_on / check_consistency / render_tree。
 """
 
+import pytest
+
 
 def test_who_depends_on_by_guarantee_id(fake_project, passing_test_file):
     """who_depends_on 用 guarantee_id 精确查询：返回 dependents 里含 consumer。"""
@@ -38,6 +40,27 @@ def test_who_depends_on_global_scan_symbol_filter(fake_project, passing_test_fil
     consumers = [d["consumer"] for d in result["dependents"]]
     assert "c1.py" in consumers
     assert "c2.py" not in consumers
+
+
+def test_check_consistency_requires_gbc_directory(fake_project):
+    """缺少 .gbc 时必须报错；显式初始化的空 .gbc 才是空图。"""
+    from gbc.app.config.project import set_current_project
+    from gbc.app.interface.base import check_consistency
+    from gbc.app.models.errors import MetaNotFoundError
+
+    project_root = fake_project / "uninitialized"
+    project_root.mkdir()
+    set_current_project(project_root)
+    gbc_root = project_root / ".gbc"
+
+    with pytest.raises(MetaNotFoundError) as exc_info:
+        check_consistency()
+
+    assert exc_info.value.original_file == project_root
+    assert exc_info.value.target_file == gbc_root
+
+    gbc_root.mkdir()
+    assert check_consistency() == []
 
 
 def test_check_consistency_clean_graph(fake_project, passing_test_file):

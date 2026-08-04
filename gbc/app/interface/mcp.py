@@ -62,6 +62,11 @@ def create_guarantee(
     """Create a new named guarantee on a provider file. Born-green: the test is run
     immediately and creation is rejected if it fails.
 
+    A guarantee is a NAMED BEHAVIORAL PROMISE guarded by a narrow test — NOT full test
+    coverage. Register only behaviors you actually care about and that are depended on;
+    prefer reusing an existing guarantee over creating a new one. desc should state the
+    promised behavior; test must be able to genuinely go red.
+
     Id convention: `<symbol>.<behavior>` (e.g. "make_game.returns_html", "store.roundtrip").
     Do NOT encode the provider path in the id — the path is already carried by the
     provider arg here and by the consumer's symbol field. Ids need only be unique
@@ -175,6 +180,10 @@ def retire_guarantee(provider: str, id: str) -> str:
 @mcp.tool()
 def add_dependency(provider: str, consumer: str, symbol: str, guarantee_id: str | None = None) -> str:
     """Register that `consumer` depends on a `symbol` of `provider`.
+
+    A free symbol dependency covers only the symbol's existence/signature, not its
+    behavior — upgrade to a named guarantee only when you rely on concrete behavior
+    (lazy upgrade). Prefer free dependencies by default.
 
     - guarantee_id omitted: a FREE symbol-level dependency (depends on the symbol
       existing / its signature, not on any specific behavior; no test, no reverse edge).
@@ -402,6 +411,9 @@ def verify_provider(provider: str, auto_run_max_heavy: int = 0, timeout: int = -
     """Verify all guarantees a provider offers. Guarantees with heavy > auto_run_max_heavy
     are skipped and reported (not failed). Gate is green iff `failed` is empty.
 
+    Verification runs each guarantee's narrow test(s) — the point is guarding
+    behavioral promises, not full-suite coverage.
+
     Args:
         provider: Source file path
         auto_run_max_heavy: Run only guarantees with heavy <= this (default 0); higher ones are skipped
@@ -421,6 +433,8 @@ def verify_provider(provider: str, auto_run_max_heavy: int = 0, timeout: int = -
 @mcp.tool()
 def verify_guarantee(provider: str, id: str, timeout: int = -1) -> str:
     """Verify a single guarantee by id — always runs, ignoring the heavy threshold.
+
+    Runs the guarantee's own narrow test — guarding a promise, not full-suite coverage.
 
     Args:
         provider: Source file path

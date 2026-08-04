@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 .pi/
+dist/
 
 **/__pycache__/
 

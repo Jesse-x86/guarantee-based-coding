@@ -63,6 +63,55 @@ How to write intent docs (the three sections: intent / internal constraints / fi
 
 ---
 
+## The intent document system (gbc.md)
+
+The behavior layer guards "behavior doesn't break"; the intent layer guards "direction doesn't
+drift" — both are pre-change defenses, but of different natures: guarantees are mechanically
+verifiable (born-green / verify), while intent relies on **human sign-off + tool consistency**.
+
+### What it is
+
+Each folder's intent lives in `.gbc/<path>/gbc.md`, made of three sections that are really
+**visibility scopes**:
+
+| Section | Answers | Who needs to know |
+|---|---|---|
+| **Intent** | What this is and why it exists | Outside (public contract) |
+| **Internal constraints** | What it must / must never do | Internal coordination (package-private) |
+| **Files** | Subfolders + file list, one role line each | Only the file itself (private) |
+
+When unsure whether something is "intent vs constraint", ask per sentence: "who needs to know
+this?". It only records the **current state** (what it is now, what it must do now), not diffs
+against the past — phase words, roadmaps, and migration narratives are drift bait.
+
+### How it is maintained
+
+- **Hierarchy**: a subfolder's intent auto-projects into its parent's entry; parent/child
+  consistency is a **deterministic constraint** maintained by the `gbc doc` tools (`doc check`
+  reports DRIFT / ORPHAN, `doc sync` repairs).
+- **The only compliant entry**: `gbc doc` (CLI / MCP doc tools). Never hand-edit — hand-editing
+  drifts the deterministic constraint, downgrading "verifiable truth" to "best-effort habit".
+- **Spec-first**: draft the intent, get human sign-off, commit it, then implement against the
+  written gbc.md.
+
+### How it relates to the guarantee layer
+
+The intent layer answers "why, and what are the boundary obligations" — **not mechanically
+verifiable**; it relies on human sign-off + doc check. The guarantee layer answers "does the
+behavior still hold" — **mechanically verifiable**. The former prevents directional drift, the
+latter prevents behavioral breakage; they complement each other.
+
+### How to treat it
+
+It is a **snapshot of the current state, not a sacred text**: born to prevent drift, not to
+freeze the architecture. Found it wrong, or it starts blocking reasonable evolution? Draft the
+delta → human sign-off → commit through the tools — legitimate evolution, not a violation.
+Piling responsibilities into one file instead of changing the intent (a god file) is exactly the
+drift-guard mechanism turned upside down. For an agent: **read it (map before acting), obey it
+(stay in scope), propose changes to it (through the official channel) — but don't own it.**
+
+---
+
 ## Core terms
 
 - **Provider**: the source file that offers a guarantee (e.g. `src/llm_client/client.py`).

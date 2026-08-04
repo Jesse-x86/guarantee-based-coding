@@ -1,7 +1,7 @@
 {
     "provides": {
         "entry.command_tree_composed": {
-            "desc": "唯一入口把两子系统表面组合成命令树：保证命令(interface.cli) + doc(intent.cli) + mcp up(interface.mcp 启动器) + editor up(intent.editor) + rules/init；rules 双语并声明非强制沙箱；init 透明建 .gbc；面向用户文本走 i18n。",
+            "desc": "唯一入口组合保证/意图/MCP/editor/rules/setup 与 gbc lang；用户持久语言偏好跨进程生效，auto 清除；根 --lang 不被空局部参数覆盖；console_scripts 与 python -m 均经 i18n 且正确传播非零退出码。",
             "test": "tests/test_cli_commands.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
@@ -10,5 +10,12 @@
             "disabled": false
         }
     },
-    "depends_on": []
+    "depends_on": [
+        {
+            "symbol": "gbc/app/i18n/lang.py:set_language_preference",
+            "guarantees": [
+                "i18n.lang.resolve_priority"
+            ]
+        }
+    ]
 }
