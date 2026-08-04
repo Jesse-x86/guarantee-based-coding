@@ -226,15 +226,15 @@ def handle_error(e: Exception) -> typer.Exit:
 
 @guarantee_app.command("create")
 def guarantee_create(
-    provider: str = typer.Argument(..., help="提供保证的源文件"),
-    id: str = typer.Argument(..., help="具名保证 id，如 config.llm.get_model.returns_loaded"),
-    test: str = typer.Argument(..., help="测试选择器（交给 executor 的 {file}）"),
-    executor: str = typer.Argument(..., help="执行器配置名"),
-    desc: str = typer.Argument(..., help="保证描述"),
-    heavy: int = typer.Option(0, "--heavy", "-H", help="成本秩；>=1 批量跳过"),
-    timeout: int = typer.Option(-1, "--timeout", "-t", help="超时覆写，-1 用默认"),
-    disabled: bool = typer.Option(False, "--disabled", help="建成停用占位(跳过门禁)——仅用于打破循环依赖，事后须 enable"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.provider_offering"),
+    id: str = typer.Argument(..., help="cli.guarantee.create.arg.id"),
+    test: str = typer.Argument(..., help="cli.guarantee.create.arg.test"),
+    executor: str = typer.Argument(..., help="cli.guarantee.create.arg.executor"),
+    desc: str = typer.Argument(..., help="cli.guarantee.create.arg.desc"),
+    heavy: int = typer.Option(0, "--heavy", "-H", help="cli.guarantee.create.opt.heavy"),
+    timeout: int = typer.Option(-1, "--timeout", "-t", help="cli.option.timeout"),
+    disabled: bool = typer.Option(False, "--disabled", help="cli.guarantee.create.opt.disabled"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """新建一条保证。出生即绿：当场跑测试，不过则拒绝。--disabled 则跳过门禁建占位。"""
     try:
@@ -250,14 +250,14 @@ def guarantee_create(
 
 @guarantee_app.command("update")
 def guarantee_update(
-    provider: str = typer.Argument(..., help="源文件"),
-    id: str = typer.Argument(..., help="保证 id"),
-    desc: Optional[str] = typer.Option(None, "--desc", help="新描述"),
-    test: Optional[str] = typer.Option(None, "--test", help="新测试选择器"),
-    executor: Optional[str] = typer.Option(None, "--executor", help="新执行器"),
-    heavy: Optional[int] = typer.Option(None, "--heavy", "-H", help="新成本秩"),
-    timeout: Optional[int] = typer.Option(None, "--timeout", "-t", help="新超时覆写"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    id: str = typer.Argument(..., help="cli.arg.guarantee_id"),
+    desc: Optional[str] = typer.Option(None, "--desc", help="cli.guarantee.update.opt.desc"),
+    test: Optional[str] = typer.Option(None, "--test", help="cli.guarantee.update.opt.test"),
+    executor: Optional[str] = typer.Option(None, "--executor", help="cli.guarantee.update.opt.executor"),
+    heavy: Optional[int] = typer.Option(None, "--heavy", "-H", help="cli.guarantee.update.opt.heavy"),
+    timeout: Optional[int] = typer.Option(None, "--timeout", "-t", help="cli.guarantee.update.opt.timeout"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """更新保证字段。改了测试/执行方式会重新跑门禁。"""
     try:
@@ -273,9 +273,9 @@ def guarantee_update(
 
 @guarantee_app.command("retire")
 def guarantee_retire(
-    provider: str = typer.Argument(..., help="源文件"),
-    id: str = typer.Argument(..., help="要退休的保证 id"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    id: str = typer.Argument(..., help="cli.guarantee.retire.arg.id"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """退休一条保证。仍有 dependents 则拒绝（退休保护）。"""
     try:
@@ -288,9 +288,9 @@ def guarantee_retire(
 
 @guarantee_app.command("disable")
 def guarantee_disable(
-    provider: str = typer.Argument(..., help="源文件"),
-    id: str = typer.Argument(..., help="要停用的保证 id"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    id: str = typer.Argument(..., help="cli.guarantee.disable.arg.id"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """停用一条保证：保留 id 与全部边，暂缓门禁/批量 verify。停用 ≠ 退休，不删任何东西。"""
     try:
@@ -303,9 +303,9 @@ def guarantee_disable(
 
 @guarantee_app.command("enable")
 def guarantee_enable(
-    provider: str = typer.Argument(..., help="源文件"),
-    id: str = typer.Argument(..., help="要恢复的保证 id"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    id: str = typer.Argument(..., help="cli.guarantee.enable.arg.id"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """恢复一条停用保证：当场补跑门禁(born-green)，过了才转正；不过则保持停用。"""
     try:
@@ -318,8 +318,8 @@ def guarantee_enable(
 
 @guarantee_app.command("list")
 def guarantee_list(
-    provider: str = typer.Argument(..., help="源文件"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """列出 provider 提供的所有保证及其 dependents。"""
     try:
@@ -346,11 +346,11 @@ def guarantee_list(
 
 @dep_app.command("add")
 def dep_add(
-    consumer: str = typer.Argument(..., help="依赖方文件"),
-    provider: str = typer.Argument(..., help="被依赖的源文件"),
-    symbol: str = typer.Argument(..., help="provider 上的符号名"),
-    guarantee: Optional[str] = typer.Option(None, "--guarantee", "-g", help="挂的保证 id；不给=免费 symbol 依赖"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    consumer: str = typer.Argument(..., help="cli.dep.arg.consumer"),
+    provider: str = typer.Argument(..., help="cli.dep.arg.provider"),
+    symbol: str = typer.Argument(..., help="cli.dep.arg.symbol"),
+    guarantee: Optional[str] = typer.Option(None, "--guarantee", "-g", help="cli.dep.add.opt.guarantee"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """登记 consumer 对 provider 的依赖（行为级会双向写）。"""
     try:
@@ -363,11 +363,11 @@ def dep_add(
 
 @dep_app.command("remove")
 def dep_remove(
-    consumer: str = typer.Argument(..., help="依赖方文件"),
-    provider: str = typer.Argument(..., help="被依赖的源文件"),
-    symbol: str = typer.Argument(..., help="provider 上的符号名"),
-    guarantee: Optional[str] = typer.Option(None, "--guarantee", "-g", help="只摘这个保证；不给=撤整条 symbol 边"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    consumer: str = typer.Argument(..., help="cli.dep.arg.consumer"),
+    provider: str = typer.Argument(..., help="cli.dep.arg.provider"),
+    symbol: str = typer.Argument(..., help="cli.dep.arg.symbol"),
+    guarantee: Optional[str] = typer.Option(None, "--guarantee", "-g", help="cli.dep.remove.opt.guarantee"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """撤销依赖边（维护双向一致）。"""
     try:
@@ -380,8 +380,8 @@ def dep_remove(
 
 @dep_app.command("of")
 def dep_of(
-    consumer: str = typer.Argument(..., help="依赖方文件"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    consumer: str = typer.Argument(..., help="cli.dep.arg.consumer"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """列出某文件声明的全部依赖边。"""
     try:
@@ -402,10 +402,10 @@ def dep_of(
 
 @dep_app.command("who")
 def dep_who(
-    provider: str = typer.Argument(..., help="被依赖的源文件"),
-    symbol: Optional[str] = typer.Option(None, "--symbol", "-s", help="收窄到某个符号"),
-    guarantee: Optional[str] = typer.Option(None, "--guarantee", "-g", help="某保证 id（走 O(1) 反向边）"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.dep.arg.provider"),
+    symbol: Optional[str] = typer.Option(None, "--symbol", "-s", help="cli.dep.who.opt.symbol"),
+    guarantee: Optional[str] = typer.Option(None, "--guarantee", "-g", help="cli.dep.who.opt.guarantee"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """反查谁依赖 provider（取代手工 grep）。"""
     try:
@@ -420,10 +420,10 @@ def dep_who(
 
 @verify_app.command("provider")
 def verify_provider(
-    provider: str = typer.Argument(..., help="源文件"),
-    max_heavy: int = typer.Option(0, "--max-heavy", "-H", help="批量只跑 heavy <= 该值"),
-    timeout: int = typer.Option(-1, "--timeout", "-t", help="超时覆写"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    max_heavy: int = typer.Option(0, "--max-heavy", "-H", help="cli.verify.provider.opt.max_heavy"),
+    timeout: int = typer.Option(-1, "--timeout", "-t", help="cli.option.timeout"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """验证 provider 的所有保证，按 heavy 阈值跳过并三桶汇总。"""
     try:
@@ -447,11 +447,11 @@ def verify_provider(
 
 @verify_app.command("single")
 def verify_single(
-    provider: str = typer.Argument(..., help="源文件"),
-    id: str = typer.Argument(..., help="保证 id"),
-    timeout: int = typer.Option(-1, "--timeout", "-t", help="超时覆写"),
-    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示完整 stdout/stderr"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    id: str = typer.Argument(..., help="cli.arg.guarantee_id"),
+    timeout: int = typer.Option(-1, "--timeout", "-t", help="cli.option.timeout"),
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="cli.verify.single.opt.verbose"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """点名验证单条保证——无视 heavy，永远跑。"""
     try:
@@ -477,10 +477,10 @@ app.add_typer(refactor_app, name="refactor")
 
 @refactor_app.command("file")
 def refactor_file_cmd(
-    old: str = typer.Argument(..., help="当前路径（文件或目录）"),
-    new: str = typer.Argument(..., help="目标路径"),
-    no_disable: bool = typer.Option(False, "--no-disable", help="不自动停用被移动方的保证(默认会停用)"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    old: str = typer.Argument(..., help="cli.refactor.file.arg.old"),
+    new: str = typer.Argument(..., help="cli.refactor.file.arg.new"),
+    no_disable: bool = typer.Option(False, "--no-disable", help="cli.refactor.file.opt.no_disable"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """移动文件/目录 + 它的 .gbc 产物，全图重写路径引用，并自动停用被移动方的保证。
 
@@ -505,10 +505,10 @@ def refactor_file_cmd(
 
 @refactor_app.command("rename-id")
 def refactor_rename_id_cmd(
-    provider: str = typer.Argument(..., help="提供保证的源文件"),
-    old_id: str = typer.Argument(..., help="当前保证 id"),
-    new_id: str = typer.Argument(..., help="新保证 id"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.provider_offering"),
+    old_id: str = typer.Argument(..., help="cli.refactor.rename_id.arg.old_id"),
+    new_id: str = typer.Argument(..., help="cli.refactor.rename_id.arg.new_id"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """保证 id 改名(双向同步消费者)。用于把带路径前缀的旧 id 归一成 <symbol>.<behavior>。"""
     try:
@@ -521,11 +521,11 @@ def refactor_rename_id_cmd(
 
 @refactor_app.command("func")
 def refactor_func_cmd(
-    provider: str = typer.Argument(..., help="源文件"),
-    old_symbol: str = typer.Argument(..., help="当前符号名"),
-    new_symbol: str = typer.Argument(..., help="新符号名"),
-    no_disable: bool = typer.Option(False, "--no-disable", help="不自动停用受影响保证"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    provider: str = typer.Argument(..., help="cli.arg.source_file"),
+    old_symbol: str = typer.Argument(..., help="cli.refactor.func.arg.old_symbol"),
+    new_symbol: str = typer.Argument(..., help="cli.refactor.func.arg.new_symbol"),
+    no_disable: bool = typer.Option(False, "--no-disable", help="cli.refactor.func.opt.no_disable"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """符号改名:改消费者 symbol 字段 + 该符号名下的保证 id，自动停用。源码 def/调用处由 AI 改。"""
     try:
@@ -544,7 +544,7 @@ def refactor_func_cmd(
 def tree_cmd(
     detail: bool = typer.Option(False, "--detail", "-d", help="cli.tree.option.detail"),
     gaps: bool = typer.Option(False, "--gaps", "-g", help="cli.tree.option.gaps"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """把整棵 .gbc 渲染成一份 AI 可读的依赖树（gbc.md 意图为骨 + json 依赖边）。"""
     try:
@@ -559,7 +559,7 @@ def tree_cmd(
 
 @doctor_app.command("check")
 def doctor_check(
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """全局一致性体检：悬空引用 + 双向边漂移 + 停用保证(响亮报出)。"""
     try:
@@ -585,10 +585,10 @@ def doctor_check(
 
 @executor_app.command("upsert")
 def executor_upsert(
-    config_name: str = typer.Argument(..., help="执行器配置名称"),
-    config_json: Optional[str] = typer.Option(None, "--json", "-j", help="JSON 字符串"),
-    config_file: Optional[Path] = typer.Option(None, "--file", "-f", help="JSON 文件路径"),
-    project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
+    config_name: str = typer.Argument(..., help="cli.executor.upsert.arg.config_name"),
+    config_json: Optional[str] = typer.Option(None, "--json", "-j", help="cli.executor.upsert.opt.json"),
+    config_file: Optional[Path] = typer.Option(None, "--file", "-f", help="cli.executor.upsert.opt.file"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
     """更新或插入一个执行器配置。通过 --json 或 --file 提供配置数据。"""
     data = _parse_executor_input(config_json, config_file)
