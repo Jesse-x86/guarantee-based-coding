@@ -65,6 +65,19 @@ Once wired, have your agent run a read-only call — e.g. the `tree` tool over M
 `gbc tree` on the CLI. If it returns your project's dependency tree (or an empty one
 for a fresh project), GBC is reachable.
 
+## Three things to remember before you start
+
+- **`gbc.md` is a snapshot of the current state, not a sacred text.** It guards against
+  architectural drift, not evolution — to change it, draft → human sign-off → commit via
+  gbc doc; that's legitimate evolution, not a violation. Don't pile responsibilities into
+  an existing file just because you can't hand-edit it — a god file is the drift-guard
+  mechanism turned upside down.
+- **A guarantee is NOT full test coverage.** Each guarantee is a named behavioral promise
+  guarded by a narrow test; register only behaviors you care about and that are depended
+  on, reuse what exists first; a guarantee nobody cares about is a liability.
+- **Communicate with the human often.** Report after each step, ask when unsure, and don't
+  hold everything back until it feels "perfect".
+
 ## One thing GBC does NOT do for you
 
 GBC gives abilities, not restraint. The safety rules (who may edit `.gbc/`, when

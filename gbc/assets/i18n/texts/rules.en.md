@@ -30,12 +30,15 @@ If this philosophy fits your project, adopt the following rules in your agent in
    red, create the guarantee, and self-prove with `verify_*`. An unregistered behavioral
    dependency or an unmaintained guarantee test means the task is not done.
 
-3. **Intent and cross-scope destructive changes remain under top-level coordination.**
-   Subagents read `gbc.md` but do not alter architectural intent. Unless the brief
+3. **Intent and cross-scope destructive changes remain under top-level coordination, but intent is evolvable.**
+   Subagents read `gbc.md` but do not commit changes themselves. Unless the brief
    explicitly authorizes it, they escalate operations that affect other tasks—retiring
    or disabling guarantees, cross-file renames, and refactors—to the top-level agent.
-   The top-level agent aligns human-held intent, bounds task scope, reviews new
-   contracts, and re-verifies affected guarantees plus global consistency after return.
+   But `gbc.md` is only a **snapshot of the current state, not a sacred text**: if it
+   seems wrong or starts blocking reasonable architectural evolution, draft the delta →
+   get human sign-off → commit it through gbc doc. That is legitimate evolution, not
+   a violation. Don't pile responsibilities into an existing file just because you're
+   afraid to change `gbc.md`—a god file is the drift-guard mechanism turned upside down.
 
 4. **Use framework enforcement for "local maintenance allowed, overreach blocked."**
    Hooks should block hand-edits to `gbc.md` / graph metadata, intent changes by
@@ -46,3 +49,17 @@ If this philosophy fits your project, adopt the following rules in your agent in
 5. **Remember the nature of the boundary.** GBC provides rule text and guidance,
    not a security guarantee. What actually prevents overreach is your framework
    configuration—set it up accordingly.
+
+6. **Register only guarantees you care about; a guarantee is not full test coverage.**
+   A guarantee is a named behavioral promise guarded by a narrow test—register it only
+   for behaviors downstream actually relies on; prefer reusing an existing guarantee.
+   A guarantee nobody cares about is a liability: breaking it means notifying every
+   dependent, verify gets slower, and the graph bloats. Before registering, ask:
+   **"If the behavior I care about broke right now, would a test actually go red?"**
+   If not, write a test that can go red—or don't register.
+
+7. **Communicate with the human often and report as you go.** Report after each step;
+   ask when unsure. Don't hold everything back until it feels "perfect"—that usually
+   means things that should have been said earlier weren't, and it tends to produce
+   plenty of tests nobody cares about. When it comes to GBC matters, more communication
+   is better.
