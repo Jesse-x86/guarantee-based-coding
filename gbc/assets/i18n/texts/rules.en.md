@@ -1,30 +1,48 @@
 # GBC Recommended Guardrails (author's suggestions)
 
-> These are **recommended defaults, not an enforced sandbox.** GBC only provides
-> the rule text and guidance; the actual enforcement boundary must be established
-> by your agent framework (e.g. Claude Code's `pre-tool-use` hook).
-> **Installing GBC does NOT make you automatically safe.**
+> What follows is only **one recommended orchestration shaped by the author's personal
+> development philosophy**. It is neither GBC's only valid use nor permission for an agent
+> to make governance decisions on its owner's behalf. Agents should first fit the owner's
+> existing development philosophy and authority model; humans are equally welcome to design,
+> adapt, or explore other divisions of work and agent orchestration.
+>
+> At heart, GBC is only a tool for turning behavioral dependencies into repeatable automated
+> tests. It does not prescribe who must write code, maintain tests, or invoke tools. Treat it
+> as a foundation and develop the workflow that fits your project. The rules below are
+> recommended defaults, not an enforced sandbox; actual enforcement still belongs to your
+> agent framework (e.g. Claude Code's `pre-tool-use` hook).
+> **Installing GBC does NOT make you automatically safe, nor does it adopt the author's workflow.**
 
-Adopting the following rules in your agent instructions (or enforcing them via your
-framework) will markedly improve the GBC experience:
+If this philosophy fits your project, adopt the following rules in your agent instructions
+(or enforce them through your framework):
 
-1. **The top-level agent never edits files inside `.gbc/` directly.** Intent
-   documents are changed only through the gbc doc entry point (MCP doc tools / CLI); the guarantee graph
-   is touched only through GBC's tools (MCP / CLI). Never hand-edit anything under
-   `.gbc` — its parent/child consistency is a deterministic constraint that stays
-   correct only when maintained through the tools.
+1. **No agent hand-edits GBC-managed graph or intent files.** Change `gbc.md`
+   only through the gbc doc entry point (MCP doc tools / CLI), and change dependency / guarantee JSON only through
+   GBC's MCP or CLI tools. Parent-child projection, bidirectional edges, and
+   born-green checks are deterministic constraints; bypassing the tools makes them drift.
+   The implementer maintains any language/project-specific interface artifact and guarantee tests
+   with the code.
 
-2. **Subagents touch neither `.gbc/` files nor any mutating GBC tool / gbc doc.**
-   A subagent only implements and self-proves via `verify_*`; making commitments
-   (registering guarantees, changing intent) is reserved for the top-level agent.
+2. **Implementation subagents own the local contracts introduced by their work.**
+   They do more than write implementation: query existing guarantees, register the
+   dependencies they actually use, and prefer reusing an existing guarantee. When
+   required behavior has no guarantee, they write a narrow test that can genuinely go
+   red, create the guarantee, and self-prove with `verify_*`. An unregistered behavioral
+   dependency or an unmaintained guarantee test means the task is not done.
 
-3. **The top-level agent focuses on planning and aligning intent**, delegating
-   concrete coding to subagents (small changes may be done inline by the top agent).
+3. **Intent and cross-scope destructive changes remain under top-level coordination.**
+   Subagents read `gbc.md` but do not alter architectural intent. Unless the brief
+   explicitly authorizes it, they escalate operations that affect other tasks—retiring
+   or disabling guarantees, cross-file renames, and refactors—to the top-level agent.
+   The top-level agent aligns human-held intent, bounds task scope, reviews new
+   contracts, and re-verifies affected guarantees plus global consistency after return.
 
-4. **Enforce the above via your framework.** For example, Claude Code's
-   `pre-tool-use` hook can intercept a subagent's writes to `.gbc/`, or block
-   unauthorized tool calls.
+4. **Use framework enforcement for "local maintenance allowed, overreach blocked."**
+   Hooks should block hand-edits to `gbc.md` / graph metadata, intent changes by
+   subagents, and unauthorized cross-scope destructive operations. Do not blanket-block
+   dependency registration, guarantee creation, or verification for subagents; that
+   prevents the agent closest to the implementation from closing the contract loop.
 
 5. **Remember the nature of the boundary.** GBC provides rule text and guidance,
    not a security guarantee. What actually prevents overreach is your framework
-   configuration — set it up accordingly.
+   configuration—set it up accordingly.

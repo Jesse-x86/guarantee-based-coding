@@ -15,6 +15,8 @@
 
 ### 修复 / Fixed
 
+- 修正 agent 围栏指南：实现 subagent 应随代码维护语言/项目要求的接口产物、登记自身依赖、维护窄保证测试并自证；只限制意图修改与未授权跨范围破坏，不再一刀切屏蔽全部 GBC 修改工具。
+  Corrected agent guardrails: implementation subagents maintain language/project-specific interface artifacts with code, register their own dependencies, maintain narrow guarantee tests, and self-verify; only intent changes and unauthorized cross-scope destructive operations are restricted instead of blanket-blocking all GBC mutations.
 - 依赖图孤儿反向边安全清理（consumer 元数据缺失时仅凭显式 guarantee id）。
   Safe orphaned reverse-edge cleanup (provider-only removal by explicit guarantee id).
 - 无 `.gbc` 图时一致性检查直接报错，杜绝空图假绿。
