@@ -2,7 +2,7 @@
 
 > 中文 / English
 
-## 0.2.1 (2026-07-31)
+## 0.2.1 (2026-08-04)
 
 ### 新增 / Added
 
@@ -12,6 +12,10 @@
   Persistent language preference via `gbc lang` (stored in `~/.config/gbc/lang`).
 - 叶子命令支持 `--project/-C` 后置项目覆盖。
   Trailing `--project/-C` project override on leaf commands.
+- CLI 帮助全量 i18n 化：guarantee/dep/verify/refactor/executor 子命令的参数帮助统一走语言目录（此前为硬编码中文）。
+  CLI help fully i18n-ized: leaf-command argument help now resolves through the language catalogs (previously hard-coded Chinese).
+- CLI/MCP 提示点明保证边界：`gbc guarantee --help` 与 `create_guarantee`/`add_dependency`/`verify_*` 描述明确「保证 = 窄测试守护的具名行为承诺，不是全面测试；只登记你在乎且被依赖的行为，复用优先」。
+  CLI/MCP surface states the guarantee boundary: guarantees are narrow-test-guarded behavioral promises, NOT full test coverage — register only what you care about and is depended on, reuse first.
 
 ### 修复 / Fixed
 
@@ -28,6 +32,12 @@
 
 - quick-start 补充「界面语言」说明（zh/en）。
   quick-start now covers the `gbc lang` language preference (zh/en).
+- rules/setup 传达正确态度：gbc.md 是现状快照不是圣旨（起草→审批→落库即正当演进，别造上帝文件）；保证≠全面测试；多与人类沟通、及时汇报。
+  rules/setup now convey the right attitude: gbc.md is a snapshot, not sacred (evolve via draft→sign-off→commit, don't build god files); guarantees ≠ full coverage; communicate with the human often.
+- concepts 新增「意图文档系统（gbc.md）」章节：三段可见性作用域、父子投影确定性约束、与保证层的关系（防方向漂移 vs 防行为破坏）。
+  concepts gains an "intent document system (gbc.md)" section: three visibility scopes, deterministic parent/child projection, and its relation to the guarantee layer.
+- 意图编辑入口统一为 `gbc doc`（MCP doc 工具 / CLI），移除废弃的 gbc-doc skill 引用；发布前文档措辞修正。
+  Intent editing converges on `gbc doc` (MCP doc tools / CLI); stale gbc-doc references removed; pre-release doc wording fixes.
 
 ## 0.2.0 (2026-07-30)
 
