@@ -10,6 +10,83 @@
                 "gbc/app/interface/mcp.py"
             ],
             "disabled": false
+        },
+        "file_meta_view.returns_readonly_view": {
+            "desc": "file_meta_view 把文件条目的 .gbc json(FileMeta)读成只读可读视图 {provides:[{id,desc,disabled,dependents}], depends_on:[{symbol,provider,guarantees}]}，字段名与 FileMeta 模型一致（provider 由 symbol 前缀拆出），供意图编辑器前端渲染依赖图；json 缺失/损坏返回 None，绝不写盘。",
+            "test": "tests/test_intent_editor_api.py::test_file_meta_view_returns_readonly_shape",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
+        },
+        "flat_roundtrip.pure": {
+            "desc": "nested_to_flat / flat_to_nested 是纯函数:nested 树 → flat {path:node} → nested 再 → flat 精确往返(root \"\" 不斜杠、folder 以 / 结尾、file 不带 /;kind 区分类型)。前端编辑器依赖此双向转换保证加载与保存的语义一致。",
+            "test": "tests/test_intent_flat.py::test_flat_roundtrip_pure",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
+        },
+        "save_flat.selective_write": {
+            "desc": "save_flat 只重写真正受影响且内容变化的 gbc.md(改 app/main.py desc 只写 app/gbc.md,不动 root/app/core);无用户变化时返回空 written/deleted/count=0 不重写。",
+            "test": "tests/test_intent_flat.py::test_save_only_writes_involved_docs",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
+        },
+        "save_flat.preserves_external": {
+            "desc": "save_flat 以 disk 为合并基线只应用 user 改动:外部改动(用户未碰的路径)在保存后原样保留,用户独立改动落盘。",
+            "test": "tests/test_intent_flat.py::test_save_preserves_unrelated_external_changes",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
+        },
+        "save_flat.conflict_force": {
+            "desc": "save_flat 字段级三方合并与 force:三方都存在且 kind 相同时逐字段合并(用户未改→disk、仅用户改→current、双方同值→该值、双方异值→冲突带 fields:[...]);force 只覆盖真正冲突字段、非冲突外部字段保留;节点新增/删除/type change 仍整节点冲突。",
+            "test": "tests/test_intent_flat.py::test_field_three_way_merge_and_force",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
+        },
+        "save_flat.delete_no_orphan": {
+            "desc": "save_flat 删 folder 时删父文档条目 + 该语义子树的 gbc.md,但绝不删任何 gbc.<file>.json;保存后 base.check 无本次保存产生的 ORPHAN/DRIFT。",
+            "test": "tests/test_intent_flat.py::test_folder_delete_removes_subtree_keeps_json_no_orphan",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
+        },
+        "file_meta_view.rejects_illegal_path": {
+            "desc": "file_meta_view 在 base 内复用 _validate_path 校验完整语义文件路径:root(\"\")/folder 尾斜杠/空 name/绝对路径/../反斜杠/空段/首尾空白均非法,抛 IntentDocError(供上层表面转 400),绝不把 raw path 拆分后直拼磁盘。",
+            "test": "tests/test_intent_editor_api.py::test_file_meta_view_rejects_illegal_paths",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
         }
     },
     "depends_on": []

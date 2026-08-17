@@ -1,0 +1,71 @@
+/* 基础层:设计令牌、reset、按钮/徽章/chip/toast/弹窗等通用组件。 */
+
+:root {
+  --canvas:#f4f6f8; --surface:#fff; --surface-2:#f8fafc; --surface-3:#eef2f7;
+  --ink:#172033; --ink-2:#39445a; --muted:#6f7a8d; --line:#dce2ea;
+  --brand:#4f46e5; --brand-2:#4338ca; --brand-soft:#eeedff;
+  --green:#16804a; --green-soft:#eaf7ef; --amber:#9a6811; --amber-soft:#fff7df;
+  --red:#bd3b43; --red-soft:#fff0f1; --blue:#2563a9; --blue-soft:#edf5ff;
+  --shadow:0 16px 45px rgba(20,31,54,.14); --radius:12px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--canvas);color:var(--ink);font:14px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,textarea{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid rgba(79,70,229,.18);outline-offset:1px}
+
+/* Shell */
+.app{height:100vh;display:grid;grid-template-rows:64px minmax(0,1fr) 28px;overflow:hidden}
+.topbar{display:flex;align-items:center;gap:14px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--line);z-index:4}
+.brand{display:flex;align-items:center;gap:10px;min-width:236px}
+.brand-mark{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:var(--ink);color:#fff;font-weight:800;letter-spacing:-.5px}
+.brand-title{font-weight:720;line-height:1.15}
+.brand-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.project-switcher{min-width:260px;max-width:520px;flex:1;height:38px;display:flex;align-items:center;gap:9px;padding:0 11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2);color:var(--ink-2)}
+.project-switcher .pmark{color:var(--muted)}
+.project-switcher .path{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:12px ui-monospace,SFMono-Regular,Consolas,monospace}
+.chevron{margin-left:auto;color:var(--muted)}
+.toolbar-status{display:flex;align-items:center;gap:8px;margin-left:auto}
+.status-chip{height:30px;display:flex;align-items:center;gap:6px;padding:0 9px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:12px;background:#fff}
+.status-chip.dirty{border-color:#efcf8c;background:var(--amber-soft);color:#79500d}
+.status-dot{width:7px;height:7px;border-radius:50%;background:#9aa5b5}.dirty .status-dot{background:#d18a13}.checked .status-dot{background:var(--green)}
+.actions{display:flex;align-items:center;gap:7px}
+.btn{height:36px;padding:0 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink-2);font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:7px;justify-content:center}
+.btn:hover{background:var(--surface-2);border-color:#cbd3de}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}.btn.primary:hover{background:var(--brand-2)}
+.btn.danger{color:var(--red)}.btn.danger:hover{background:var(--red-soft);border-color:#efc4c7}
+.btn.subtle{border-color:transparent;background:transparent}.btn.subtle:hover{background:var(--surface-3)}
+.btn.small{height:31px;padding:0 9px;font-size:12px}
+.btn:disabled{opacity:.45;cursor:default;pointer-events:none}
+
+.badge{display:inline-flex;align-items:center;height:24px;padding:0 8px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--muted)}
+.badge.folder{background:var(--amber-soft);color:var(--amber);border-color:#eed99f}
+.badge.file{background:var(--blue-soft);color:var(--blue);border-color:#cddff5}
+.badge.unsaved{background:var(--amber-soft);color:var(--amber);border-color:#eed99f}
+.badge.disabled-badge{background:var(--red-soft);color:var(--red);border-color:#efc4c7}
+
+.statusbar{display:flex;align-items:center;gap:16px;padding:0 12px;border-top:1px solid var(--line);background:#fff;color:var(--muted);font-size:11px}
+.statusbar .right{margin-left:auto}
+
+/* Toast */
+.toast{position:fixed;left:50%;bottom:42px;z-index:60;transform:translate(-50%,12px);padding:9px 13px;border-radius:8px;background:#202a3d;color:#fff;font-size:12px;opacity:0;pointer-events:none;transition:.18s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+/* 确认/输入弹窗 */
+.modal-scrim{position:fixed;inset:0;background:rgba(15,23,42,.42);z-index:40;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-scrim.open{display:flex}
+.modal{width:min(470px,100%);background:#fff;border-radius:12px;box-shadow:var(--shadow);overflow:hidden;max-height:88vh;display:flex;flex-direction:column}
+.modal-head{padding:18px 20px 0}
+.modal-title{font-size:17px;font-weight:760}
+.modal-body{padding:10px 20px 18px;color:var(--ink-2);overflow:auto}
+.modal-callout{padding:10px 12px;border:1px solid #efd895;background:var(--amber-soft);border-radius:8px;color:#6e4d10;font-size:12px;margin-top:12px}
+.conflict-list{margin:8px 0 0;padding-left:20px;font:12px ui-monospace,SFMono-Regular,Consolas,monospace}
+.modal-field{margin-top:12px}
+.modal-field .field-label{margin-bottom:6px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line);background:var(--surface-2)}
+.text-input{display:block;width:100%;padding:8px 10px;border:1px solid #cfd7e2;border-radius:8px;background:#fff;color:var(--ink);font:13px ui-monospace,SFMono-Regular,Consolas,monospace}
+.text-input:focus{border-color:var(--brand)}
+
+@media(max-width:900px){.toolbar-status{display:none}.brand{min-width:auto}.brand-sub{display:none}.project-switcher{min-width:160px}}
+@media(max-width:700px){.project-switcher{display:none}.actions .btn:not(.primary){display:none}}

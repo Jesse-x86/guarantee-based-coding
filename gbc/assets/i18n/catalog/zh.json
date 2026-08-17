@@ -25,6 +25,10 @@
     "exc.doc_filename_slash": "文件条目名不应以 / 结尾（子文件夹请用 set-intent <folder>/<sub>）：{name}",
     "exc.doc_name_is_folder": "「{name}」已是子文件夹条目，不能当文件改",
     "exc.doc_entry_not_found": "未找到条目：{name}",
+    "exc.doc_flat_bad_path": "非法 flat 路径：{path}",
+    "exc.doc_flat_bad_node": "路径「{path}」的节点非法：{reason}",
+    "exc.doc_flat_missing_ancestor": "路径「{path}」缺少祖先文件夹（父「{parent}」不存在或不是文件夹）",
+    "exc.doc_save_conflict": "保存冲突：并发编辑改了同一路径",
 
     "doctor.missing_executor": "本项目需要 executor「{name}」，但你尚未在本地配置。请运行 `gbc executor upsert` 添加。",
     "doctor.executors_ok": "本项目所需的 executor 均已配置。",

@@ -44,7 +44,11 @@ include = ["gbc", "gbc.*"]
 # 静态资源全集中在 gbc/assets/（i18n catalog/texts + editor 前端）。
 # 运行时靠 gbc.app.assets 的路径常量定位；集中一处 → 打包声明只需一条。
 [tool.setuptools.package-data]
-"gbc" = ["assets/**"]
+"gbc" = [
+    "assets/**",
+    "assets/editor/css/*.css",
+    "assets/editor/js/*.js",
+]
 
 [tool.setuptools.dynamic]
 version = { attr = "gbc.__version__" }

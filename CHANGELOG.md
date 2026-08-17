@@ -2,6 +2,22 @@
 
 > 中文 / English
 
+## 0.2.2
+
+### 新增 / Added
+
+- 重做意图编辑器：模块化原生前端、中英 i18n、文件夹与文件一等节点，以及文件保证/依赖的只读接口视图。
+  Rebuilt the intent editor with a modular native frontend, zh/en i18n, first-class folder/file nodes, and a read-only guarantee/dependency interface view.
+- 新增当前内存、加载快照、硬盘状态三态 diff，可复制或下载为 LLM 可读文本。
+  Added three-way intent diff views for current memory, loaded snapshot, and disk state, exportable as LLM-readable text.
+
+### 修复 / Fixed
+
+- 保存改为冲突感知的字段级三方合并与选择性写盘：只写变化的 gbc.md，保留无关外部改动，并关闭旧的整树盲写 HTTP 入口。
+  Saving now uses conflict-aware field-level three-way merging and selective writes, preserving unrelated external edits and disabling the legacy blind whole-tree HTTP write endpoint.
+- 文件元数据只读接口增加语义路径校验，防止路径穿越读取。
+  Added semantic-path validation to the read-only file metadata endpoint to prevent path traversal.
+
 ## 0.2.1 (2026-08-04)
 
 ### 新增 / Added

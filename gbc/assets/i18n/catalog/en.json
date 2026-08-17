@@ -25,6 +25,10 @@
     "exc.doc_filename_slash": "A file entry name must not end with '/' (for a subfolder use set-intent <folder>/<sub>): {name}",
     "exc.doc_name_is_folder": "'{name}' is already a subfolder entry and cannot be changed into a file",
     "exc.doc_entry_not_found": "Entry not found: {name}",
+    "exc.doc_flat_bad_path": "Invalid flat path: {path}",
+    "exc.doc_flat_bad_node": "Invalid node for path '{path}': {reason}",
+    "exc.doc_flat_missing_ancestor": "Missing ancestor folder for path '{path}' (parent '{parent}' not present or not a folder)",
+    "exc.doc_save_conflict": "Save conflict: concurrent edits changed the same path(s)",
 
     "doctor.missing_executor": "This project requires executor '{name}' but it is not configured locally. Run `gbc executor upsert` to add it.",
     "doctor.executors_ok": "All executors required by this project are configured.",

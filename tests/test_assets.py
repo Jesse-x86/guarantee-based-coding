@@ -41,3 +41,24 @@ def test_texts_has_rules():
 def test_editor_has_index():
     """承诺:editor 前端目录含 index.html(gbc editor up 的入口页)。"""
     assert (assets.EDITOR_FRONTEND_DIR / "index.html").is_file()
+
+
+def test_editor_frontend_structure():
+    """承诺:editor 前端是零构建的多文件 ES 模块结构,index.html 引用的入口与样式真实存在。
+
+    前端已从单页拆成 index.html + app.js(module 入口)+ i18n.js + js/*.js + css/*.css。
+    任何一个模块被删/被改名都会让编辑器在浏览器里静默崩掉——本测试是结构级哨兵。
+    """
+    front = assets.EDITOR_FRONTEND_DIR
+    assert (front / "app.js").is_file()
+    assert (front / "i18n.js").is_file()
+    for css in ("foundation.css", "workspace.css", "review.css"):
+        assert (front / "css" / css).is_file()
+    for mod in ("dom.js", "semantic.js", "diff.js", "api.js", "state.js",
+                "tree-view.js", "editor-view.js", "review-view.js", "actions.js"):
+        assert (front / "js" / mod).is_file()
+    html = (front / "index.html").read_text(encoding="utf-8")
+    assert 'type="module"' in html
+    assert 'src="app.js"' in html
+    for css in ("foundation.css", "workspace.css", "review.css"):
+        assert f"css/{css}" in html

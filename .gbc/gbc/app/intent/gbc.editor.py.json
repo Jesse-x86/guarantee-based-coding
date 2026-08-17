@@ -1,10 +1,105 @@
 {
-    "provides": {},
+    "provides": {
+        "file_meta_endpoint.returns_view": {
+            "desc": "GET /api/file-meta 把 (root, path) 经 base.resolve_gbc + base.file_meta_view 返回 {\"meta\": 只读视图}（200）；路径非法返回 400 {\"error\": ...}、根非目录返回 404，json 缺失返回 meta:null。前端依赖此端点渲染文件条目的依赖图。",
+            "test": "tests/test_intent_editor_api.py::test_api_file_meta_route",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "file_meta_endpoint.errors_and_null": {
+            "desc": "GET /api/file-meta 对非法 path(缺省/folder 尾斜杠/绝对/../反斜杠)返回 400,对「root 合法但 json 缺失」返回 200 且 meta 为 null —— 前端据此区分「输入错」与「尚无元数据」。",
+            "test": "tests/test_intent_editor_api.py::test_api_file_meta_400_invalid_and_null_when_missing",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "config_endpoint.includes_lang": {
+            "desc": "GET /api/config 返回 {\"root\", \"lang\"}，其中 lang 由 gbc.app.i18n.lang.resolve_lang() 注入当前语言码（zh/en/…），前端据此选词表。",
+            "test": "tests/test_intent_editor_api.py::test_api_config_has_lang",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "static_files.correct_mime": {
+            "desc": "静态资源按后缀给正确 Content-Type（.html→text/html、.js→application/javascript、.css→text/css、.json→application/json、其余→text/plain，均带 charset=utf-8），并保持 FRONTEND_DIR in fpath.parents 的路径穿越防护。前端拆多文件后浏览器按 MIME 正确加载。",
+            "test": "tests/test_intent_editor_api.py::test_static_mime_types",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "tree_flat_endpoint.returns_flat": {
+            "desc": "GET /api/tree-flat?root=... 经 base.read_flat 返回 {root, name, tree} 的 flat map(folder 以 / 结尾、file 不带 /;root 不存在回仅根节点空树;已存在非目录回 404)。新前端只读此端点。",
+            "test": "tests/test_intent_editor_api.py::test_api_tree_flat_returns_flat_map",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "save_endpoint.contract_200": {
+            "desc": "POST /api/save 成功时经 base.save_flat 返回 {written, deleted, count};只写内容变化的 gbc.md。",
+            "test": "tests/test_intent_editor_api.py::test_api_save_contract_200",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "save_endpoint.conflict_409_force": {
+            "desc": "POST /api/save 同路径冲突且 !force 返回 409 {error:conflict, conflicts, external_changes};force=True 返回 200 且用户值落盘。前端据此做冲突提示与强制覆盖。",
+            "test": "tests/test_intent_editor_api.py::test_api_save_conflict_409_and_force_200",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "tree_post_legacy_disabled": {
+            "desc": "POST /api/tree(旧盲写入口)已关闭:不再调用 base.write_tree,直接返回 410 结构化错误 {error:'legacy save endpoint disabled; use /api/save'},绝不写盘、绝不绕过冲突门禁。",
+            "test": "tests/test_intent_editor_api.py::test_api_tree_post_legacy_disabled",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
     "depends_on": [
         {
             "symbol": "gbc/app/assets.py:EDITOR_FRONTEND_DIR",
             "guarantees": [
                 "assets.resources_present"
+            ]
+        },
+        {
+            "symbol": "gbc/app/intent/base.py:file_meta_view",
+            "guarantees": [
+                "file_meta_view.returns_readonly_view",
+                "file_meta_view.rejects_illegal_path"
+            ]
+        },
+        {
+            "symbol": "gbc/app/intent/base.py:read_flat",
+            "guarantees": [
+                "flat_roundtrip.pure"
+            ]
+        },
+        {
+            "symbol": "gbc/app/intent/base.py:save_flat",
+            "guarantees": [
+                "save_flat.conflict_force",
+                "save_flat.selective_write",
+                "save_flat.preserves_external",
+                "save_flat.delete_no_orphan"
             ]
         }
     ]
