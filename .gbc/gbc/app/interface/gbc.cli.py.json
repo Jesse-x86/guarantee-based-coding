@@ -8,6 +8,15 @@
             "heavy": 0,
             "dependents": [],
             "disabled": false
+        },
+        "cli.gate_exit_codes": {
+            "desc": "CLI subprocess gate exit codes: verification failures and doctor consistency errors fail; successes and heavy/disabled-only notices succeed; failing births remain nonzero.",
+            "test": "tests/test_cli_commands.py::TestGateExitCodes",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
         }
     },
     "depends_on": [

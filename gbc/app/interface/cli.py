@@ -443,6 +443,8 @@ def verify_provider(
             console.print(f"[magenta]{len(disabled)} DISABLED (born-green suspended):[/magenta] {tags}")
     except Exception as e:
         raise handle_error(e)
+    if not s.green:
+        raise typer.Exit(code=1)
 
 
 @verify_app.command("single")
@@ -467,6 +469,8 @@ def verify_single(
                 console.print(f"[dim]── stderr ──[/dim]\n{result.stderr.rstrip()}")
     except Exception as e:
         raise handle_error(e)
+    if not passed:
+        raise typer.Exit(code=1)
 
 
 # ======== Refactor ========
@@ -579,6 +583,8 @@ def doctor_check(
             console.print_json(json.dumps(notices, ensure_ascii=False))
     except Exception as e:
         raise handle_error(e)
+    if errors:
+        raise typer.Exit(code=1)
 
 
 # ======== Executor Commands ========

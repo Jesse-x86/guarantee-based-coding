@@ -16,6 +16,7 @@
 - gbc rules 输出 stdout 纯文本，是推荐围栏而非强制沙箱，措辞须讲清强制靠用户 agent 框架。
 - gbc setup 与 gbc rules 同构：输出 stdout 纯文本的本地化接线指南，只给坐标，具体接入取决于用户 agent。
 - MCP 表面暴露保证引擎与意图文档能力；意图写入的人类确认闸门由用户 agent 框架承担。
+- CLI 验证失败（verify single/provider）或 doctor check 发现一致性错误时，进程必须返回非零退出码；成功返回 0，仅有 heavy 跳过或停用提示时保持原有非失败语义。
 
 # 文件
 

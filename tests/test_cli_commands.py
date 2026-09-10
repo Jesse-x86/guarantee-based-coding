@@ -12,6 +12,7 @@
 - 根 --help 根据 --lang / GBC_LANG 输出对应语言文本。
 """
 import importlib
+import json
 import os
 from pathlib import Path
 import subprocess
@@ -418,6 +419,109 @@ def _gbc(*args, env=None):
         timeout=30,
         env=_child_env(env),
     )
+
+
+@pytest.fixture
+def gate_project(tmp_path):
+    """A real temporary GBC project whose executor runs a controllable script."""
+    project = tmp_path / "gate-project"
+    project.mkdir()
+    (project / "provider.py").write_text("def behavior(): pass\n", encoding="utf-8")
+    script = project / "check.py"
+    script.write_text("print('gate-check'); raise SystemExit(0)\n", encoding="utf-8")
+
+    def invoke(*args):
+        return _gbc("--lang", "en", *args, "-C", str(project))
+
+    config = {"command": [sys.executable, "{file}"], "cwd": str(project)}
+    result = invoke("executor", "upsert", "gate-script", "--json", json.dumps(config))
+    assert result.returncode == 0, result.stdout + result.stderr
+    result = invoke(
+        "guarantee", "create", "provider.py", "behavior.gate", "check.py",
+        "gate-script", "CLI gate regression",
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    return project, script, invoke
+
+
+class TestGateExitCodes:
+    """Real entry-point processes must expose gate outcomes to shell callers."""
+
+    @pytest.mark.parametrize("command", ["single", "provider"])
+    @pytest.mark.parametrize("fails", [False, True])
+    def test_verify_exit_matches_executed_result(self, gate_project, command, fails):
+        _, script, invoke = gate_project
+        script.write_text(
+            f"print('gate-check'); raise SystemExit({7 if fails else 0})\n",
+            encoding="utf-8",
+        )
+        args = ["verify", command, "provider.py"]
+        if command == "single":
+            args.append("behavior.gate")
+        result = invoke(*args)
+        output = result.stdout + result.stderr
+        status = ("FAIL" if fails else "PASS") if command == "single" else (
+            "RED" if fails else "GREEN"
+        )
+        assert status in output
+        assert (result.returncode != 0) is fails, output
+        assert "unexpected" not in output.lower()
+        assert "Traceback" not in output
+        if command == "single" and fails:
+            assert "gate-check" in output
+
+    @pytest.mark.parametrize("skip", ["heavy", "disabled"])
+    def test_provider_only_skips_are_success(self, gate_project, skip):
+        _, script, invoke = gate_project
+        if skip == "heavy":
+            update = invoke("guarantee", "update", "provider.py", "behavior.gate", "--heavy", "1")
+        else:
+            update = invoke("guarantee", "disable", "provider.py", "behavior.gate")
+        assert update.returncode == 0, update.stdout + update.stderr
+        script.write_text("raise SystemExit(7)\n", encoding="utf-8")
+        result = invoke("verify", "provider", "provider.py")
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "GREEN" in result.stdout
+        assert "skipped=1" in result.stdout
+        assert ("heavy skipped" if skip == "heavy" else "DISABLED") in result.stdout
+
+    @pytest.mark.parametrize("broken", [False, True])
+    @pytest.mark.parametrize("disabled", [False, True])
+    def test_doctor_errors_fail_but_disabled_notices_do_not(self, gate_project, broken, disabled):
+        project, _, invoke = gate_project
+        (project / "consumer.py").write_text("# consumer\n", encoding="utf-8")
+        result = invoke("dep", "add", "consumer.py", "provider.py", "behavior", "-g", "behavior.gate")
+        assert result.returncode == 0, result.stdout + result.stderr
+        if disabled:
+            result = invoke("guarantee", "disable", "provider.py", "behavior.gate")
+            assert result.returncode == 0, result.stdout + result.stderr
+        if broken:
+            # Simulate lost consumer metadata, leaving a real dangling reverse edge.
+            (project / ".gbc" / "gbc.consumer.py.json").unlink()
+        result = invoke("doctor", "check")
+        output = result.stdout + result.stderr
+        if broken:
+            assert "missing_forward" in output
+        elif not disabled:
+            assert "consistent" in output
+        if disabled:
+            assert "disabled notice" in output
+        assert (result.returncode != 0) is broken, output
+        assert "unexpected" not in output.lower()
+        assert "Traceback" not in output
+
+    def test_born_green_failure_stays_nonzero(self, gate_project):
+        _, script, invoke = gate_project
+        script.write_text("raise SystemExit(7)\n", encoding="utf-8")
+        result = invoke(
+            "guarantee", "create", "provider.py", "behavior.rejected", "check.py",
+            "gate-script", "Must refuse failing birth",
+        )
+        assert result.returncode != 0, result.stdout + result.stderr
+        assert "behavior.rejected" in result.stdout
+        listed = invoke("guarantee", "list", "provider.py")
+        assert listed.returncode == 0, listed.stdout + listed.stderr
+        assert "behavior.rejected" not in listed.stdout
 
 
 def test_e2e_doctor_missing_gbc_propagates_nonzero_exit(tmp_path):
