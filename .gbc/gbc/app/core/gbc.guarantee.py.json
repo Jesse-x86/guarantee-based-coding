@@ -10,7 +10,7 @@
             "disabled": false
         },
         "guarantee.dependency_bookkeeping": {
-            "desc": "验证 add_dependency/remove_dependency 双向依赖登记与撤销的一致性，以及 list_provides/list_depends_on/dependents_of 反查的正确性",
+            "desc": "验证 add_dependency/remove_dependency 双向依赖登记与撤销的一致性；单保证与整符号撤销均保留同消费者通过其他符号对同一提供方同一保证的反向依赖及退休保护，仅最后一条撤销后清除；不同消费者、不同提供方同名保证相互隔离，目标未挂保证的撤销无副作用；覆盖 list_provides/list_depends_on/dependents_of 反查。",
             "test": "tests/test_guarantee_deps.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
