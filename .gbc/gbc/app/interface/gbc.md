@@ -1,6 +1,7 @@
 # 意图
 把引擎能力暴露成「人/agent 能用的形态」，并把「外部形态」与「内部实现」彻底解耦：cli、mcp、web 编辑器都只是薄表面，真正的编排、路径解析、文件读写收在 base 一处。换表面不动引擎。
-命令收口为单一入口 gbc(pyproject [project.scripts])：单次执行的子命令(guarantee/dep/verify/doctor/executor/refactor/tree/doc/setup/rules) + 两个常驻服务(gbc mcp up / gbc editor up)。所有面向用户的文本一律经 i18n 层产出，不硬编码。
+命令收口为单一入口 gbc(pyproject [project.scripts])：单次执行的子命令(guarantee/dep/verify/doctor/executor/refactor/tree/intent/doc/setup/rules) + 两个常驻服务(gbc mcp up / gbc editor up)。所有面向用户的文本一律经 i18n 层产出，不硬编码。
+gbc intent 管理目标项目的架构意图，gbc doc 查询随版本分发的 GBC 手册；旧意图 doc 命令与 doc_* MCP 工具不保留兼容别名。手册查询 CLI/MCP 复用 documentation.base。
 
 # 内部约束
 规则：
@@ -25,7 +26,7 @@
 # 文件
 
 ## mcp.py
-MCP 工具面(FastMCP)：把两个子系统的能力暴露成 agent 可调用工具——保证引擎(guarantee/dep/verify/refactor/tree/consistency/executor) + 意图文档(doc show/check/set-*/sync/migrate)。所有工具只调 base(interface.base 或 intent.base)、返回 JSON 字符串，出错统一 {error}。run_server 以 stdio 启动，项目根经显式参数传入。tree 浏览与按目标文件的修改上下文复用 base 能力，文档型结果返回纯文本。
+MCP 薄表面：保证引擎、intent_* 架构意图操作、doc_list/doc_read/doc_search 手册查询，复用各子系统 base，统一错误返回；文档结果纯文本，结构化结果 JSON。旧意图 doc_* 名移除。tree/tree_for 复用 interface.base。stdio 启动并显式绑定项目根。
 
 ## cli.py
 Typer 命令面，镜像 base 能力并经 rich/i18n 渲染。所有项目操作叶子命令接受后置 --project/-C 并在调用 base 前显式设置目标根；不做 argv 重排。根 --lang 仍是单次覆盖入口。tree 命令组提供 show/folders/for，裸 tree 仅显示帮助；--detail/--gaps 移至 show，旧组级用法明确提示迁移；只收集参数并调用 base。

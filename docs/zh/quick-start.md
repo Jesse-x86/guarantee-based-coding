@@ -33,6 +33,10 @@ gbc lang auto   # 恢复自动选择（跟随系统 locale）
 
 不设置时自动跟随系统 locale，缺省回退英文。
 
+0.3.0 起，安装包附带离线手册，可在任意目录查询：`gbc doc list --lang zh`、
+`gbc doc read quick-start --lang zh`、`gbc doc search "保证" --lang zh`。
+`--help` 只负责简短命令语法；项目架构意图改用 `gbc intent`，旧意图命令不保留别名。
+
 > 推荐 `pipx`（[安装说明](https://pipx.pypa.io/stable/installation/)）：GBC 是一个独立命令行工具（类似 `black` / `ruff`），你想的是“装一次到处用”，而不是
 > 让它的依赖污染你正在开发的项目的 Python 环境。你仍可以用 `pip install guarantee-based-coding`
 > （装进当前环境）或 `uvx guarantee-based-coding`（即用即弃）。GBC 的依赖很轻（typer / pydantic / mcp）。
@@ -54,9 +58,9 @@ gbc setup
 
 ### 路径 A — MCP（你的 agent 会说 MCP 时推荐）
 
-GBC 自带一个 stdio MCP server，暴露**两个子系统**的能力：保证引擎（guarantee / dep / verify /
-refactor / tree / consistency / executor）**以及**意图文档（doc show / check / set-* / sync /
-migrate）。
+GBC 自带一个 stdio MCP server，暴露保证引擎（guarantee / dep / verify /
+refactor / tree / consistency / executor）、项目意图（`intent_*`）与离线手册
+（`doc_list` / `doc_read` / `doc_search`）。
 
 启动命令是：
 

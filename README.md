@@ -40,6 +40,13 @@ gbc setup        # 打印本地化接线指南：怎么把 MCP / skills 接入�
 
 English docs: [docs/en/](./docs/en/)。
 
+安装后也能离线查询同版本手册：`gbc doc list --lang zh`、`gbc doc read quick-start --lang zh`、
+`gbc doc search "保证" --lang zh`。`--help` 仍用于查简短命令语法。
+
+当前仓库包含 **0.3.0 开发中的改动，尚未发布**；0.2.3 已发布。
+0.3.0 中项目架构意图入口由 `gbc doc` 改为 `gbc intent`，MCP 的八个意图工具由 `doc_*`
+改为 `intent_*`，不保留旧别名。此后的 `gbc doc` 专门查询 GBC 手册。
+
 ---
 
 ## 核心想法
@@ -66,8 +73,8 @@ GBC 目前是一个可用的 Python 分发包（`pipx install guarantee-based-co
 
 - ✅ 核心保证机制（具名 id、多对一、出生即绿、退休保护、反查）
 - ✅ 多语言 executor 配置
-- ✅ CLI + MCP 双接口（含意图文档 `gbc doc` 全进 MCP）
-- ✅ 意图文档子系统（`gbc doc` / web 编辑器）
+- ✅ CLI + MCP 双接口（含意图文档 `gbc intent` 全进 MCP）
+- ✅ 意图文档子系统（`gbc intent` / web 编辑器）
 - ✅ 随包分发的接线指南（`gbc setup`）与 CLI-only agent 的 skill 包
 - ✅ 原子文件写入 + 备份
 

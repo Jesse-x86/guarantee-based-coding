@@ -87,9 +87,9 @@ against the past — phase words, roadmaps, and migration narratives are drift b
 ### How it is maintained
 
 - **Hierarchy**: a subfolder's intent auto-projects into its parent's entry; parent/child
-  consistency is a **deterministic constraint** maintained by the `gbc doc` tools (`doc check`
-  reports DRIFT / ORPHAN, `doc sync` repairs).
-- **The only compliant entry**: `gbc doc` (CLI / MCP doc tools). Never hand-edit — hand-editing
+  consistency is a **deterministic constraint** maintained by the `gbc intent` tools (`intent check`
+  reports DRIFT / ORPHAN, `intent sync` repairs).
+- **The only compliant entry**: `gbc intent` (CLI / MCP intent tools). Never hand-edit — hand-editing
   drifts the deterministic constraint, downgrading "verifiable truth" to "best-effort habit".
 - **Spec-first**: draft the intent, get human sign-off, commit it, then implement against the
   written gbc.md.
@@ -97,7 +97,7 @@ against the past — phase words, roadmaps, and migration narratives are drift b
 ### How it relates to the guarantee layer
 
 The intent layer answers "why, and what are the boundary obligations" — **not mechanically
-verifiable**; it relies on human sign-off + doc check. The guarantee layer answers "does the
+verifiable**; it relies on human sign-off + intent check. The guarantee layer answers "does the
 behavior still hold" — **mechanically verifiable**. The former prevents directional drift, the
 latter prevents behavioral breakage; they complement each other.
 

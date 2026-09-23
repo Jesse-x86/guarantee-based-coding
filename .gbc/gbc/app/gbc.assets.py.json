@@ -12,6 +12,17 @@
                 "gbc/app/intent/editor.py"
             ],
             "disabled": false
+        },
+        "DOCS_DIR.offline_manual": {
+            "desc": "DOCS_DIR exposes all fixed English and Chinese manual topics independent of cwd; installed package resources take precedence, source fallback is anchored only to this package checkout with the GBC project marker.",
+            "test": "tests/test_assets.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/documentation/base.py"
+            ],
+            "disabled": false
         }
     },
     "depends_on": []

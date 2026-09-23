@@ -27,7 +27,7 @@ GBC 的每项能力都有三种等价形态：**CLI**（`gbc ...`）、**MCP 工
 | `gbc tree for <文件>...` | 合并多个目标文件的修改上下文：文件条目、全部祖先意图与约束、直接依赖符号与具名保证、目标提供的保证及其消费者。 |
 | `gbc doctor check` | 全局一致性体检：悬空引用 + 双向边漂移 + 停用保证（响亮报出）。 |
 
-日常使用先运行一次 `gbc lang zh` 或 `gbc lang en`；只有临时切换 `setup` / `rules` 输出时才使用末尾的 `--lang`。
+日常使用先运行一次 `gbc lang zh` 或 `gbc lang en`；临时切换 `setup` / `rules` 或 `doc` 叶命令输出时可使用末尾的 `--lang`。
 
 ### 项目根
 
@@ -108,21 +108,51 @@ gbc tree for gbc/entry.py gbc/app/interface/cli.py -C /path/to/project
 
 ---
 
-## 意图文档 — `gbc doc` / MCP
+## 离线 GBC 手册 — `gbc doc` / MCP
+
+手册随当前安装的 GBC 版本分发，任意工作目录下都可离线查询，无需目标项目，也不读取或修改
+项目的 `.gbc`。`--help` 继续提供简短的命令用法。
+
+| CLI | MCP 工具 | 返回内容 |
+|-----|----------|----------|
+| `gbc doc list [--lang en\|zh]` | `doc_list(lang=None)` | 所选语言、固定主题 ID 与标题。 |
+| `gbc doc read <topic> [--lang en\|zh]` | `doc_read(topic, lang=None)` | 完整主题 Markdown。 |
+| `gbc doc search "<query>" [--lang en\|zh] [--limit 20]` | `doc_search(query, lang=None, limit=20)` | 不区分大小写的字面子串匹配，含主题 ID、从 1 开始的行号和行文本。 |
+
+固定主题为 `quick-start`、`concepts`、`workflow`、`reference`、`onboarding-agent`。
+语言沿用 GBC 的偏好优先级，叶命令后的 `--lang` 只覆盖本次查询。搜索只查选定语言，
+不解释正则表达式，默认最多返回 20 条，条数范围为 1–100；空查询、未知主题报错。
+每条文本以匹配处为中心截取，最多 240 个字符，避免超长行淹没结果。
+`truncated` 表示还有未返回的匹配，避免把截断结果当成完整结果。
+
+MCP list 返回 `{language, topics: [{id, title}]}`；read 返回 Markdown 字符串；search 返回
+`{language, query, matches: [{topic, line, text}], truncated}`。
+`docs/en/` 与 `docs/zh/` 是内容单源，构建时将这十篇主题复制为包资源，源码中不维护第二份。
+
+```sh
+gbc doc list --lang zh
+gbc doc read workflow --lang zh
+gbc doc search "保证" --lang zh --limit 10
+```
+
+## 意图文档 — `gbc intent` / MCP
+
+**0.3.0 不兼容迁移：**原来的意图 `gbc doc ...` 全部改为 `gbc intent ...`，八个旧 `doc_*`
+MCP 工具改为 `intent_*`，不保留兼容别名。请同步脚本与 agent 指令；`doc` 现在用于查询 GBC 手册。
 
 | CLI | MCP 工具 | 作用 |
 |-----|----------|------|
-| `gbc doc show <folder>` | `doc_show` | 查看文件夹的意图 / 约束 / 条目。根用 `""` 或 `.`。 |
-| `gbc doc check` | `doc_check` | 全树一致性体检（DRIFT/ORPHAN 为错误，STUB 为提示）。 |
-| `gbc doc set-intent <folder> "<text>"` | `doc_set_intent` | 设意图（自动单源投影到父条目）。 |
-| `gbc doc set-constraints <folder> "<text>"` | `doc_set_constraints` | 设内部约束（只在本地）。 |
-| `gbc doc set-file <folder> <name> "<desc>"` | `doc_set_file` | 新增 / 更新文件条目（name 不带 `/`）。 |
-| `gbc doc rm-entry <folder> <name>` | `doc_rm_entry` | 删条目（不删盘上文件，留给 git 复核）。 |
-| `gbc doc sync` | `doc_sync` | 确定性修复父子漂移。 |
-| `gbc doc migrate` | `doc_migrate` | 把所有 gbc.md 升级到最新格式。 |
+| `gbc intent show <folder>` | `intent_show` | 查看文件夹的意图 / 约束 / 条目。根用 `""` 或 `.`。 |
+| `gbc intent check` | `intent_check` | 全树一致性体检（DRIFT/ORPHAN 为错误，STUB 为提示）。 |
+| `gbc intent set-intent <folder> "<text>"` | `intent_set_intent` | 设意图（自动单源投影到父条目）。 |
+| `gbc intent set-constraints <folder> "<text>"` | `intent_set_constraints` | 设内部约束（只在本地）。 |
+| `gbc intent set-file <folder> <name> "<desc>"` | `intent_set_file` | 新增 / 更新文件条目（name 不带 `/`）。 |
+| `gbc intent rm-entry <folder> <name>` | `intent_rm_entry` | 删条目（不删盘上文件，留给 git 复核）。 |
+| `gbc intent sync` | `intent_sync` | 确定性修复父子漂移。 |
+| `gbc intent migrate` | `intent_migrate` | 把所有 gbc.md 升级到最新格式。 |
 
 > `<text>` 以 `-` 开头时，在它前面加 `--`，避免被当成选项：
-> `gbc doc set-intent app -- "- 以短横线开头的一行"`。
+> `gbc intent set-intent app -- "- 以短横线开头的一行"`。
 
 **写意图是在改人类持有的架构真理。** 是否需人类签字由你的框架规则 / hook 决定，不由工具设阻。
 绝不手编 gbc.md。
@@ -187,6 +217,6 @@ gbc executor upsert <name> --file <path.json>
 ## 心智模型
 
 - 一个 MCP server 实例 = 一个项目根。多项目配多个条目（不同项目根参数）。
-- MCP 现在暴露**两个子系统**：保证引擎 + 意图文档（doc 工具）。写意图的人类确认闸门由你的
+- MCP 暴露保证引擎、项目意图（`intent_*`）与离线 GBC 手册（`doc_list` / `doc_read` / `doc_search`）。写意图的人类确认闸门由你的
   框架承担，不靠藏通道。
 - 路径参数一律用**项目根相对**的 posix 路径（`gbc/app/core/maker.py`），不是绝对路径。

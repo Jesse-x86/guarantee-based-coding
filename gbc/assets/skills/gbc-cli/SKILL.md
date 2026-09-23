@@ -77,6 +77,8 @@ reported loudly but does **not** turn the gate red. Green = no failures.
 |---------|--------------|
 | `gbc tree` | Show browsing-command help and exit successfully. |
 | `gbc tree show [folder]` | Omit the folder to render the whole `.gbc` tree as one AI-readable dependency document (intent backbone + dependency edges + provided guarantees). Add `--detail` for guarantee desc/test/heavy, `--gaps` for registration gaps. Provide a folder to browse a subtree; add `--depth N` to limit depth. **Start here for a whole-project overview.** |
+| `gbc tree folders [folder]` | Browse only folder intent and internal constraints; supports `--depth N`. |
+| `gbc tree for <file>...` | Combine each target file's entries, ancestor intent/constraints, direct dependencies and provided guarantees with consumers. |
 | `gbc doctor check` | Global consistency lint: dangling references, two-way edge drift, and disabled guarantees (reported loudly, not as errors). |
 
 Use `gbc tree show` for the old CLI tree-rendering call. Group-level `gbc tree --detail` / `--gaps` now fail with a migration hint; use `gbc tree show --detail` / `--gaps`. The MCP `tree` tool still returns the tree with no arguments.
@@ -115,23 +117,38 @@ then `gbc guarantee enable <p> <id>` for each disabled id.
 
 ---
 
-## Intent docs — `gbc doc`
+## Offline manual — `gbc doc`
 
-`gbc.md` files hold the project's architectural intent. `gbc doc` is the compliant read/write
+Use `gbc doc list [--lang en|zh]`, `gbc doc read <topic> [--lang en|zh]`, or
+`gbc doc search "<query>" [--lang en|zh] [--limit 20]` to query the manual shipped with GBC.
+These work offline and do not require a target project. The fixed topics are `quick-start`,
+`concepts`, `workflow`, `reference`, and `onboarding-agent`. Search is a case-insensitive literal
+substring search, with topic IDs, one-based line numbers, bounded text snippets, and a
+`truncated` flag. The result limit is 1–100 (default 20); empty queries and unknown topics fail.
+For command syntax alone, use `--help`.
+
+## Intent docs — `gbc intent`
+
+Since 0.3.0, replace all former intent `gbc doc ...` calls with `gbc intent ...`; no compatibility
+aliases remain. MCP intent tools similarly use `intent_*`; `doc_list`, `doc_read`, and
+`doc_search` query the GBC manual.
+
+`gbc.md` files hold the project's architectural intent. `gbc intent` is the compliant read/write
 entry — it keeps each doc's three-section structure and parent/child consistency for you.
 
 | Command | What it does |
 |---------|--------------|
-| `gbc doc show <folder>` | View a folder's intent / constraints / entries. Root folder is `""` or `.`. |
-| `gbc doc check` | Whole-tree intent consistency lint (DRIFT/ORPHAN are errors, STUB is a note). |
-| `gbc doc set-intent <folder> "<text>"` | Set a folder's intent (auto-projected into the parent entry). |
-| `gbc doc set-constraints <folder> "<text>"` | Set internal constraints (local only). |
-| `gbc doc set-file <folder> <name> "<desc>"` | Add/update a file entry (name without `/`). |
-| `gbc doc rm-entry <folder> <name>` | Remove a doc entry (does not delete the file on disk). |
-| `gbc doc sync` | Deterministically repair parent/child drift. |
+| `gbc intent show <folder>` | View a folder's intent / constraints / entries. Root folder is `""` or `.`. |
+| `gbc intent check` | Whole-tree intent consistency lint (DRIFT/ORPHAN are errors, STUB is a note). |
+| `gbc intent set-intent <folder> "<text>"` | Set a folder's intent (auto-projected into the parent entry). |
+| `gbc intent set-constraints <folder> "<text>"` | Set internal constraints (local only). |
+| `gbc intent set-file <folder> <name> "<desc>"` | Add/update a file entry (name without `/`). |
+| `gbc intent rm-entry <folder> <name>` | Remove a doc entry (does not delete the file on disk). |
+| `gbc intent sync` | Deterministically repair parent/child drift. |
+| `gbc intent migrate` | Upgrade all gbc.md files to the latest format. |
 
 > If a `<text>` argument begins with `-`, put `--` before it so it isn't parsed as an option:
-> `gbc doc set-intent app -- "- a line starting with a dash"`.
+> `gbc intent set-intent app -- "- a line starting with a dash"`.
 
 **Writing intent is changing human-held architecture truth.** Whether it needs your human's
 sign-off is set by your agent framework's rules/hooks, not by this tool. Never hand-edit `gbc.md`.

@@ -2,15 +2,20 @@
 
 ## 0.2.3：修复发布
 
-- [ ] 发布共享保证依赖修复与 CLI 门禁退出码修复；本版本仅包含这两项修复。
+- [x] 已于 2026-09-23 发布至 PyPI：共享保证依赖修复与 CLI 门禁退出码修复；本版本仅包含这两项修复。
 
 ## 0.3.0：命令职责与查询能力
 
-- [ ] 发布新的 `tree show` / `tree folders` / `tree for` 及对应 MCP 能力：实现已提交，尚未发布，等待随 0.3.0 发布。
-- [ ] 将 `gbc.md` 架构意图的读写入口从 `gbc doc` 改为 `gbc intent`；CLI 与 MCP 命名保持一致，不保留旧兼容别名，并同步相关 skills 与文档。
-- [ ] 将 `gbc doc` 用于 GBC 说明文档查询；具体查询行为与实现设计仍待细化。
+以下为当前仓库的实现状态；**0.3.0 尚未发布**。
+
+- [x] 实现 `tree show` / `tree folders` / `tree for` 及对应 MCP 能力。
+- [x] 将 `gbc.md` 架构意图的读写入口从 `gbc doc` 改为 `gbc intent`；CLI 与 MCP 命名保持一致，不保留旧兼容别名，并同步相关 skills 与文档。
+- [x] 将 `gbc doc list/read/search` 用于 GBC 离线说明文档查询；MCP 提供 `doc_list/doc_read/doc_search`。
+  - 固定中英文主题：quick-start、concepts、workflow、reference、onboarding-agent。
+  - docs/ 为内容单源；构建收入包资源，安装后不依赖仓库或当前工作目录。
   - `--help` 继续提供简短的命令用法。
   - 不采用 `gbc map` 命名。
+- [ ] 发布 0.3.0（含上述命令变更及不兼容迁移说明）。
 
 ## 0.3.x：按实际问题修复
 

@@ -36,3 +36,19 @@ EDITOR_FRONTEND_DIR = ASSETS_DIR / "editor"
 # 给 CLI-only agent 的预组 skills（教 agent 怎么调 gbc 子命令，等价于 MCP 工具描述）。
 # gbc setup 只告知此目录坐标，由用户自行放到其 agent 读 skill 的位置。
 SKILLS_DIR = ASSETS_DIR / "skills"
+
+
+def _manual_directory() -> Path:
+    packaged = ASSETS_DIR / "docs"
+    if packaged.is_dir():
+        return packaged
+    # Editable/source use only this package's checkout, never the caller's cwd.
+    checkout = Path(__file__).resolve().parents[2]
+    marker = checkout / "pyproject.toml"
+    if marker.is_file() and (checkout / "docs").is_dir():
+        if 'name = "guarantee-based-coding"' in marker.read_text(encoding="utf-8"):
+            return checkout / "docs"
+    return packaged
+
+
+DOCS_DIR = _manual_directory()

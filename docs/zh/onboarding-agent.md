@@ -40,7 +40,9 @@ gbc mcp up <工作项目根的绝对路径>
 ```
 
 以你的框架添加 MCP server 的方式注册它（Claude Code 是项目根的 `.mcp.json`）。注册后重连 /
-重启，工具就会出现。MCP 暴露**两个子系统**：保证引擎 + 意图文档（`doc_*` 工具）。
+重启，工具就会出现。MCP 暴露保证引擎、项目意图（`intent_*`）与离线手册
+（`doc_list` / `doc_read` / `doc_search`）。安装后可用 `gbc doc read onboarding-agent --lang zh`
+阅读本指南；维护项目架构意图则使用 `gbc intent`。
 
 ### 路径 B — Skills
 
@@ -81,7 +83,7 @@ GBC 指向工作项目，测试 executor 跟着该项目的环境和语言走—
 
 ## ⑤ 分层与权限：守在自己的范围内
 
-- **顶层 agent（架构 / 主导）**：你主导意图。经 `gbc doc`（MCP doc 工具 / CLI）起草 gbc.md
+- **顶层 agent（架构 / 主导）**：你主导意图。经 `gbc intent`（MCP intent 工具 / CLI）起草 gbc.md
   改动（绝不手编），限定子任务范围，复核子任务登记的局部契约，并在交回后做最终集成验证。
 - **Subagent（任务执行）**：聚焦的实现者。它只读 `gbc.md`，但应随代码维护该语言/项目要求的
   接口产物（Python 项目可能是 `.pyi`）和自己引入的局部 GBC 契约：查询/复用已有保证、登记实际依赖；

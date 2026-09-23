@@ -65,10 +65,18 @@ skill 或 memory。CLI 可在项目目录运行，也可在叶子命令后放 `-
 gbc tree show --project "/abs/path/to/your/project"
 ```
 
+## 阅读离线手册
+
+`gbc doc list --lang zh` 列出随包附带的五个主题；用
+`gbc doc read onboarding-agent --lang zh` 阅读接入指南，或用
+`gbc doc search "保证" --lang zh` 搜索。无需项目或网络；`--help` 仍是简短语法参考。
+对应 MCP 工具为 `doc_list`、`doc_read`、`doc_search`。项目架构使用 `gbc intent` / `intent_*`；
+0.3.0 已移除原先用于意图的 `doc` 名称。
+
 ## 用之前，先记住三件事
 
 - **gbc.md 是现状快照，不是圣旨。** 它防的是架构漂移，不是架构演进——想改就走「起草 →
-  送人类审批 → 经 gbc doc 落库」，正当演进不是违规。别因为「不能手编」就把职责全塞进已有
+  送人类审批 → 经 gbc intent 落库」，正当演进不是违规。别因为「不能手编」就把职责全塞进已有
   文件——上帝文件正是防漂移机制的本末倒置。
 - **保证 ≠ 全面测试。** 每条保证是窄测试守护的具名行为承诺，只登记你在乎且被依赖的行为，能复用
   先复用；没人在乎的保证是负债。

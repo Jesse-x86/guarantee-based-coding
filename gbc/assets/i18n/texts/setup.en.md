@@ -79,11 +79,20 @@ the leaf command, for example this read-only view:
 gbc tree show --project "/abs/path/to/your/project"
 ```
 
+## Read the offline manual
+
+`gbc doc list --lang en` lists the five bundled topics. Use
+`gbc doc read onboarding-agent --lang en` for onboarding, or
+`gbc doc search "guarantee" --lang en` to search. These commands work without a project or
+network connection; `--help` remains the short syntax reference. MCP equivalents are
+`doc_list`, `doc_read`, and `doc_search`. Project architecture uses `gbc intent` / `intent_*`;
+the former intent `doc` names were removed in 0.3.0.
+
 ## Three things to remember before you start
 
 - **`gbc.md` is a snapshot of the current state, not a sacred text.** It guards against
   architectural drift, not evolution — to change it, draft → human sign-off → commit via
-  gbc doc; that's legitimate evolution, not a violation. Don't pile responsibilities into
+  gbc intent; that's legitimate evolution, not a violation. Don't pile responsibilities into
   an existing file just because you can't hand-edit it — a god file is the drift-guard
   mechanism turned upside down.
 - **A guarantee is NOT full test coverage.** Each guarantee is a named behavioral promise

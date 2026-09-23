@@ -42,6 +42,14 @@ Want your agent to wire it in for you? Hand it
 
 Chinese docs: [docs/zh/](../zh/).
 
+Installed GBC also includes an offline manual for that version: `gbc doc list --lang en`,
+`gbc doc read quick-start --lang en`, and `gbc doc search "guarantee" --lang en`.
+`--help` continues to provide short command syntax.
+
+This checkout includes **0.3.0 development changes, not yet released**; 0.2.3 is published.
+In 0.3.0, project intent moves from `gbc doc` to `gbc intent`, and the eight intent MCP tools
+move from `doc_*` to `intent_*`, without compatibility aliases. `gbc doc` now queries the GBC manual.
+
 ---
 
 ## The core idea
@@ -73,8 +81,8 @@ its own `.gbc/` with GBC (dogfooding):
 - ✅ Core guarantee mechanism (named ids, many-to-one, born-green, retirement protection, reverse
   lookup)
 - ✅ Language-agnostic executor config
-- ✅ CLI + MCP dual interface (intent docs `gbc doc` fully exposed over MCP)
-- ✅ Intent-document subsystem (`gbc doc` / web editor)
+- ✅ CLI + MCP dual interface (intent docs `gbc intent` fully exposed over MCP)
+- ✅ Intent-document subsystem (`gbc intent` / web editor)
 - ✅ Bundled wiring guide (`gbc setup`) and a skill pack for CLI-only agents
 - ✅ Atomic file writes + backups
 

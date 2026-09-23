@@ -1,0 +1,35 @@
+{
+    "provides": {
+        "doc_cli.query_surface": {
+            "desc": "Manual CLI provides help list read search with inherited root language, explicit local override, and clean query errors",
+            "test": "tests/test_documentation.py::TestManualCLI",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/entry.py"
+            ],
+            "disabled": false
+        }
+    },
+    "depends_on": [
+        {
+            "symbol": "gbc/app/documentation/base.py:list_topics",
+            "guarantees": [
+                "manual_query.fixed_topics_and_search"
+            ]
+        },
+        {
+            "symbol": "gbc/app/documentation/base.py:read_topic",
+            "guarantees": [
+                "manual_query.fixed_topics_and_search"
+            ]
+        },
+        {
+            "symbol": "gbc/app/documentation/base.py:search_docs",
+            "guarantees": [
+                "manual_query.fixed_topics_and_search"
+            ]
+        }
+    ]
+}

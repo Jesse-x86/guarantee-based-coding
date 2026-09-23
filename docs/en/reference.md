@@ -29,7 +29,7 @@ If `gbc` is not on PATH, any `gbc` can be replaced with `python -m gbc.entry`.
 | `gbc doctor check` | Global consistency lint: dangling refs + two-way edge drift + disabled guarantees (reported loudly). |
 
 For normal use, run `gbc lang zh` or `gbc lang en` once; use the trailing `--lang` on `setup` or
-`rules` only for a temporary override.
+`rules` or a `doc` leaf command for a temporary override.
 
 By default, GBC selects the project root in this order: `GBC_PROJECT_ROOT` > current working
 directory (cwd). It does **not** search parent directories. Where supported, append
@@ -114,21 +114,54 @@ After a refactor: fix imports, move tests and `gbc guarantee update <p> <id> --t
 
 ---
 
-## Intent docs — `gbc doc` / MCP
+## Offline GBC manual — `gbc doc` / MCP
+
+The manual ships with the installed GBC version and works offline, from any directory, without
+a target project. It does not inspect or modify `.gbc`. `--help` remains short command syntax.
+
+| CLI | MCP tool | Result |
+|-----|----------|--------|
+| `gbc doc list [--lang en\|zh]` | `doc_list(lang=None)` | Selected language and fixed topic IDs with titles. |
+| `gbc doc read <topic> [--lang en\|zh]` | `doc_read(topic, lang=None)` | The complete Markdown topic. |
+| `gbc doc search "<query>" [--lang en\|zh] [--limit 20]` | `doc_search(query, lang=None, limit=20)` | Case-insensitive literal line matches, with topic ID, one-based line number and text. |
+
+The fixed topics are `quick-start`, `concepts`, `workflow`, `reference`, and `onboarding-agent`.
+Language selection follows the same preference chain as other GBC output; `--lang` overrides
+one invocation. Search uses a literal substring, not regular expressions, and defaults to 20
+matches (valid range 1–100). Matching text is a snippet of at most 240 characters centered on
+the match, rather than an unlimited line. Empty queries and unknown topics are errors. Results include `truncated`
+when more matches exist, so a limited result is distinguishable from a complete search.
+
+MCP list returns `{language, topics: [{id, title}]}`; read returns Markdown text; search returns
+`{language, query, matches: [{topic, line, text}], truncated}`. It searches only the selected
+language. The Markdown sources in `docs/en/` and `docs/zh/` are canonical; packaging copies
+these ten topics into package resources without keeping a second source copy.
+
+```sh
+gbc doc list --lang en
+gbc doc read workflow --lang en
+gbc doc search "guarantee" --lang en --limit 10
+```
+
+## Intent docs — `gbc intent` / MCP
+
+**0.3.0 breaking migration:** all former intent `gbc doc ...` commands are now
+`gbc intent ...`; the eight former `doc_*` MCP tools are now `intent_*`. There are no compatibility
+aliases. Update scripts and agent instructions; `doc` now queries this GBC manual.
 
 | CLI | MCP tool | What it does |
 |-----|----------|--------------|
-| `gbc doc show <folder>` | `doc_show` | View a folder's intent / constraints / entries. Root is `""` or `.`. |
-| `gbc doc check` | `doc_check` | Whole-tree consistency lint (DRIFT/ORPHAN are errors, STUB is a note). |
-| `gbc doc set-intent <folder> "<text>"` | `doc_set_intent` | Set intent (auto single-source projection into the parent entry). |
-| `gbc doc set-constraints <folder> "<text>"` | `doc_set_constraints` | Set internal constraints (local only). |
-| `gbc doc set-file <folder> <name> "<desc>"` | `doc_set_file` | Add / update a file entry (name without `/`). |
-| `gbc doc rm-entry <folder> <name>` | `doc_rm_entry` | Remove an entry (doesn't delete the on-disk file; left for git review). |
-| `gbc doc sync` | `doc_sync` | Deterministically repair parent/child drift. |
-| `gbc doc migrate` | `doc_migrate` | Upgrade all gbc.md to the latest format. |
+| `gbc intent show <folder>` | `intent_show` | View a folder's intent / constraints / entries. Root is `""` or `.`. |
+| `gbc intent check` | `intent_check` | Whole-tree consistency lint (DRIFT/ORPHAN are errors, STUB is a note). |
+| `gbc intent set-intent <folder> "<text>"` | `intent_set_intent` | Set intent (auto single-source projection into the parent entry). |
+| `gbc intent set-constraints <folder> "<text>"` | `intent_set_constraints` | Set internal constraints (local only). |
+| `gbc intent set-file <folder> <name> "<desc>"` | `intent_set_file` | Add / update a file entry (name without `/`). |
+| `gbc intent rm-entry <folder> <name>` | `intent_rm_entry` | Remove an entry (doesn't delete the on-disk file; left for git review). |
+| `gbc intent sync` | `intent_sync` | Deterministically repair parent/child drift. |
+| `gbc intent migrate` | `intent_migrate` | Upgrade all gbc.md to the latest format. |
 
 > When a `<text>` argument begins with `-`, put `--` before it so it isn't parsed as an option:
-> `gbc doc set-intent app -- "- a line starting with a dash"`.
+> `gbc intent set-intent app -- "- a line starting with a dash"`.
 
 **Writing intent changes human-held architecture truth.** Whether it needs human sign-off is set by
 your framework's rules / hooks, not gated by the tool. Never hand-edit gbc.md.
@@ -197,7 +230,8 @@ the start contract:
 
 - One MCP server instance = one project root. Multiple projects = multiple entries (different
   project-root args).
-- MCP now exposes **both subsystems**: the guarantee engine + intent documents (doc tools). The
+- MCP exposes the guarantee engine, project intent (`intent_*`), and the offline GBC manual
+  (`doc_list`, `doc_read`, `doc_search`). The
   human-confirmation gate for writing intent is carried by your framework, not by hiding the
   channel.
 - Path arguments are always **project-root-relative** posix paths (`gbc/app/core/maker.py`), not

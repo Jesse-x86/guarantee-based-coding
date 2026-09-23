@@ -5,9 +5,9 @@
 
 """保证:入口分发器(gbc.entry)整合后的命令树承诺。
 
-- 唯一入口暴露两子系统的表面 + 服务/辅助命令。
+- 唯一入口暴露各子系统的表面 + 服务/辅助命令。
 - gbc rules 输出双语规则文本,声明"非强制沙箱"。
-- gbc doc 经 intent 子系统合规读意图。
+- gbc intent 经 intent 子系统合规读意图。
 - gbc setup 输出本地化 AI 接入指南，含可解析的 MCP 模板与 CLI 备用入口。
 - 根 --help 根据 --lang / GBC_LANG 输出对应语言文本。
 """
@@ -36,11 +36,11 @@ def _isolate_language_preference(monkeypatch, tmp_path):
 
 
 def test_command_tree_has_all_commands():
-    """承诺:保证命令 + doc/mcp/editor/rules/setup 都在唯一入口下。"""
+    """承诺:保证命令 + intent/doc/mcp/editor/rules/setup 都在唯一入口下。"""
     result = runner.invoke(get_wrapped_app(), ["--help"])
     assert result.exit_code == 0
     for cmd in (
-        "guarantee", "verify", "doc", "mcp", "editor", "rules", "setup", "lang"
+        "guarantee", "verify", "intent", "doc", "mcp", "editor", "rules", "setup", "lang"
     ):
         assert cmd in result.output
 
@@ -189,15 +189,70 @@ def test_setup_prints_wiring_guide(lang):
     assert f'gbc tree show --project "{target}"' in out
 
 
-def test_doc_show_reads_intent(tmp_path):
-    """承诺:doc show 经 intent 子系统读出意图(用 --project 显式指定)。"""
+def test_intent_show_reads_intent(tmp_path):
+    """承诺:intent show 经 intent 子系统读出意图(用 --project 显式指定)。"""
     from gbc.app.intent import base
     gbc_root, _ = base.resolve_gbc(str(tmp_path))
     base.set_intent(gbc_root, "sub", "hello intent")
 
-    result = runner.invoke(get_wrapped_app(), ["doc", "show", "sub", "--project", str(tmp_path)])
+    result = runner.invoke(get_wrapped_app(), ["intent", "show", "sub", "--project", str(tmp_path)])
     assert result.exit_code == 0
     assert "hello intent" in result.output
+
+
+class TestIntentDocumentationSplit:
+    @pytest.mark.parametrize("extra,expected", [([], "zh"), (["--lang", "en"], "en")])
+    def test_documentation_language_uses_root_then_local_override(self, extra, expected):
+        result = _gbc("--lang", "zh", "doc", "list", *extra)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert json.loads(result.stdout)["language"] == expected
+
+    def test_intent_edits_and_all_eight_operations_are_available(self, tmp_path):
+        command = get_wrapped_app()
+        help_result = runner.invoke(command, ["intent", "--help"])
+        assert help_result.exit_code == 0, help_result.output
+        for name in ("show", "check", "set-intent", "set-constraints", "set-file",
+                     "rm-entry", "sync", "migrate"):
+            assert name in help_result.output
+        written = runner.invoke(command, ["intent", "set-intent", "sub", "CLI intent",
+                                          "-C", str(tmp_path)])
+        assert written.exit_code == 0, written.output
+        shown = runner.invoke(command, ["intent", "show", "sub", "-C", str(tmp_path)])
+        assert shown.exit_code == 0 and "CLI intent" in shown.output
+
+    @pytest.mark.parametrize("operation", [
+        "show", "check", "set-intent", "set-constraints", "set-file", "rm-entry", "sync", "migrate"
+    ])
+    def test_old_doc_operations_are_rejected_without_mutation(self, tmp_path, monkeypatch, operation):
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(get_wrapped_app(), ["doc", operation])
+        assert result.exit_code != 0
+        assert "No such command" in result.output
+        assert not (tmp_path / ".gbc").exists()
+
+    def test_queries_run_without_project_and_help_stays_short(self, tmp_path, monkeypatch):
+        from gbc.app.config import project
+
+        def forbidden():
+            pytest.fail("Bundled documentation must not resolve a project")
+        monkeypatch.setattr(project, "get_current_project", forbidden)
+        monkeypatch.chdir(tmp_path)
+        command = get_wrapped_app()
+        listed = runner.invoke(command, ["doc", "list", "--lang", "en"])
+        assert listed.exit_code == 0, listed.output
+        assert "quick-start" in listed.output and "reference" in listed.output
+        read = runner.invoke(command, ["doc", "read", "quick-start", "--lang", "en"])
+        assert read.exit_code == 0 and "gbc" in read.output.lower(), read.output
+        searched = runner.invoke(command, ["doc", "search", "gbc", "--lang", "en", "--limit", "1"])
+        assert searched.exit_code == 0, searched.output
+        assert "gbc" in searched.output.lower()
+        help_result = runner.invoke(command, ["doc", "--help"])
+        assert help_result.exit_code == 0, help_result.output
+        for operation in ("list", "read", "search"):
+            assert operation in help_result.output
+        assert len(help_result.output) < 5000
+        assert "cli.doc." not in help_result.output
+        assert not (tmp_path / ".gbc").exists()
 
 
 # ============================================================================

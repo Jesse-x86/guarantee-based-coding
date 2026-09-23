@@ -1,0 +1,3 @@
+include build_support.py
+include docs/en/quick-start.md docs/en/concepts.md docs/en/workflow.md docs/en/reference.md docs/en/onboarding-agent.md
+include docs/zh/quick-start.md docs/zh/concepts.md docs/zh/workflow.md docs/zh/reference.md docs/zh/onboarding-agent.md

@@ -1,10 +1,10 @@
 # 意图
-GBC 工具本体的可分发 Python 包(pip install 后经 [project.scripts] 暴露 gbc 命令)。entry.py 是唯一入口纯分发器，把 app/ 下两个子系统(保证引擎 interface + 意图文档 intent)的表面组合成命令树。工具仓自身只读无状态，一切可变状态落在目标项目的 .gbc/ 下。
+GBC 可分发 Python 包，pip 安装后提供 gbc。entry.py 是纯分发器，组合保证引擎、架构意图 intent、离线手册 doc 和服务入口。随包手册来自 docs/ 单一内容源，安装后独立于源码仓库；项目状态仍由目标项目 .gbc/ 持有。
 
 # 文件
 
 ## entry.py
-唯一入口 gbc 的纯分发器：组合保证命令、doc、mcp/editor、rules/setup 与用户语言偏好命令 gbc lang [zh|en|auto]。lang 无参数显示当前有效/持久状态；setup/rules/editor 的局部 --lang 仅明确传值时覆盖根 callback，避免空值把已选语言重置。
+gbc 单一入口，组合保证/tree/intent/doc 与 MCP/editor/rules/setup/lang。intent 管项目架构意图，doc 查离线手册；不保留旧意图 doc 别名；局部语言仅显式给出时覆盖根语言。
 
 ## app/
-GBC 工具本体的源代码根（充当 src 的源代码仓库），经 [project.scripts] 暴露 gbc 命令。下分保证引擎（interface + core + models + config + utils）与意图文档（intent）两个对称子系统，i18n 为横切支撑。工具仓自身只读无状态，一切可变状态落在目标项目的 .gbc/ 下。
+GBC 工具本体源代码根，经 [project.scripts] 暴露 gbc 命令。保证引擎（interface/core/models/config/utils）与项目架构意图（intent）分别维护可验证行为和职责约束；documentation 提供随版本分发的只读手册查询，i18n 为横切支撑。项目可变状态保存在目标项目 .gbc/，手册查询不依赖项目。

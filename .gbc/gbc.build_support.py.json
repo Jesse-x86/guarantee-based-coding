@@ -1,0 +1,14 @@
+{
+    "provides": {
+        "BuildPy.manual_resources": {
+            "desc": "Wheel build copies exactly the fixed English and Chinese canonical manual topics into package resources, reports their outputs, never creates a duplicate source tree, and refuses missing topics.",
+            "test": "tests/test_manual_packaging.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        }
+    },
+    "depends_on": []
+}

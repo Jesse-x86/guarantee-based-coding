@@ -34,7 +34,7 @@ top-level agent's default role.
 ## Two layers of contract
 
 - **Intent (gbc.md)** — the single source of truth for the architecture, the highest contract,
-  **held and approved by the human**; the agent drafts it. Change it through `gbc doc` (MCP doc
+  **held and approved by the human**; the agent drafts it. Change it through `gbc intent` (MCP intent
   tools / CLI), never by hand.
 - **Guarantee** — a **named behavioral promise** a module currently provides and others depend on.
   It may evolve, but the moment you intend to break one, tell every dependent so they fix in step.
@@ -48,7 +48,7 @@ top-level agent's default role.
 ### Phase 1: architecture (draft first; default requires explicit human approval before landing)
 
 On a new demand, take the **whole** `gbc.md` delta as a **draft** and check it with your human;
-land it through `gbc doc` only after **explicit approval**, then run `gbc doc check` for
+land it through `gbc intent` only after **explicit approval**, then run `gbc intent check` for
 consistency. **The landed `gbc.md` is the spec you implement against.**
 
 > The default install writes "intent needs confirmation" into the operating rules. If your human
@@ -111,7 +111,7 @@ contract. Cut these three drift baits:
   regression guard → rewrite as a positive `never X` constraint. The only legitimate past-reference
   is an **explicitly labeled historical note** (`historical fact` / `legacy-compat`).
 
-**Spec-first**: before dispatching a subagent / writing code, use `gbc doc` to write the intent and
+**Spec-first**: before dispatching a subagent / writing code, use `gbc intent` to write the intent and
 get it reviewed, then implement against the landed gbc.md. When creating a folder / file, **register
 its intent / `# 文件` entry first**, don't backfill after the code.
 
@@ -140,7 +140,7 @@ implementation from closing its contract loop. Configure framework enforcement (
 - **Every agent**: never hand-edit `gbc.md` or graph JSON; use GBC tools. Language/project-specific
   interface artifacts (a Python project may use `.pyi`) and guarantee tests are not mechanical graph
   metadata and stay with the implementer.
-- **Top-level agent**: maintains human-held intent through GBC doc tools, bounds task scope, reviews
+- **Top-level agent**: maintains human-held intent through GBC intent tools, bounds task scope, reviews
   new dependencies/guarantees, coordinates cross-scope breakage, and does final acceptance.
 - **Subagent**: reads intent without editing it, maintains required interface artifacts with the code,
   and owns the local contracts introduced by the implementation—register actual dependencies, reuse or create required guarantees, maintain
@@ -190,7 +190,7 @@ be a guarantee, or a happy-path fixture pretending to be a test. Fix that first.
 
 | Easy to hit | Do this instead |
 |---|---|
-| Hand-editing gbc.md or json under `.gbc/**` | gbc.md through `gbc doc`; deps / guarantees through GBC tools |
+| Hand-editing gbc.md or json under `.gbc/**` | gbc.md through `gbc intent`; deps / guarantees through GBC tools |
 | Jumping to code once the architecture is clear | Draft gbc.md → human approves (default) → then implement in topology order |
 | A subagent rewriting half the tree "while it's here" | The brief names the writable target file; everything else read-only |
 | Skipping the top-level verify because the subagent said green | Subagent self-verifies; the top-level still does final acceptance |

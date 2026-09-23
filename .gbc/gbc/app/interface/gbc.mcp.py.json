@@ -1,17 +1,26 @@
 {
     "provides": {
-        "mcp.doc_tools_exposed": {
-            "desc": "MCP 表面把意图文档能力也暴露成工具：读(doc_show/doc_check)与写(doc_set_intent/set_constraints/set_file/rm_entry/sync/migrate)对称可达，且真的调到 intent.base（经 MCP 写意图再读回内容落地）。写入的人类确认闸门由用户 agent 框架(hook/rules)承担，不在此层设阻——MCP 与 CLI 对称。",
-            "test": "tests/test_mcp_doc_tools.py",
+        "tree.context_tools": {
+            "desc": "MCP tree 保留默认浏览并转发目录、深度与仅目录参数；tree_for 接受多目标，文档返回纯文本，异常仍为统一 JSON error。",
+            "test": "tests/test_tree_interfaces.py::TestMcpTree",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
             "heavy": 0,
             "dependents": [],
             "disabled": false
         },
-        "tree.context_tools": {
-            "desc": "MCP tree 保留默认浏览并转发目录、深度与仅目录参数；tree_for 接受多目标，文档返回纯文本，异常仍为统一 JSON error。",
-            "test": "tests/test_tree_interfaces.py::TestMcpTree",
+        "mcp.intent_tools_exposed": {
+            "desc": "MCP exposes all eight intent_* editing/query tools, routes to intent.base, preserves real write/read/check behavior, and removes the old doc_* intent aliases.",
+            "test": "tests/test_mcp_doc_tools.py::TestIntentTools",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "mcp.documentation_queries": {
+            "desc": "Read-only bundled documentation MCP tools list/read/search work without a project; reads preserve plain Markdown, invalid requests return structured errors, and language overrides remain request-local.",
+            "test": "tests/test_mcp_doc_tools.py::TestDocumentationTools",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
             "heavy": 0,
@@ -36,6 +45,24 @@
             "symbol": "gbc/app/interface/base.py:render_tree_for",
             "guarantees": [
                 "render_tree_for.direct_contract_context"
+            ]
+        },
+        {
+            "symbol": "gbc/app/documentation/base.py:list_topics",
+            "guarantees": [
+                "manual_query.fixed_topics_and_search"
+            ]
+        },
+        {
+            "symbol": "gbc/app/documentation/base.py:read_topic",
+            "guarantees": [
+                "manual_query.fixed_topics_and_search"
+            ]
+        },
+        {
+            "symbol": "gbc/app/documentation/base.py:search_docs",
+            "guarantees": [
+                "manual_query.fixed_topics_and_search"
             ]
         }
     ]

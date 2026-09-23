@@ -17,4 +17,7 @@
 下属子目录（runner / scenarios / projects）随本目录一并废弃。
 
 ## gbc/
-GBC 工具本体的可分发 Python 包(pip install 后经 [project.scripts] 暴露 gbc 命令)。entry.py 是唯一入口纯分发器，把 app/ 下两个子系统(保证引擎 interface + 意图文档 intent)的表面组合成命令树。工具仓自身只读无状态，一切可变状态落在目标项目的 .gbc/ 下。
+GBC 可分发 Python 包，pip 安装后提供 gbc。entry.py 是纯分发器，组合保证引擎、架构意图 intent、离线手册 doc 和服务入口。随包手册来自 docs/ 单一内容源，安装后独立于源码仓库；项目状态仍由目标项目 .gbc/ 持有。
+
+## build_support.py
+setuptools 构建扩展：将 docs/en 与 docs/zh 五个手册主题复制到 wheel 的 gbc/assets/docs；源分发保留手册及构建支持，可独立重建 wheel。

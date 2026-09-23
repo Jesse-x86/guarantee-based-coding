@@ -14,7 +14,7 @@
 
 """意图文档(gbc.md)的 CLI 表面 —— 薄。
 
-`gbc doc <command>`。只做参数收集 → 调 intent.base → 渲染;不碰磁盘、不解析路径。
+`gbc intent <command>`。只做参数收集 → 调 intent.base → 渲染;不碰磁盘、不解析路径。
 """
 from typing import Optional
 
@@ -23,7 +23,7 @@ from rich.console import Console
 
 from gbc.app.intent import base
 
-doc_app = typer.Typer(help="cli.doc.help")
+intent_app = typer.Typer(help="cli.intent.help")
 console = Console()
 
 
@@ -37,8 +37,8 @@ def _gbc_root(project: Optional[str]):
     return gbc_root
 
 
-@doc_app.command("show")
-def doc_show(
+@intent_app.command("show")
+def intent_show(
     folder: str = typer.Argument("", help="项目相对文件夹路径，根用空串"),
     project: Optional[str] = typer.Option(None, "--project", "-C", help="目标项目根；省略则用当前项目"),
 ):
@@ -46,8 +46,8 @@ def doc_show(
     print(base.show(_gbc_root(project), folder))
 
 
-@doc_app.command("set-intent")
-def doc_set_intent(
+@intent_app.command("set-intent")
+def intent_set_intent(
     folder: str = typer.Argument(...),
     text: str = typer.Argument(...),
     project: Optional[str] = typer.Option(None, "--project", "-C"),
@@ -57,8 +57,8 @@ def doc_set_intent(
         console.print(f"[green]written:[/green] {p}")
 
 
-@doc_app.command("set-constraints")
-def doc_set_constraints(
+@intent_app.command("set-constraints")
+def intent_set_constraints(
     folder: str = typer.Argument(...),
     text: str = typer.Argument(...),
     project: Optional[str] = typer.Option(None, "--project", "-C"),
@@ -68,8 +68,8 @@ def doc_set_constraints(
         console.print(f"[green]written:[/green] {p}")
 
 
-@doc_app.command("set-file")
-def doc_set_file(
+@intent_app.command("set-file")
+def intent_set_file(
     folder: str = typer.Argument(...),
     name: str = typer.Argument(...),
     desc: str = typer.Argument(...),
@@ -80,8 +80,8 @@ def doc_set_file(
         console.print(f"[green]written:[/green] {p}")
 
 
-@doc_app.command("rm-entry")
-def doc_rm_entry(
+@intent_app.command("rm-entry")
+def intent_rm_entry(
     folder: str = typer.Argument(...),
     name: str = typer.Argument(...),
     project: Optional[str] = typer.Option(None, "--project", "-C"),
@@ -91,8 +91,8 @@ def doc_rm_entry(
         console.print(f"[green]written:[/green] {p}")
 
 
-@doc_app.command("check")
-def doc_check(project: Optional[str] = typer.Option(None, "--project", "-C")):
+@intent_app.command("check")
+def intent_check(project: Optional[str] = typer.Option(None, "--project", "-C")):
     """全树意图一致性体检（DRIFT/ORPHAN 为错误，STUB 为提示）。"""
     errors, notes = base.check(_gbc_root(project))
     for e in errors:
@@ -104,8 +104,8 @@ def doc_check(project: Optional[str] = typer.Option(None, "--project", "-C")):
     console.print("[green]✔ intent tree consistent[/green]")
 
 
-@doc_app.command("sync")
-def doc_sync(project: Optional[str] = typer.Option(None, "--project", "-C")):
+@intent_app.command("sync")
+def intent_sync(project: Optional[str] = typer.Option(None, "--project", "-C")):
     """确定性修复 DRIFT/ORPHAN：把子意图重投影到父条目。"""
     fixed = base.sync(_gbc_root(project))
     for f in fixed:
@@ -114,8 +114,8 @@ def doc_sync(project: Optional[str] = typer.Option(None, "--project", "-C")):
         console.print("[dim]nothing to sync[/dim]")
 
 
-@doc_app.command("migrate")
-def doc_migrate(project: Optional[str] = typer.Option(None, "--project", "-C")):
+@intent_app.command("migrate")
+def intent_migrate(project: Optional[str] = typer.Option(None, "--project", "-C")):
     """把所有 gbc.md 升级到最新格式。"""
     changed = base.migrate(_gbc_root(project))
     for c in changed:

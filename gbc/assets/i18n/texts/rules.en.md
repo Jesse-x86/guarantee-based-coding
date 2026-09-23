@@ -17,7 +17,7 @@ If this philosophy fits your project, adopt the following rules in your agent in
 (or enforce them through your framework):
 
 1. **No agent hand-edits GBC-managed graph or intent files.** Change `gbc.md`
-   only through the gbc doc entry point (MCP doc tools / CLI), and change dependency / guarantee JSON only through
+   only through the gbc intent entry point (MCP intent tools / CLI), and change dependency / guarantee JSON only through
    GBC's MCP or CLI tools. Parent-child projection, bidirectional edges, and
    born-green checks are deterministic constraints; bypassing the tools makes them drift.
    The implementer maintains any language/project-specific interface artifact and guarantee tests
@@ -36,7 +36,7 @@ If this philosophy fits your project, adopt the following rules in your agent in
    or disabling guarantees, cross-file renames, and refactors—to the top-level agent.
    But `gbc.md` is only a **snapshot of the current state, not a sacred text**: if it
    seems wrong or starts blocking reasonable architectural evolution, draft the delta →
-   get human sign-off → commit it through gbc doc. That is legitimate evolution, not
+   get human sign-off → commit it through gbc intent. That is legitimate evolution, not
    a violation. Don't pile responsibilities into an existing file just because you're
    afraid to change `gbc.md`—a god file is the drift-guard mechanism turned upside down.
 

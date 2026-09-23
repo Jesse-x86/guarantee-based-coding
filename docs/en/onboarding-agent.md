@@ -43,8 +43,10 @@ gbc mcp up <absolute path to the working project root>
 ```
 
 Register it however your framework adds MCP servers (for Claude Code, a `.mcp.json` in the project
-root). Reconnect / restart afterward and the tools appear. MCP exposes **both subsystems**: the
-guarantee engine + intent documents (`doc_*` tools).
+root). Reconnect / restart afterward and the tools appear. MCP exposes the
+guarantee engine + intent documents (`intent_*` tools), plus the offline manual
+(`doc_list` / `doc_read` / `doc_search`). Read `gbc doc read onboarding-agent --lang en` when
+you need this guide from an installed package; use `gbc intent` to manage project architecture.
 
 ### Path B — Skills
 
@@ -92,7 +94,7 @@ right now, would a test actually go red?"** If no, fix that first.
 ## ⑤ Hierarchy and authority: stay within your scope
 
 - **Top-level agent (architect / lead)**: you lead the intent. Draft `gbc.md` changes through
-  `gbc doc` (MCP doc tools / CLI) — never hand-edit — bound each subtask, review the local
+  `gbc intent` (MCP intent tools / CLI) — never hand-edit — bound each subtask, review the local
   contracts it registers, and do the final integration check after subtasks return.
 - **Subagent (task worker)**: a focused implementer. It reads `gbc.md` without changing intent,
   maintains any interface artifact required by that language/project (a Python project may use

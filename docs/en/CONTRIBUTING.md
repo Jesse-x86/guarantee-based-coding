@@ -48,7 +48,7 @@ Follow this project's `.gbc` intent docs.
 
 Core rhythm:
 1. **Plan** — read relevant `.gbc/**/gbc.md` to understand the change's impact radius
-2. **Intent first** — requirement → draft gbc.md changes → human approval → `gbc doc` commit
+2. **Intent first** — requirement → draft gbc.md changes → human approval → `gbc intent` commit
 3. **Implement** — write code → write narrow tests → `gbc guarantee create` → `gbc verify`
 4. **Verify** — top-level `gbc verify` on all affected guarantees
 

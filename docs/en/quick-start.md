@@ -34,6 +34,11 @@ gbc lang auto   # restore automatic selection (follows the system locale)
 
 Without an explicit preference, GBC follows the system locale and falls back to English.
 
+Starting in 0.3.0, the installed package includes an offline manual, available from any directory:
+`gbc doc list --lang en`, `gbc doc read quick-start --lang en`, and
+`gbc doc search "guarantee" --lang en`. `--help` provides short command syntax; project intent
+uses `gbc intent`, with no aliases for the old intent commands.
+
 > **`pipx` is recommended** ([installation guide](https://pipx.pypa.io/stable/installation/)): GBC is a standalone CLI tool (like `black` / `ruff`) — you want it
 > installed once and usable everywhere, not polluting the Python environment of whatever project
 > you're working on. You can still use `pip install guarantee-based-coding` (into your current
@@ -58,9 +63,9 @@ The sections below explain what the two wiring paths look like under the hood, f
 
 ### Path A — MCP (recommended when your agent speaks MCP)
 
-GBC ships a stdio MCP server exposing **both subsystems**: the guarantee engine (guarantee / dep /
-verify / refactor / tree / consistency / executor) **and** the intent documents (doc show / check /
-set-* / sync / migrate).
+GBC ships a stdio MCP server exposing the guarantee engine (guarantee / dep /
+verify / refactor / tree / consistency / executor), project intent (`intent_*`), and the offline
+manual (`doc_list` / `doc_read` / `doc_search`).
 
 The start command is:
 

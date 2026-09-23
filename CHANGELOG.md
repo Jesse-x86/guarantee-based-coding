@@ -2,6 +2,39 @@
 
 > 中文 / English
 
+## 0.3.0 (Unreleased)
+
+当前仓库已实现以下改动，尚未发布至 PyPI。
+The following changes are implemented in this checkout and are not yet published to PyPI.
+
+### 不兼容变更 / Breaking changes
+
+- 项目架构意图从 `gbc doc` 改为 `gbc intent`，八个 MCP 意图工具从 `doc_*` 改为 `intent_*`；不保留旧兼容别名。请更新脚本与 agent 指令。
+  Project intent moves from `gbc doc` to `gbc intent`; the eight MCP intent tools move from `doc_*` to `intent_*`, without compatibility aliases. Update scripts and agent instructions.
+- CLI 全树渲染改用 `gbc tree show`；`gbc tree` 仅显示浏览帮助。MCP `tree()` 无参数仍可渲染全树。
+  CLI tree rendering uses `gbc tree show`; `gbc tree` displays browsing help. MCP `tree()` still renders the full tree without arguments.
+
+### 新增 / Added
+
+- `tree show` 支持目录与深度；`tree folders` 浏览目录意图和约束；`tree for` 合并目标文件的修改上下文，对应 MCP `tree` 与 `tree_for`。
+  Folder/depth browsing in `tree show`, intent/constraint browsing in `tree folders`, and combined modification context in `tree for`, exposed through MCP `tree` and `tree_for`.
+- `gbc doc list/read/search` 与 MCP `doc_list/doc_read/doc_search` 离线查询随版本附带的中英文手册：quick-start、concepts、workflow、reference、onboarding-agent。`--help` 继续负责简短语法。
+  Offline versioned English/Chinese manuals through `gbc doc list/read/search` and MCP `doc_list/doc_read/doc_search`, with five fixed topics. `--help` remains short syntax help.
+- 手册以 `docs/` 为单源，构建时收入包资源；支持从 sdist 构建 wheel，安装后无需仓库或目标项目。
+  Manuals have a single source in `docs/`, copied into package resources during builds, including wheels built from sdists; installed queries need no checkout or target project.
+
+## 0.2.3 (2026-09-23)
+
+本版本保持 0.2.2 的命令结构，`gbc tree` 与 `gbc doc` 不改名。
+This release preserves the 0.2.2 command structure; `gbc tree` and `gbc doc` retain their names.
+
+### 修复 / Fixed
+
+- 同一 consumer 的多个 symbol 依赖同一 provider 的同一保证时，删除其中一条依赖仍保留其余依赖所需的反向记录和保证退休保护。
+  When multiple symbols in one consumer depend on the same guarantee from the same provider, removing one dependency preserves the reverse record and guarantee retirement protection required by the remaining dependencies.
+- `gbc verify single`、`gbc verify provider` 验证失败，以及 `gbc doctor check` 发现一致性错误时，CLI 返回非零退出码。
+  The CLI now returns a nonzero exit code when `gbc verify single` or `gbc verify provider` fails, or when `gbc doctor check` finds consistency errors.
+
 ## 0.2.2
 
 ### 新增 / Added
