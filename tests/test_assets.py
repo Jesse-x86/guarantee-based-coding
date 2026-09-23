@@ -13,6 +13,7 @@
 定位方式变了、资源被挪走却忘了改常量,此测试立即飘红。
 """
 from pathlib import Path
+import re
 import runpy
 
 from gbc.app import assets
@@ -62,6 +63,29 @@ def test_manual_location_is_package_first_and_checkout_anchored(tmp_path, monkey
 def test_setup_text_present():
     """承诺:texts 目录含 setup 接线指南(gbc setup 的资源)。"""
     assert (assets.I18N_TEXTS_DIR / "setup.en.md").is_file()
+
+
+def test_shipped_skills_are_discoverable_and_links_resolve():
+    """技能入口可发现,随附说明的本地文件链接不会指向遗漏的资源。"""
+    skills = assets.SKILLS_DIR
+    for name in ("gbc-cli", "gbc-workflow"):
+        entry = skills / name / "SKILL.md"
+        content = entry.read_text(encoding="utf-8")
+        opening, frontmatter, body = content.split("---", 2)
+        assert not opening.strip()
+        fields = dict(line.split(":", 1) for line in frontmatter.strip().splitlines())
+        assert fields["name"].strip() == name
+        assert fields["description"].strip()
+        assert body.strip()
+
+    for document in skills.rglob("*.md"):
+        content = document.read_text(encoding="utf-8")
+        for target in re.findall(r"\[[^\]\n]+\]\(([^)\s]+)\)", content):
+            if target.startswith("#") or "://" in target:
+                continue
+            linked = (document.parent / target.split("#", 1)[0]).resolve()
+            assert linked.is_relative_to(skills.resolve()), (document, target)
+            assert linked.is_file(), (document, target)
 
 
 def test_catalog_has_default_lang():

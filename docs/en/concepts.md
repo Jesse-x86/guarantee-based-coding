@@ -91,8 +91,10 @@ against the past — phase words, roadmaps, and migration narratives are drift b
   reports DRIFT / ORPHAN, `intent sync` repairs).
 - **The only compliant entry**: `gbc intent` (CLI / MCP intent tools). Never hand-edit — hand-editing
   drifts the deterministic constraint, downgrading "verifiable truth" to "best-effort habit".
-- **Spec-first**: draft the intent, get human sign-off, commit it, then implement against the
-  written gbc.md.
+- **Spec-first**: investigate the relevant evidence first. If existing intent covers the task,
+  use it; if it must change, draft the delta, obtain the approval required by the project's rules,
+  and land it before implementation. See [workflow.md](./workflow.md) and the **gbc-workflow** skill
+  for consequential questions, vocabulary reuse, and preserving decision reasons with MCP or CLI.
 
 ### How it relates to the guarantee layer
 
@@ -145,6 +147,8 @@ Whichever surface you swap in — CLI / MCP / a future GUI — these engine-leve
   `depends_on` (as consumer).
 - **Born-green**: on create / test change the test runs on the spot, and registration is refused
   if it fails — the one integrity invariant, with no backdoor.
+  Passing this gate does not establish defect sensitivity; the test must protect the consumer's
+  actual behavior, including exact values when contractual (see [workflow.md](./workflow.md#narrow-test-rule)).
 - **Retirement protection**: a guarantee with dependents refuses deletion.
 - **Binary gate**: a test that ran is pass or fail; one that was skipped (heavy) is reported loudly
   but never turns the gate red. Green = no failures.

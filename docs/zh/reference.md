@@ -5,8 +5,9 @@
 命令 / 工具速查、executor 配置、跨平台接入细节。上手见 [quick-start.md](./quick-start.md)，
 工作流见 [workflow.md](./workflow.md)。
 
-GBC 的每项能力都有三种等价形态：**CLI**（`gbc ...`）、**MCP 工具**（agent 调用）、以及
-**gbc-cli skill**。下表以 CLI 为主，标注对应的 MCP 工具名。
+GBC 能力可经 **CLI**（`gbc ...`）和 **MCP 工具**调用。**gbc-cli** skill 负责 shell 命令
+适配；**gbc-workflow** 指导意图、行为测试及术语 / 决策复用，适用于两种入口，详见
+[workflow.md](./workflow.md)。下表以 CLI 为主，标注对应的 MCP 工具名。
 
 若 `gbc` 不在 PATH 上，任何 `gbc` 都可换成 `python -m gbc.entry`。
 

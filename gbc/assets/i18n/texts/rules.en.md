@@ -58,8 +58,15 @@ If this philosophy fits your project, adopt the following rules in your agent in
    **"If the behavior I care about broke right now, would a test actually go red?"**
    If not, write a test that can go red—or don't register.
 
-7. **Communicate with the human often and report as you go.** Report after each step;
-   ask when unsure. Don't hold everything back until it feels "perfect"—that usually
-   means things that should have been said earlier weren't, and it tends to produce
-   plenty of tests nobody cares about. When it comes to GBC matters, more communication
-   is better.
+7. **Investigate first and communicate consequential findings.** Read existing intent,
+   terminology, decisions, and relevant code/tests before drafting a change. Ask when an
+   unresolved choice materially affects behavior, scope, compatibility, authority, or a
+   costly-to-reverse decision and evidence cannot settle it. Reuse existing authorization;
+   retain the project's approval requirement for new intent changes. Report meaningful
+   progress and actual blockers rather than every tool step.
+
+Use the bundled **gbc-workflow** skill with MCP or CLI for the detailed workflow; **gbc-cli**
+is the CLI command adapter. A meaningful test protects the consumer's actual promise,
+including exact values when contractual; born-green alone does not establish defect
+sensitivity. Reuse vocabulary and preserve material decision reasons in existing project
+documents, without requiring a new context file or copying history into `gbc.md`.

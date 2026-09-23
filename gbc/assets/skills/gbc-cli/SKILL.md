@@ -10,6 +10,10 @@ is a named behavior a file promises, backed by a test. Change code → re-run th
 guarantees → green means every dependent's promise still holds. This skill tells you which `gbc`
 commands realize those abilities, so you can use GBC without an MCP connection.
 
+For intent planning, guarantee quality or domain terminology decisions, use the
+sibling [gbc-workflow skill](../gbc-workflow/SKILL.md). It works with both MCP and
+CLI; this skill provides the command mapping.
+
 Everything here is a plain shell command. If `gbc` is not on PATH, substitute
 `python -m gbc.entry` for `gbc` (same subcommands).
 

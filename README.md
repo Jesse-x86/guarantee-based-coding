@@ -43,9 +43,13 @@ English docs: [docs/en/](./docs/en/)。
 安装后也能离线查询同版本手册：`gbc doc list --lang zh`、`gbc doc read quick-start --lang zh`、
 `gbc doc search "保证" --lang zh`。`--help` 仍用于查简短命令语法。
 
-当前仓库包含 **0.3.0 开发中的改动，尚未发布**；0.2.3 已发布。
+**0.4.0** 在 0.3.0 的命令职责与离线手册基础上，完善意图起草、保证测试和术语 / 决策复用工作流。
 0.3.0 中项目架构意图入口由 `gbc doc` 改为 `gbc intent`，MCP 的八个意图工具由 `doc_*`
 改为 `intent_*`，不保留旧别名。此后的 `gbc doc` 专门查询 GBC 手册。
+
+0.4.0 增加可配合 MCP 或 CLI 使用的 **gbc-workflow** skill：先查证据再起草意图、保护消费者
+行为的保证测试，以及术语与决策理由复用。**gbc-cli** 保留为命令适配器；用 `gbc setup` 查询
+随包路径，按客户端需要在项目内接入，不自动全局安装。详见[工作流](./docs/zh/workflow.md)。
 
 ---
 
@@ -75,7 +79,7 @@ GBC 目前是一个可用的 Python 分发包（`pipx install guarantee-based-co
 - ✅ 多语言 executor 配置
 - ✅ CLI + MCP 双接口（含意图文档 `gbc intent` 全进 MCP）
 - ✅ 意图文档子系统（`gbc intent` / web 编辑器）
-- ✅ 随包分发的接线指南（`gbc setup`）与 CLI-only agent 的 skill 包
+- ✅ 随包接线指南（`gbc setup`）、通用于 MCP / CLI 的工作流 skill 与 CLI 命令适配 skill
 - ✅ 原子文件写入 + 备份
 
 

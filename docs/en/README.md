@@ -46,9 +46,15 @@ Installed GBC also includes an offline manual for that version: `gbc doc list --
 `gbc doc read quick-start --lang en`, and `gbc doc search "guarantee" --lang en`.
 `--help` continues to provide short command syntax.
 
-This checkout includes **0.3.0 development changes, not yet released**; 0.2.3 is published.
+**0.4.0** builds on 0.3.0's command organization and offline manuals with improved intent drafting,
+guarantee tests, and vocabulary/decision reuse.
 In 0.3.0, project intent moves from `gbc doc` to `gbc intent`, and the eight intent MCP tools
 move from `doc_*` to `intent_*`, without compatibility aliases. `gbc doc` now queries the GBC manual.
+
+0.4.0 adds **gbc-workflow** for either MCP or CLI: evidence-first intent drafting, guarantees that
+protect consumer behavior, and vocabulary/decision reuse. **gbc-cli** remains the command adapter.
+Use `gbc setup` to locate bundled files and integrate at project level when your client needs it;
+no automatic global installation. See [workflow.md](./workflow.md).
 
 ---
 
@@ -83,7 +89,7 @@ its own `.gbc/` with GBC (dogfooding):
 - ✅ Language-agnostic executor config
 - ✅ CLI + MCP dual interface (intent docs `gbc intent` fully exposed over MCP)
 - ✅ Intent-document subsystem (`gbc intent` / web editor)
-- ✅ Bundled wiring guide (`gbc setup`) and a skill pack for CLI-only agents
+- ✅ Bundled wiring guide (`gbc setup`), workflow skill for MCP / CLI, and CLI command adapter skill
 - ✅ Atomic file writes + backups
 
 

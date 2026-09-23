@@ -81,7 +81,9 @@ GBC 用两层契约锁定变更影响：
   `gbc intent` 工具维护（`intent check` 报 DRIFT / ORPHAN，`intent sync` 修复）。
 - **唯一合规入口**：`gbc intent`（CLI / MCP intent 工具）。绝不手编——手编 = 让确定性约束漂移，
   把「可校验的真」降级成「靠自觉的假」。
-- **spec-first**：先起草意图、送人类审批、落库，再对着已写好的 gbc.md 实现。
+- **spec-first**：先调查相关证据。现有意图覆盖任务时直接沿用；确需改变时，起草增量、按项目
+  规则取得批准并落库后实现。实质问题、术语复用和决策理由的处理见 [workflow.md](./workflow.md)
+  及 **gbc-workflow** skill，MCP / CLI 均可使用。
 
 ### 它和保证层的关系
 
@@ -125,6 +127,8 @@ GBC 用两层契约锁定变更影响：
   （作 consumer）。
 - **出生即绿（born-green）**：create / 改测试时当场跑，不过则拒绝登记——唯一的完整性不变量，
   没有后门。
+  通过门禁不代表测试具有缺陷辨识力；测试仍须保护消费者实际依赖的行为，包括属于契约的精确值
+  （见 [workflow.md](./workflow.md#窄测试准则)）。
 - **退休保护**：仍有 dependents 的保证拒绝删除。
 - **门禁二元**：跑了的测试只有过 / 挂；没跑的（heavy 跳过）响亮报告但不染红。green = 无
   failed。

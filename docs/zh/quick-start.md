@@ -87,11 +87,12 @@ gbc mcp up <你项目根的绝对路径>
 
 跨平台细节（WSL 调 Windows Python 等）见 [reference.md](./reference.md)。
 
-### 路径 B — Skills（不用 MCP、或 MCP 不方便时）
+### 路径 B — CLI（不用 MCP、或 MCP 不方便时）
 
-因为 GBC 的每项能力同时是一条 `gbc ...` 命令，一个能跑 shell 的 agent 可以通过一套**随包分发的
-skill** 使用 GBC。`gbc setup` 会打印这些 skill 文件的绝对路径；把它们拷到你的 agent 发现 skill
-的位置即可（每个框架读 skill 的位置不同——GBC 把文件准备好，放到哪由你决定）。
+因为 GBC 的每项能力同时是一条 `gbc ...` 命令，能跑 shell 的 agent 可用随包的 **gbc-cli**
+命令适配器。独立的 **gbc-workflow** skill 指导意图起草、行为测试及术语 / 决策复用，
+**MCP 和 CLI 均可使用**。`gbc setup` 会打印 skill 目录，可直接阅读；需要接入时遵循客户端
+项目级发现约定，不自动全局安装。
 
 ---
 

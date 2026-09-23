@@ -79,8 +79,9 @@ what it can actually catch, and a handful of moves quietly turn it into theater.
 worth carrying from day one, because they fail **silently** (full trap list in
 [workflow.md](./workflow.md#a-few-traps-that-fail-silently)):
 
-- **A guarantee test must be able to go red**: a fixture that only walks the happy path stays green
-  even after the behavior breaks = guarding nothing.
+- **A guarantee test must detect its target defect**: exercise the consumer's actual promise;
+  weak assertions or a mock replacing the protected behavior can hide a regression. See the
+  [narrow-test rule](./workflow.md#narrow-test-rule); exact values are appropriate when contractual.
 - **Promote the behavior you actually depend on**: non-null / non-empty / raises-on-X / ordering /
   idempotence are behavior, not signature, and a free symbol dependency has no test guarding them.
 - **When a guarantee goes red, restore it or announce it — never loosen the test**: relaxing /
@@ -92,6 +93,11 @@ right now, would a test actually go red?"** If no, fix that first.
 ---
 
 ## ⑤ Hierarchy and authority: stay within your scope
+
+Use the bundled **gbc-workflow** skill with either MCP or CLI for evidence-first intent drafting,
+consequential questions, meaningful behavior tests, and vocabulary/decision reuse. **gbc-cli** is
+the CLI command adapter. `gbc setup` prints their directory; do not automatically install skills
+globally. Existing project approval rules and authorization remain in force.
 
 - **Top-level agent (architect / lead)**: you lead the intent. Draft `gbc.md` changes through
   `gbc intent` (MCP intent tools / CLI) — never hand-edit — bound each subtask, review the local

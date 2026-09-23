@@ -96,12 +96,13 @@ Register it as an MCP server. For Claude Code, drop a `.mcp.json` in the project
 
 Cross-platform details (WSL calling Windows Python, etc.) are in [reference.md](./reference.md).
 
-### Path B — Skills (when you don't use MCP, or MCP is inconvenient)
+### Path B — CLI (when you don't use MCP, or MCP is inconvenient)
 
 Because every GBC ability is also a `gbc ...` command, an agent that can run shell commands can use
-GBC through a set of **bundled skills**. `gbc setup` prints the absolute path to those skill files;
-copy them into wherever your agent discovers skills (every framework reads skills from a different
-place — GBC materializes the files, you place them).
+GBC using **gbc-cli**, the bundled command adapter. The separate **gbc-workflow** skill guides
+intent drafting, behavior tests, and vocabulary/decision reuse with **either MCP or CLI**.
+`gbc setup` prints the skill directory. Read the relevant skill there, or use your client's
+project-level discovery convention if integration is needed; do not automatically install globally.
 
 ---
 

@@ -2,10 +2,21 @@
 
 > 中文 / English
 
-## 0.3.0 (Unreleased)
+## 0.4.0 (2026-09-23)
 
-当前仓库已实现以下改动，尚未发布至 PyPI。
-The following changes are implemented in this checkout and are not yet published to PyPI.
+### 新增与调整 / Added and changed
+
+- 新增 `gbc-workflow` skill，通用于 MCP / CLI：先调查证据再起草意图，只询问实质未决选择；按消费者行为设计窄测试；复用术语与重要决策理由。`gbc-cli` 保留为命令适配器。
+  Added the transport-neutral `gbc-workflow` skill for evidence-first intent drafting, consequential questions, consumer behavior tests, and vocabulary/decision reuse; `gbc-cli` remains the command adapter.
+- 中英文手册及接入 / 规则指南同步：精确值属于契约时应精确断言；区分目标缺陷辨识力、mock 自证与环境故障；保留现有审批权限、免费符号依赖和 born-green，不强制所有测试先红或新增 ADR / CONTEXT 文件。
+  Updated bilingual manuals and setup/rules guidance: assert exact values when contractual, distinguish defect sensitivity from mock-only or environment failures, and preserve existing authority, free symbol dependencies, and born-green without mandatory red-first or new ADR / CONTEXT files.
+- 选择性借鉴 Matt Pocock 的 grilling / tdd / domain-modeling，来源和 GBC 的调整边界见工作流文档；不新增外部运行依赖、命令、手册主题或数据协议。
+  Selectively adapted ideas from Matt Pocock's grilling / tdd / domain-modeling; attribution and GBC-specific boundaries are in the workflow manual. No new external runtime dependencies, commands, manual topics, or data schema.
+
+验证证据与限制见 [0.4.0 validation](docs/development/0.4.0-validation.md)。
+Validation evidence and limitations are recorded in [0.4.0 validation](docs/development/0.4.0-validation.md).
+
+## 0.3.0 (2026-09-23)
 
 ### 不兼容变更 / Breaking changes
 

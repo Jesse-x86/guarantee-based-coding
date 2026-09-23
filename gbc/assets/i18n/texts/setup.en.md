@@ -62,9 +62,11 @@ correct binding. If the client exposes no effective arguments and the project
 has no distinguishable content, report that target binding remains unverified;
 do not write test data and call that read-only verification.
 
-## 4. Use CLI / skills without MCP
+## 4. Choose workflow guidance and a transport
 
-CLI exposes the same abilities. Learn the commands directly from the bundled skills:
+The **gbc-workflow** skill guides intent drafting, behavior tests, and vocabulary/decision reuse
+with **either MCP or CLI**. Without MCP, **gbc-cli** supplies the equivalent shell commands.
+The bundled skill directory is:
 
 ```
 {skills_dir}
