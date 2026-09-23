@@ -22,7 +22,10 @@ If `gbc` is not on PATH, any `gbc` can be replaced with `python -m gbc.entry`.
 | `gbc lang [zh\|en\|auto]` | View or set the persistent user language preference. With no argument, shows the preference and effective language; `auto` clears the explicit preference and restores automatic selection. |
 | `gbc setup` | Print a localized wiring guide: how to connect MCP / skills to your agent. A trailing `--lang zh/en` overrides the language for this invocation only. |
 | `gbc rules` | Print the author's recommended guardrails (recommended defaults, not an enforced sandbox). A trailing `--lang zh/en` overrides the language for this invocation only. |
-| `gbc tree` | Render the whole `.gbc` dependency tree. `--detail` expands guarantee details, `--gaps` appends registration gaps. |
+| `gbc tree` | Show browsing-command help and exit successfully. |
+| `gbc tree show [folder]` | Render the whole `.gbc` dependency tree when the folder is omitted, or browse a selected subtree. Supports `--depth N`; `--detail` expands guarantee details, and `--gaps` appends registration gaps. |
+| `gbc tree folders [folder]` | Show only folder intent and internal constraints; supports `--depth N`. Fall back to the parent's entry when a child has no document, and deduplicate parent/child projections of the same folder. |
+| `gbc tree for <file>...` | Combine modification context for target files: file entries, all ancestor intent and constraints, direct dependency symbols and named guarantees, and guarantees provided by the targets with their consumers. |
 | `gbc doctor check` | Global consistency lint: dangling refs + two-way edge drift + disabled guarantees (reported loudly). |
 
 For normal use, run `gbc lang zh` or `gbc lang en` once; use the trailing `--lang` on `setup` or
@@ -32,6 +35,29 @@ By default, GBC selects the project root in this order: `GBC_PROJECT_ROOT` > cur
 directory (cwd). It does **not** search parent directories. Where supported, append
 `--project <project-root>` or `-C <project-root>` to an engine leaf command to override it, for
 example `gbc doctor check -C /path/to/project`.
+
+### Tree browsing and modification context
+
+Migrate the old CLI tree-rendering call to `gbc tree show`; group-level `gbc tree --detail` / `--gaps` now fail with a migration hint, so use `gbc tree show --detail` / `--gaps`. The MCP `tree` tool still returns the tree with no arguments.
+
+Folder and file paths are relative to the project root; paths outside the project are rejected.
+The selected folder is depth 0, and `--depth 1` shows its immediate children. Omit the depth
+for an unlimited view; collapse markers indicate content hidden by the depth limit.
+
+```sh
+gbc tree show gbc --depth 1 --detail -C /path/to/project
+gbc tree folders gbc --depth 2 -C /path/to/project
+gbc tree for gbc/entry.py gbc/app/interface/cli.py -C /path/to/project
+```
+
+`tree for` requires file targets and does not accept browsing options such as `--depth`,
+`--detail`, or `--gaps`. It deduplicates shared context while retaining target associations,
+including guarantee test references and disabled status. Dependencies expand only one hop;
+it does not read source code, test contents, or `AGENTS.md`, and does not run tests.
+
+MCP equivalents: `tree(detail=False, gaps=False, folder="", depth=None, folders_only=False)`
+for browsing (`folders_only=True` corresponds to `tree folders`), and `tree_for(files=[...])`
+for modification context.
 
 ---
 

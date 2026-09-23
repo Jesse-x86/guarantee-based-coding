@@ -75,8 +75,11 @@ reported loudly but does **not** turn the gate red. Green = no failures.
 
 | Command | What it does |
 |---------|--------------|
-| `gbc tree` | Render the whole `.gbc` tree as one AI-readable dependency document (intent backbone + dependency edges + provided guarantees). Add `--detail` for guarantee desc/test/heavy, `--gaps` for registration gaps. **Start here for a whole-project overview.** |
+| `gbc tree` | Show browsing-command help and exit successfully. |
+| `gbc tree show [folder]` | Omit the folder to render the whole `.gbc` tree as one AI-readable dependency document (intent backbone + dependency edges + provided guarantees). Add `--detail` for guarantee desc/test/heavy, `--gaps` for registration gaps. Provide a folder to browse a subtree; add `--depth N` to limit depth. **Start here for a whole-project overview.** |
 | `gbc doctor check` | Global consistency lint: dangling references, two-way edge drift, and disabled guarantees (reported loudly, not as errors). |
+
+Use `gbc tree show` for the old CLI tree-rendering call. Group-level `gbc tree --detail` / `--gaps` now fail with a migration hint; use `gbc tree show --detail` / `--gaps`. The MCP `tree` tool still returns the tree with no arguments.
 
 ---
 

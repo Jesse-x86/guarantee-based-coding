@@ -21,7 +21,10 @@ GBC 的每项能力都有三种等价形态：**CLI**（`gbc ...`）、**MCP 工
 | `gbc lang [zh\|en\|auto]` | 查看或设置用户级持久语言偏好；省略参数显示当前偏好与实际语言，`auto` 清除显式偏好并恢复自动选择。日常使用建议只设置一次。 |
 | `gbc setup` | 打印本地化接线指南：怎么把 MCP / skills 接入你的 agent。末尾的 `--lang zh/en` 仅覆盖本次调用。 |
 | `gbc rules` | 打印作者推荐的围栏规则集（推荐默认，非强制沙箱）。末尾的 `--lang zh/en` 仅覆盖本次调用。 |
-| `gbc tree` | 渲染整棵 `.gbc` 依赖树。`--detail` 展开保证详情，`--gaps` 附登记缺口。 |
+| `gbc tree` | 显示浏览命令帮助并成功退出。 |
+| `gbc tree show [目录]` | 省略目录时渲染整棵 `.gbc` 依赖树，否则浏览指定子树；支持 `--depth N`，`--detail` 展开保证详情，`--gaps` 附登记缺口。 |
+| `gbc tree folders [目录]` | 仅显示目录意图与内部约束；支持 `--depth N`。子目录没有文档时回退到父文档条目，同一目录的父子投影去重。 |
+| `gbc tree for <文件>...` | 合并多个目标文件的修改上下文：文件条目、全部祖先意图与约束、直接依赖符号与具名保证、目标提供的保证及其消费者。 |
 | `gbc doctor check` | 全局一致性体检：悬空引用 + 双向边漂移 + 停用保证（响亮报出）。 |
 
 日常使用先运行一次 `gbc lang zh` 或 `gbc lang en`；只有临时切换 `setup` / `rules` 输出时才使用末尾的 `--lang`。
@@ -31,6 +34,26 @@ GBC 的每项能力都有三种等价形态：**CLI**（`gbc ...`）、**MCP 工
 保证引擎的叶命令（`guarantee`、`dep`、`verify`、`refactor`、`tree`、`doctor`、`executor`）默认按
 `GBC_PROJECT_ROOT` > 当前工作目录（cwd）选择项目根，不会向父目录搜索。可在具体叶命令末尾用
 `--project <项目根>` 或 `-C <项目根>` 显式覆盖，例如 `gbc doctor check -C /path/to/project`。
+
+### Tree 浏览与修改上下文
+
+原先渲染全树的 CLI 调用改用 `gbc tree show`；组级 `gbc tree --detail` / `--gaps` 现在报错并提示迁移，应改用 `gbc tree show --detail` / `--gaps`。MCP 的 `tree` 工具无参数时仍返回依赖树。
+
+目录和文件路径相对于项目根，越界路径会被拒绝。浏览时，所选目录为深度 0，
+`--depth 1` 显示直接孩子；省略深度则不限制，并用折叠标记提示被深度限制隐藏的内容。
+
+```sh
+gbc tree show gbc --depth 1 --detail -C /path/to/project
+gbc tree folders gbc --depth 2 -C /path/to/project
+gbc tree for gbc/entry.py gbc/app/interface/cli.py -C /path/to/project
+```
+
+`tree for` 的目标必须是文件，不接受 `--depth`、`--detail`、`--gaps` 等浏览选项。
+输出合并去重并保留与各目标的关联，包含保证的测试引用和停用状态；依赖只展开一层，
+不读取源码、测试内容或 `AGENTS.md`，也不运行测试。
+
+对应 MCP：`tree(detail=False, gaps=False, folder="", depth=None, folders_only=False)`
+用于浏览（`folders_only=True` 对应 `tree folders`）；`tree_for(files=[...])` 用于修改上下文。
 
 ---
 

@@ -65,7 +65,7 @@ project (a few minutes).
 - Register a test executor (how to run tests): see [reference.md](./reference.md#executor-config).
   Give it a **project-scoped name** (`pytest-<project>`), since executors are shared across
   projects by name.
-- Smoke test: run `gbc tree` or `gbc doctor check` (over MCP, call `tree` / `check_consistency`).
+- Smoke test: run `gbc tree show` or `gbc doctor check` (over MCP, call `tree` / `check_consistency`).
   If it returns, you're wired.
 
 ---

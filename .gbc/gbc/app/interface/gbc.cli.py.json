@@ -17,6 +17,15 @@
             "heavy": 0,
             "dependents": [],
             "disabled": false
+        },
+        "tree.command_modes": {
+            "desc": "CLI 裸 tree 仅显示双语帮助、exit 0 且不解析或读取项目树；show 默认展示完整树并接收 detail/gaps，旧组级 detail/gaps 及短选项失败并给本地化 tree show 迁移提示；folders/for 保持参数语义、多文件和叶子后置 -C。",
+            "test": "tests/test_tree_interfaces.py::TestCliTree",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
         }
     },
     "depends_on": [
@@ -24,6 +33,18 @@
             "symbol": "gbc/app/config/project.py:set_current_project",
             "guarantees": [
                 "config.project.current_project_runtime_state"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:render_tree",
+            "guarantees": [
+                "render_tree.scoped_views"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:render_tree_for",
+            "guarantees": [
+                "render_tree_for.direct_contract_context"
             ]
         }
     ]

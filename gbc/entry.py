@@ -121,8 +121,8 @@ def setup_cmd(
     from gbc.app.assets import SKILLS_DIR
     if lang is not None:
         set_lang(resolve_lang(lang))
-    # 与 rules 同构：纯文本发射器。只给坐标(skills 目录/MCP 入口)，
-    # 具体怎么接入取决于用户 agent——{skills_dir} 填入随包 skills 的真实路径。
+    # 与 rules 同构：只输出 AI 接入步骤，不执行安装或修改客户端配置。
+    # {skills_dir} 填入随包 skills 的真实路径，客户端配置按实际支持适配。
     print(load_text("setup").format(skills_dir=str(SKILLS_DIR)))
 
 

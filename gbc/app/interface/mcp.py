@@ -362,7 +362,8 @@ def who_depends_on(provider: str, symbol: str | None = None, guarantee_id: str |
 
 
 @mcp.tool()
-def tree(detail: bool = False, gaps: bool = False) -> str:
+def tree(detail: bool = False, gaps: bool = False, folder: str = "",
+         depth: int | None = None, folders_only: bool = False) -> str:
     """Render the whole `.gbc` tree as one AI-readable dependency document.
 
     Backbone = every folder's intent / internal constraints / file entries (from
@@ -375,11 +376,26 @@ def tree(detail: bool = False, gaps: bool = False) -> str:
     gaps:   append a "registration gaps" section — purely graph-derived (no filesystem
             scan, zero false positives on config/assets): files that have .gbc json or
             are depended-upon yet have no gbc.md file entry.
+    folder: Project-relative folder to browse; empty selects the project root.
+    depth: Maximum relative depth; the selected folder has depth zero.
+    folders_only: Show only directory intent and internal constraints.
     """
     try:
         # 文档型工具：直接返回原始文本(不经 _ok 的 json.dumps)，让 MCP 当文本块发出，
         # 换行是字面换行、零转义开销。是「工具返回 JSON 字符串」约定的有意例外。
-        return base.render_tree(detail=detail, gaps=gaps)
+        return base.render_tree(detail=detail, gaps=gaps, folder=folder,
+                                depth=depth, folders_only=folders_only)
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def tree_for(files: list[str]) -> str:
+    """Return read-only change context for target files, including ancestor intent
+    and direct dependency/provided contracts. Does not recurse or execute tests.
+    """
+    try:
+        return base.render_tree_for(files)
     except Exception as e:
         return _err(e)
 

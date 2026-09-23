@@ -19,7 +19,7 @@ This workflow assumes **you are the top-level agent**. Recommended flow:
 **Plan → align intent → dispatch → final acceptance.**
 
 - **Plan**: work out which folders the change touches; read the **relevant**
-  `.gbc/<path>/gbc.md` (the current folder, an ancestor when needed). Use `gbc tree` once at the
+  `.gbc/<path>/gbc.md` (the current folder, an ancestor when needed). Use `gbc tree show` once at the
   start of a large task for an architecture overview — not as the entry ritual for every edit.
 - **Dispatch**: prefer subagents for implementation, in dependency order (providers before
   dependents).

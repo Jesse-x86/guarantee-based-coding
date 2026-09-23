@@ -33,6 +33,7 @@ from gbc.app.config.executor import ExecutorModel
 from gbc.app.config.project import get_current_project
 from gbc.app.core import executor
 from gbc.app.core import guarantee as gtee
+from gbc.app.i18n import t
 from gbc.app.models.errors import (
     IllegalFilePathError,
     ExecutorConfigInvalidError,
@@ -853,7 +854,8 @@ def _tree_registration_gaps(gbc_root: Path, metas: dict[str, FileMeta]) -> list[
     return out
 
 
-def render_tree(*, detail: bool = False, gaps: bool = False) -> str:
+def render_tree(*, detail: bool = False, gaps: bool = False, folder: str = "",
+                depth: int | None = None, folders_only: bool = False) -> str:
     """把整棵 `.gbc` 渲染成一份 AI 可读的依赖树。
 
     骨架来自所有 gbc.md（意图 / 内部约束 / `# 文件` 条目，沿登记的包含关系递归）；每个
@@ -863,6 +865,8 @@ def render_tree(*, detail: bool = False, gaps: bool = False) -> str:
     detail: 额外展开每条保证的 desc/test/heavy，并在每个 .gbc 目录列出其它产物（.pyi stub）。
     gaps:   末尾附「登记缺口」——纯图反推的有 json 未登记 / 被依赖未登记（零文件系统扫描）。
     """
+    if folder or depth is not None or folders_only:
+        return _tree_scoped(folder, depth, folders_only, detail, gaps)
     gbc_root = get_current_project() / ".gbc"
     if not gbc_root.exists():
         return f"(.gbc 不存在: {gbc_root})"
@@ -874,4 +878,169 @@ def render_tree(*, detail: bool = False, gaps: bool = False) -> str:
         lines.append("")
         lines.append("—— 登记缺口 ——" if g else "—— 登记缺口：无 ——")
         lines.extend(f"  {x}" for x in g)
+    return "\n".join(lines)
+
+
+def _tree_path(value: str) -> str:
+    """Canonicalize tree input, including symlinks, before any metadata lookup."""
+    project = get_current_project().resolve()
+    try:
+        path = Path(value)
+        path = (project / path).resolve()
+        if not path.is_relative_to(project) or "\x00" in value:
+            raise ValueError
+        return path.relative_to(project).as_posix().removeprefix("./").replace("\\", "/") if path != project else ""
+    except (ValueError, OSError):
+        raise ValueError(t("tree.invalid_path", path=value)) from None
+
+
+def _tree_docs(gbc_root: Path) -> dict[str, gbc_md.ParsedDoc]:
+    return {
+        ("" if md.parent == gbc_root else md.parent.relative_to(gbc_root).as_posix()):
+        gbc_md.parse(md.read_text(encoding="utf-8"))
+        for md in sorted(gbc_root.rglob(GBC_FILE))
+    }
+
+
+def _tree_entries(docs: dict[str, gbc_md.ParsedDoc]) -> dict[str, gbc_md.Entry]:
+    return {
+        f"{folder}/{entry.name.rstrip('/')}".lstrip("/"): entry
+        for folder, doc in docs.items() for entry in doc.entries
+    }
+
+
+def _tree_context(lines: list[str], rel: str, docs: dict[str, gbc_md.ParsedDoc],
+                  entries: dict[str, gbc_md.Entry], pad: str = "") -> None:
+    doc = docs.get(rel)
+    if doc is None:
+        lines.append(pad + t("tree.missing_doc"))
+        entry = entries.get(rel)
+        if entry and entry.desc:
+            lines.append(pad + t("tree.intent", text=_tree_block(entry.desc, pad)))
+        return
+    lines.append(pad + t("tree.intent", text=_tree_block(doc.intent, pad) or t("tree.empty")))
+    lines.append(pad + t("tree.constraints", text=_tree_block(doc.constraints, pad) or t("tree.empty")))
+
+
+def _tree_scoped(folder: str, depth: int | None, folders_only: bool,
+                 detail: bool, gaps: bool) -> str:
+    if depth is not None and (isinstance(depth, bool) or not isinstance(depth, int) or depth < 0):
+        raise ValueError(t("tree.invalid_depth"))
+    rel = _tree_path(folder)
+    project = get_current_project()
+    gbc_root = project / ".gbc"
+    docs = _tree_docs(gbc_root)
+    entries = _tree_entries(docs)
+    entry = entries.get(rel)
+    if (project / rel).is_file() or not ((project / rel).is_dir() or rel in docs or (entry and entry.is_dir)):
+        raise ValueError(t("tree.invalid_folder", path=folder))
+    metas = dict(_iter_all_metas()) if not folders_only or gaps else {}
+    lines = [t("tree.scope", path=rel or "."), ""]
+
+    def visit(current: str, level: int) -> None:
+        pad = "  " * level
+        doc = docs.get(current, gbc_md.ParsedDoc())
+        children = [e for e in doc.entries if not folders_only or e.is_dir]
+        collapsed = depth is not None and level >= depth and bool(children)
+        lines.append(f"{pad}📁 {current or '.'}/" + (" " + t("tree.collapsed") if collapsed else ""))
+        _tree_context(lines, current, docs, entries, pad + "   ")
+        if detail and not folders_only:
+            artifacts = _tree_other_artifacts(gbc_root, current)
+            if artifacts:
+                lines.append(pad + "   " + t("tree.artifacts", paths=", ".join(artifacts)))
+        if collapsed:
+            return
+        for child in children:
+            child_rel = f"{current}/{child.name.rstrip('/')}".lstrip("/")
+            # Metadata is not an authority to escape the selected project.
+            if _tree_path(child_rel) != child_rel:
+                raise ValueError(t("tree.invalid_path", path=child_rel))
+            if child.is_dir:
+                visit(child_rel, level + 1)
+            else:
+                _tree_render_file(current, child, metas, level + 1, lines, detail)
+                if child_rel not in metas:
+                    lines.append(pad + "     " + t("tree.missing_meta"))
+
+    visit(rel, 0)
+    if gaps:
+        registered = {p for p, e in entries.items() if not e.is_dir}
+        referenced = {d.symbol.split(":", 1)[0] for m in metas.values() for d in m.depends_on}
+        lines.extend(["", t("tree.gaps_scope", path=rel or ".")])
+        found = False
+        for paths, key in [(set(metas), "tree.gap_meta"), (referenced, "tree.gap_reference")]:
+            for path in sorted(paths - registered):
+                if not rel or path.startswith(rel + "/"):
+                    lines.append(t(key, path=path))
+                    found = True
+        if not found:
+            lines.append(t("tree.none"))
+    return "\n".join(lines)
+
+
+def render_tree_for(files: list[str]) -> str:
+    """Read a union of direct contracts; never run tests or expand dependencies recursively."""
+    if not files:
+        raise ValueError(t("tree.no_targets"))
+    project = get_current_project()
+    docs = _tree_docs(project / ".gbc")
+    entries = _tree_entries(docs)
+    metas = dict(_iter_all_metas())
+    targets = list(dict.fromkeys(_tree_path(f) for f in files))
+    for target in targets:
+        entry = entries.get(target)
+        if not target or (project / target).is_dir() or (entry and entry.is_dir) or not (
+            (project / target).is_file() or target in metas or entry
+        ):
+            raise ValueError(t("tree.invalid_file", path=target))
+    lines = [t("tree.targets", paths=", ".join(targets))]
+    ancestors: dict[str, list[str]] = {}
+    for target in targets:
+        parent = Path(target).parent
+        for ancestor in reversed([parent, *parent.parents]):
+            rel = "" if ancestor.as_posix() == "." else ancestor.as_posix()
+            ancestors.setdefault(rel, []).append(target)
+    for folder, associated in ancestors.items():
+        lines.extend(["", f"📁 {folder or '.'}/", t("tree.applies", paths=", ".join(associated))])
+        _tree_context(lines, folder, docs, entries)
+
+    contracts: dict[tuple[str, str], list[str]] = {}
+    for target in targets:
+        lines.extend(["", f"📄 {target}"])
+        entry = entries.get(target)
+        lines.append(entry.desc if entry and entry.desc else t("tree.missing_entry"))
+        meta = metas.get(target)
+        if meta is None:
+            lines.append(t("tree.missing_meta"))
+        else:
+            if not meta.depends_on:
+                lines.append(t("tree.no_dependencies"))
+            for dep in meta.depends_on:
+                lines.append(f"→ {dep.symbol}" + (f" [{', '.join(dep.guarantees)}]" if dep.guarantees else ""))
+                provider = dep.symbol.split(":", 1)[0]
+                if provider not in entries:
+                    lines.append("   " + t("tree.provider_missing_entry", path=provider))
+                if provider not in metas:
+                    lines.append("   " + t("tree.provider_missing_meta", path=provider))
+                for gid in dep.guarantees:
+                    contracts.setdefault((provider, gid), []).append(target)
+            if not meta.provides:
+                lines.append(t("tree.no_guarantees"))
+            for gid in meta.provides:
+                contracts.setdefault((target, gid), []).append(target)
+        # Free symbol consumers have no reverse edge; recover them from the graph.
+        consumers = sorted({f"{consumer} → {dep.symbol}" for consumer, m in metas.items()
+                            for dep in m.depends_on if dep.symbol.split(":", 1)[0] == target})
+        lines.append(t("tree.consumers", paths="; ".join(consumers) or t("tree.none")))
+    for (provider, gid), associated in contracts.items():
+        lines.extend(["", f"⊕ {provider} [{gid}]", t("tree.applies", paths=", ".join(dict.fromkeys(associated)))])
+        guarantee = metas.get(provider, FileMeta()).provides.get(gid)
+        if guarantee is None:
+            lines.append(t("tree.missing_guarantee"))
+            continue
+        if guarantee.disabled:
+            lines.append("⊘ [DISABLED]")
+        lines.append(guarantee.desc or t("tree.empty"))
+        lines.append(f"test={guarantee.test}" if guarantee.test else t("tree.missing_test"))
+        lines.append(t("tree.consumers", paths=", ".join(dict.fromkeys(guarantee.dependents)) or t("tree.none")))
     return "\n".join(lines)

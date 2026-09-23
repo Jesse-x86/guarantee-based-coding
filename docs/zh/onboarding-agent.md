@@ -58,7 +58,7 @@ GBC 指向工作项目，测试 executor 跟着该项目的环境和语言走—
 
 - 注册测试 executor（怎么跑测试）：见 [reference.md](./reference.md#executor-配置)。给它
   **项目级名字**（`pytest-<项目名>`），因为 executor 按名字跨项目共享。
-- 冒烟验证：跑 `gbc tree` 或 `gbc doctor check`（经 MCP 则调 `tree` / `check_consistency`）。
+- 冒烟验证：跑 `gbc tree show` 或 `gbc doctor check`（经 MCP 则调 `tree` / `check_consistency`）。
   能返回结果就说明接通了。
 
 ---

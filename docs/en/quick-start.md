@@ -128,7 +128,7 @@ gbc executor upsert pytest-myproject --json '{
 Have your agent (or you) run a read-only command:
 
 ```bash
-gbc tree                 # render the whole .gbc dependency tree (empty tree for a fresh project)
+gbc tree show            # render the whole .gbc dependency tree (empty tree for a fresh project)
 gbc doctor check         # consistency lint; prints "✔ consistent" when clean
 ```
 

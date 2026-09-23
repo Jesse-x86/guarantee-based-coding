@@ -43,12 +43,14 @@ dep_app = typer.Typer(help="cli.dep.help")
 verify_app = typer.Typer(help="cli.verify.help")
 doctor_app = typer.Typer(help="cli.doctor.help")
 executor_app = typer.Typer(help="cli.executor.help")
+tree_app = typer.Typer(help="cli.tree.help")
 
 app.add_typer(guarantee_app, name="guarantee")
 app.add_typer(dep_app, name="dep")
 app.add_typer(verify_app, name="verify")
 app.add_typer(doctor_app, name="doctor")
 app.add_typer(executor_app, name="executor")
+app.add_typer(tree_app, name="tree")
 
 console = Console()
 
@@ -544,17 +546,60 @@ def refactor_func_cmd(
 
 # ======== Tree ========
 
-@app.command("tree", help="cli.tree.help")
+@tree_app.callback(invoke_without_command=True)
 def tree_cmd(
+    ctx: typer.Context,
+    detail: bool = typer.Option(False, "--detail", "-d", hidden=True),
+    gaps: bool = typer.Option(False, "--gaps", "-g", hidden=True),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    """显示浏览命令帮助；实际树读取由叶子命令负责。"""
+    if detail or gaps:
+        from gbc.app.i18n import t
+        typer.echo(t("cli.tree.error.group_options"), err=True)
+        raise typer.Exit(code=2)
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        return
+    _set_project(project)
+
+
+@tree_app.command("show", help="cli.tree.show.help")
+def tree_show(
+    folder: str = typer.Argument("", help="cli.tree.argument.folder"),
+    depth: Optional[int] = typer.Option(None, "--depth", help="cli.tree.option.depth"),
     detail: bool = typer.Option(False, "--detail", "-d", help="cli.tree.option.detail"),
     gaps: bool = typer.Option(False, "--gaps", "-g", help="cli.tree.option.gaps"),
     project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
-    """把整棵 .gbc 渲染成一份 AI 可读的依赖树（gbc.md 意图为骨 + json 依赖边）。"""
     try:
         _set_project(project)
-        # 用 print 而非 console.print：树里有 [意图]/[保证] 等方括号，避免被 rich 当样式标记解析。
-        print(base.render_tree(detail=detail, gaps=gaps))
+        print(base.render_tree(folder=folder, depth=depth, detail=detail, gaps=gaps))
+    except Exception as e:
+        raise handle_error(e)
+
+
+@tree_app.command("folders", help="cli.tree.folders.help")
+def tree_folders(
+    folder: str = typer.Argument("", help="cli.tree.argument.folder"),
+    depth: Optional[int] = typer.Option(None, "--depth", help="cli.tree.option.depth"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    try:
+        _set_project(project)
+        print(base.render_tree(folder=folder, depth=depth, folders_only=True))
+    except Exception as e:
+        raise handle_error(e)
+
+
+@tree_app.command("for", help="cli.tree.for.help")
+def tree_for(
+    files: list[str] = typer.Argument(..., help="cli.tree.argument.files"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    try:
+        _set_project(project)
+        print(base.render_tree_for(files))
     except Exception as e:
         raise handle_error(e)
 

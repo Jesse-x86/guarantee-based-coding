@@ -119,7 +119,7 @@ gbc executor upsert pytest-myproject --json '{
 让你的 agent（或你自己）跑一发只读命令：
 
 ```bash
-gbc tree                 # 渲染整棵 .gbc 依赖树（空项目是一棵空树）
+gbc tree show            # 渲染整棵 .gbc 依赖树（空项目是一棵空树）
 gbc doctor check         # 一致性体检，干净时报 "✔ consistent"
 ```
 

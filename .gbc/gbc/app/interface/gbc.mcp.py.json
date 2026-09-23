@@ -8,6 +8,15 @@
             "heavy": 0,
             "dependents": [],
             "disabled": false
+        },
+        "tree.context_tools": {
+            "desc": "MCP tree 保留默认浏览并转发目录、深度与仅目录参数；tree_for 接受多目标，文档返回纯文本，异常仍为统一 JSON error。",
+            "test": "tests/test_tree_interfaces.py::TestMcpTree",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
         }
     },
     "depends_on": [
@@ -15,6 +24,18 @@
             "symbol": "gbc/app/intent/base.py:show",
             "guarantees": [
                 "intent.base.io_and_consistency"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:render_tree",
+            "guarantees": [
+                "render_tree.scoped_views"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:render_tree_for",
+            "guarantees": [
+                "render_tree_for.direct_contract_context"
             ]
         }
     ]

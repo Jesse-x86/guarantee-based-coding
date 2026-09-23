@@ -8,13 +8,14 @@
 - 唯一入口暴露两子系统的表面 + 服务/辅助命令。
 - gbc rules 输出双语规则文本,声明"非强制沙箱"。
 - gbc doc 经 intent 子系统合规读意图。
-- gbc setup 输出本地化接线指南，只给坐标(MCP 入口/skills 目录)。
+- gbc setup 输出本地化 AI 接入指南，含可解析的 MCP 模板与 CLI 备用入口。
 - 根 --help 根据 --lang / GBC_LANG 输出对应语言文本。
 """
 import importlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -165,15 +166,27 @@ def test_mcp_up_is_a_command():
     assert "up" in result.output
 
 
-def test_setup_prints_wiring_guide():
-    """承诺:setup 输出接线指南，含 MCP 入口与 skills 目录坐标，且双语可出。"""
-    zh = runner.invoke(get_wrapped_app(), ["setup", "--lang", "zh"])
-    en = runner.invoke(get_wrapped_app(), ["setup", "--lang", "en"])
-    assert zh.exit_code == 0 and en.exit_code == 0
-    # 只给坐标：MCP 启动入口 + skills 目录路径(占位符已填充)。
-    for out in (zh.output, en.output):
-        assert "gbc mcp up" in out
-        assert str(SKILLS_DIR) in out
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_setup_prints_wiring_guide(lang):
+    """承诺:双语指南输出可解析且显式绑定项目的 MCP 模板和 CLI 备用入口。"""
+    result = runner.invoke(get_wrapped_app(), ["setup", "--lang", lang])
+    assert result.exit_code == 0, result.output
+    assert result.stderr == ""
+    out = result.stdout
+    templates = [
+        json.loads(block)
+        for block in re.findall(r"```json\s*\n(.*?)\n```", out, re.DOTALL)
+    ]
+    assert len(templates) == 2
+    target = "/abs/path/to/your/project"
+    assert templates[0] == {"command": "gbc", "args": ["mcp", "up", target]}
+    assert templates[1] == {
+        "command": "/abs/path/to/python",
+        "args": ["-m", "gbc.entry", "mcp", "up", target],
+    }
+    assert str(SKILLS_DIR) in out
+    assert "{skills_dir}" not in out
+    assert f'gbc tree show --project "{target}"' in out
 
 
 def test_doc_show_reads_intent(tmp_path):
