@@ -2,10 +2,7 @@
 
 > 中文 / English
 
-## 0.3.0 (Unreleased)
-
-当前仓库已实现以下改动，尚未发布至 PyPI。
-The following changes are implemented in this checkout and are not yet published to PyPI.
+## 0.3.0 (2026-09-23)
 
 ### 不兼容变更 / Breaking changes
 
