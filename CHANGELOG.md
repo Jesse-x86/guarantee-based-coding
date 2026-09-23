@@ -2,6 +2,18 @@
 
 > 中文 / English
 
+## 0.2.3 (2026-09-23)
+
+本版本保持 0.2.2 的命令结构，`gbc tree` 与 `gbc doc` 不改名。
+This release preserves the 0.2.2 command structure; `gbc tree` and `gbc doc` retain their names.
+
+### 修复 / Fixed
+
+- 同一 consumer 的多个 symbol 依赖同一 provider 的同一保证时，删除其中一条依赖仍保留其余依赖所需的反向记录和保证退休保护。
+  When multiple symbols in one consumer depend on the same guarantee from the same provider, removing one dependency preserves the reverse record and guarantee retirement protection required by the remaining dependencies.
+- `gbc verify single`、`gbc verify provider` 验证失败，以及 `gbc doctor check` 发现一致性错误时，CLI 返回非零退出码。
+  The CLI now returns a nonzero exit code when `gbc verify single` or `gbc verify provider` fails, or when `gbc doctor check` finds consistency errors.
+
 ## 0.2.2
 
 ### 新增 / Added
