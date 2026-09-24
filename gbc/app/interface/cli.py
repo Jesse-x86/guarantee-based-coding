@@ -433,6 +433,11 @@ def verify_provider(
         s = base.verify_provider(provider, auto_run_max_heavy=max_heavy, timeout=timeout)
         light = "[green]GREEN[/green]" if s.green else "[red]RED[/red]"
         console.print(f"{light}  passed={len(s.passed)} failed={len(s.failed)} skipped={len(s.skipped)}")
+        from gbc.app.i18n import t
+        if not s.passed and not s.failed:
+            console.print(f"[yellow]{t('cli.verify.provider.no_execution')}[/yellow]")
+        elif s.skipped:
+            console.print(f"[yellow]{t('cli.verify.provider.incomplete')}[/yellow]")
         if s.failed:
             console.print(f"[red]failed:[/red] {', '.join(s.failed)}")
         disabled = [sk for sk in s.skipped if sk.reason == "disabled"]
@@ -443,6 +448,7 @@ def verify_provider(
         if disabled:
             tags = ", ".join(sk.id for sk in disabled)
             console.print(f"[magenta]{len(disabled)} DISABLED (born-green suspended):[/magenta] {tags}")
+            console.print(f"[magenta]{t('cli.verify.provider.disabled')}[/magenta]")
     except Exception as e:
         raise handle_error(e)
     if not s.green:

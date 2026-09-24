@@ -427,9 +427,14 @@ def check_consistency() -> str:
 def verify_provider(provider: str, auto_run_max_heavy: int = 0, timeout: int = -1) -> str:
     """Verify all guarantees a provider offers. Guarantees with heavy > auto_run_max_heavy
     are skipped and reported (not failed). Gate is green iff `failed` is empty.
+    `green` means no failures, NOT completed verification or task acceptance: it is
+    also true when no guarantees ran. Inspect passed/failed/results for executed
+    checks and skipped for unverified guarantees. Disabled guarantees are skipped
+    with reason="disabled"; they remain suspended until their behavior is restored
+    and enable_guarantee succeeds.
 
     Verification runs each guarantee's narrow test(s) — the point is guarding
-    behavioral promises, not full-suite coverage.
+    registered behavioral promises, not full-suite coverage or task acceptance.
 
     Args:
         provider: Source file path

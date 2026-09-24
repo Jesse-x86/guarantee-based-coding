@@ -26,6 +26,15 @@
             "heavy": 0,
             "dependents": [],
             "disabled": false
+        },
+        "verify_provider.preserves_evidence_payload": {
+            "desc": "Provider verification preserves the original JSON shape, nonfailure green semantics, executed results and skipped reasons for empty, passed, failed, heavy and disabled cases.",
+            "test": "tests/test_verification_reporting.py::TestMcpVerificationReporting",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
         }
     },
     "depends_on": [
@@ -64,6 +73,10 @@
             "guarantees": [
                 "manual_query.fixed_topics_and_search"
             ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:verify_provider",
+            "guarantees": []
         }
     ]
 }

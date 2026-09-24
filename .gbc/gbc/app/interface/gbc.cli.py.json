@@ -26,6 +26,15 @@
             "heavy": 0,
             "dependents": [],
             "disabled": false
+        },
+        "verify_provider.reports_execution_gaps": {
+            "desc": "Provider verification preserves GREEN/RED and exit semantics while bilingual output explicitly reports zero execution, skipped checks, and disabled guarantees without claiming task completion.",
+            "test": "tests/test_verification_reporting.py::TestCliVerificationReporting",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
         }
     },
     "depends_on": [
@@ -46,6 +55,16 @@
             "guarantees": [
                 "render_tree_for.direct_contract_context"
             ]
+        },
+        {
+            "symbol": "gbc/app/i18n/translate.py:t",
+            "guarantees": [
+                "i18n.translate.lookup_and_fallback"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:verify_provider",
+            "guarantees": []
         }
     ]
 }
