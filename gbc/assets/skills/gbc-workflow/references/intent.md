@@ -16,6 +16,6 @@ Keep these distinctions explicit:
 - Target intent: what the accepted architecture should require.
 - This implementation scope: which part will be delivered now.
 
-Follow the host project's rule for human approval before writing intent. A draft or analysis request alone is not approval; an already approved concrete delta does not need repeated approval. If new evidence requires a materially different architecture choice, explain that change and resolve it before writing the expanded delta.
+Follow the host project's authorization rules. Existing approval of a goal and responsibilities covers ordinary implementation choices, helper-file splits and necessary file-entry maintenance within that scope; a documentation update alone does not create a new architectural decision. A draft or analysis request alone is not execution approval. A materially different purpose, responsibility, compatibility, permission or important constraint outside existing authority needs a concrete delta and the corresponding approval before it is landed.
 
 Use GBC intent tools for `gbc.md` mutations, never hand-edit those files. Use project-relative `[[path/to/file.py]]` references. Keep `gbc.md` as the current purpose, constraints and file responsibilities; put substantial decision history in the project's existing decision-record convention. If the work fits current intent, implement and verify without creating documentation churn.

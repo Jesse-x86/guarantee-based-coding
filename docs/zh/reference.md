@@ -62,8 +62,8 @@ gbc tree for gbc/entry.py gbc/app/interface/cli.py -C /path/to/project
 
 | CLI | MCP 工具 | 作用 |
 |-----|----------|------|
-| `gbc guarantee create <provider> <id> <test> <executor> <desc>` | `create_guarantee` | 新建具名保证。**出生即绿**：当场跑测试，不过则拒绝。`--heavy N` / `--timeout S` / `--disabled`（跳过门禁建占位，仅用于破循环依赖）。 |
-| `gbc guarantee update <provider> <id>` | `update_guarantee` | 改字段：`--desc` / `--test` / `--executor` / `--heavy` / `--timeout`。改测试 / executor 会重跑门禁。 |
+| `gbc guarantee create <provider> <id> <test> <executor> <desc>` | `create_guarantee` | 新建具名保证。**正常启用创建须出生即绿**：当场跑测试，不过则拒绝。`--heavy N` / `--timeout S` / `--disabled`（跳过门禁建占位，仅用于破循环依赖）。 |
+| `gbc guarantee update <provider> <id>` | `update_guarantee` | 改字段：`--desc` / `--test` / `--executor` / `--heavy` / `--timeout`。启用保证改测试 / executor 会重跑门禁；停用保证更新仍暂缓门禁，enable 时补跑。 |
 | `gbc guarantee retire <provider> <id>` | `retire_guarantee` | 退休。仍有 dependents 则**拒绝**（退休保护）。 |
 | `gbc guarantee disable <provider> <id>` | `disable_guarantee` | 停用：保留 id 与全部边，暂缓门禁 / 批量 verify。停用 ≠ 退休。 |
 | `gbc guarantee enable <provider> <id>` | `enable_guarantee` | 恢复：当场补跑出生即绿，过了才转正，不过保持停用。 |
@@ -93,6 +93,9 @@ gbc tree for gbc/entry.py gbc/app/interface/cli.py -C /path/to/project
 | `gbc verify single <provider> <id>` | `verify_guarantee` | 点名跑单条，无视 heavy 永远跑。`-v` 显示完整 stdout/stderr。 |
 
 **门禁语义**：跑了的测试只有过 / 挂；跳过的（heavy）响亮报告但不染红。green = 无 failed。
+这不代表验收完整：heavy 跳过、停用保证和零执行须明确列为未验证范围。开发期可在正确环境中
+直接跑未登记测试；正常启用保证的正式创建及测试 / executor 更新仍须出生即绿。停用不是 TDD 步骤，
+最终验收经 GBC，并审查契约与测试变更。
 
 ---
 
@@ -157,6 +160,8 @@ MCP 工具改为 `intent_*`，不保留兼容别名。请同步脚本与 agent �
 
 **写意图是在改人类持有的架构真理。** 是否需人类签字由你的框架规则 / hook 决定，不由工具设阻。
 绝不手编 gbc.md。
+推荐工作流中，已授权目标与职责内的普通实现、辅助文件拆分和文件条目维护无需重复架构审批；
+改变用途、职责、兼容性、权限或重要约束才需相应授权。已有授权持续有效。
 
 ---
 

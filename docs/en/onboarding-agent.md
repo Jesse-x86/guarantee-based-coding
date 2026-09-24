@@ -90,6 +90,13 @@ worth carrying from day one, because they fail **silently** (full trap list in
 Every time you register a dependency or a guarantee, ask: **"If the behavior I care about broke
 right now, would a test actually go red?"** If no, fix that first.
 
+During development, direct runs of unregistered tests and targeted debugging are allowed in the
+correct project environment; red-first is optional, without mandatory replay. Born-green gates
+formal creation and test/executor updates for normally enabled guarantees, not development tests. Do not disable guarantees for
+TDD. Final acceptance uses GBC and reviews contract/test changes: GBC runs user-maintained tests,
+so a common entry point cannot detect weakened assertions by itself. Green means no failures;
+heavy skips, disabled guarantees, and zero execution remain explicitly unverified scope.
+
 ---
 
 ## ⑤ Hierarchy and authority: stay within your scope
@@ -99,19 +106,27 @@ consequential questions, meaningful behavior tests, and vocabulary/decision reus
 the CLI command adapter. `gbc setup` prints their directory; do not automatically install skills
 globally. Existing project approval rules and authorization remain in force.
 
+Choose delegation by independence, complexity, and benefit. Use complete, verifiable behavior
+slices that may span related files; the brief names all writable paths and all others are read-only.
+One agent may plan and implement when handoffs add little value, while still doing final overall
+GBC acceptance. Routine implementation, helper-file splits, and file-entry maintenance within an
+authorized goal and responsibility need no repeated architectural approval. Changes to purpose,
+responsibilities, compatibility, authority, or important constraints need corresponding authorization;
+obtain missing authority and respect additional project approval rules. Intent still uses `gbc intent`.
+
 - **Top-level agent (architect / lead)**: you lead the intent. Draft `gbc.md` changes through
   `gbc intent` (MCP intent tools / CLI) — never hand-edit — bound each subtask, review the local
   contracts it registers, and do the final integration check after subtasks return.
-- **Subagent (task worker)**: a focused implementer. It reads `gbc.md` without changing intent,
+- **Subagent (task worker)**: a focused implementer. It reads `gbc.md`; intent edits require delegated authority. It
   maintains any interface artifact required by that language/project (a Python project may use
   `.pyi`) with the code, and owns the local GBC contracts introduced by its implementation:
   query/reuse guarantees, register actual dependencies, and when a needed
   guarantee is missing, write a narrow test that can genuinely go red and create it. Then self-prove with `verify_provider` /
   `verify_guarantee`. An unregistered behavioral dependency means the task is not done.
 - **Guardrails**: if your framework supports hooks (e.g. Claude Code's `pre-tool-use`), block every
-  agent from hand-editing GBC-managed files, and block subagents from changing intent or performing
+  agent from hand-editing GBC-managed files, and block unauthorized intent changes or
   unauthorized cross-scope operations such as retiring/disabling guarantees or refactoring other
-  files. **Do not blanket-block dependency registration, guarantee creation, or verification for
+  files outside the brief. **Do not blanket-block dependency registration, guarantee creation, or verification for
   subagents.** Enforcement comes from the framework, independent of MCP vs CLI.
 
 ---

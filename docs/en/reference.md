@@ -66,8 +66,8 @@ for modification context.
 
 | CLI | MCP tool | What it does |
 |-----|----------|--------------|
-| `gbc guarantee create <provider> <id> <test> <executor> <desc>` | `create_guarantee` | Create a named guarantee. **Born-green**: runs the test now, refuses if it fails. `--heavy N` / `--timeout S` / `--disabled` (placeholder skipping the gate, only to break a circular dependency). |
-| `gbc guarantee update <provider> <id>` | `update_guarantee` | Change fields: `--desc` / `--test` / `--executor` / `--heavy` / `--timeout`. Changing the test / executor re-runs the gate. |
+| `gbc guarantee create <provider> <id> <test> <executor> <desc>` | `create_guarantee` | Create a named guarantee. **Born-green for normal enabled creation**: runs the test now, refuses if it fails. `--heavy N` / `--timeout S` / `--disabled` (placeholder skipping the gate, only to break a circular dependency). |
+| `gbc guarantee update <provider> <id>` | `update_guarantee` | Change fields: `--desc` / `--test` / `--executor` / `--heavy` / `--timeout`. Changing the test / executor re-runs the gate for enabled guarantees; disabled updates stay suspended until enable. |
 | `gbc guarantee retire <provider> <id>` | `retire_guarantee` | Retire. **Refused** if it still has dependents (retirement protection). |
 | `gbc guarantee disable <provider> <id>` | `disable_guarantee` | Disable: keep id and all edges, suspend the gate / batch verify. Disable ≠ retire. |
 | `gbc guarantee enable <provider> <id>` | `enable_guarantee` | Re-enable: re-run born-green now, promote only if it passes, else stay disabled. |
@@ -99,6 +99,10 @@ the provider.
 
 **Gate semantics**: a test that ran is pass or fail; a skipped (heavy) one is reported loudly but
 never turns the gate red. Green = no failures.
+This is not a claim of complete acceptance: report heavy skips, disabled guarantees, and zero
+execution as unverified scope. Development may run unregistered tests directly in the correct
+environment; formal creation and test/executor updates for normally enabled guarantees retain born-green. Disabling is not a
+TDD step, and final acceptance runs through GBC with review of contract and test changes.
 
 ---
 
@@ -166,6 +170,10 @@ aliases. Update scripts and agent instructions; `doc` now queries this GBC manua
 
 **Writing intent changes human-held architecture truth.** Whether it needs human sign-off is set by
 your framework's rules / hooks, not gated by the tool. Never hand-edit gbc.md.
+Under the recommended workflow, routine implementation, helper-file splits, and file-entry
+maintenance within an authorized goal and responsibility need no repeated architectural approval;
+changes to purpose, responsibilities, compatibility, authority, or important constraints need
+corresponding authorization. Existing authorization continues to apply.
 
 ---
 

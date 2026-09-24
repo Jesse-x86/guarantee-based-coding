@@ -1,13 +1,13 @@
 # Guarantee-Based Coding (GBC)
 
-**Instead of hoping the AI gets smarter, make it so even a dumb agent can't break your code.**
+**Register the behaviors consumers rely on, and back code changes with executable evidence.**
 
 **中文版本: [README.md](../../README.md)**
 
-GBC turns "will this change quietly break something elsewhere?" from a worry into a fact you can
-verify on the spot: the behaviors you care about are registered as test-backed **guarantees**. Run
-them after every change — all green means safe; a red tells you exactly what you broke and who
-depends on it.
+GBC registers the behaviors you care about as test-backed **guarantees** and records their
+consumers. After a change, run related guarantees to see failed checks, unexecuted guarantees
+and affected consumers. GREEN means no executed guarantee failed; complete acceptance also
+requires that the needed guarantees ran and their tests adequately protect the behavior.
 
 ---
 
@@ -62,17 +62,18 @@ no automatic global installation. See [workflow.md](./workflow.md).
 
 Dependencies between code are essentially a set of **guarantees**. Module A depends on module B not
 on its implementation details, but on some of its behavioral promises — the type, format, semantics
-of return values. Make those guarantees **explicit, executable, and verifiable**, and correctness
-shifts from "the AI thinks it got it right" to "every depended-on guarantee still passes" — a
-mechanically verifiable boolean.
+of return values. Make those guarantees **explicit, executable, and verifiable** to support
+change decisions with registered test results. GBC runs project-owned tests; it cannot
+automatically detect weakened assertions or prove unregistered behavior. Contracts and test
+changes still need review.
 
 ![Without GBC vs with GBC](../assets/workflow-comparison_en.svg)
 
 GBC is **not** another AI coding assistant challenging Cursor / Aider — it fills the piece they lack
-in large projects: a **machine-verifiable boundary for change**. It works *with* those agents
-(check the dependency tree before, pass all relevant guarantees after) and differs from CI (CI is
-after-the-fact; GBC is an admission gate that catches errors before they land, inside the agent's
-context).
+in large projects: **named promises, consumer relationships and executable checks**. It works
+with those agents: inspect relevant dependencies, obtain development feedback flexibly, then
+verify affected guarantees through GBC for final acceptance. It can also work with CI;
+enforcement depends on the project's integration and permissions.
 
 Full concepts, architecture diagram, and how it differs from existing ideas (Design by Contract /
 testing) are in [Core Concepts](concepts.md).
@@ -93,8 +94,8 @@ its own `.gbc/` with GBC (dogfooding):
 - ✅ Atomic file writes + backups
 
 
-**Honest limitations**: protection ceiling = test quality (happy-path-only tests are a false sense
-of safety); dependencies must be registered actively, and coverage takes ongoing investment as the
+**Honest limitations**: protection ceiling = test quality (a focused happy-path test can protect
+its promise, but not untested errors or boundaries); dependencies must be registered actively, and coverage takes ongoing investment as the
 project grows; every verification really runs tests, so there's some latency. See
 [Core Concepts · Limitations](concepts.md#limitations-stated-honestly).
 

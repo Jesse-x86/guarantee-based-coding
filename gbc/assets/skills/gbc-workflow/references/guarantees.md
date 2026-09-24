@@ -14,7 +14,9 @@ Mocks may model a real external boundary to keep a test deterministic. They must
 
 ## Registration and sensitivity
 
-GBC's born-green registration runs the test and refuses a failing new guarantee. This is a registration constraint, not proof that the test is sensitive to the intended defect. Review the assertions against the wrong behavior they should reject. Do not create a disabled placeholder merely to stage a red-first test, and do not add invented red-proof metadata.
+GBC's normal enabled registration runs the test and refuses a failing new guarantee. This constrains formal registration and test/executor changes for enabled guarantees, not development feedback. Updates while disabled do not run the gate; a successful enable is required to restore protection. You may directly run an unregistered test or a focused debugging selection in the project's correct interpreter, working directory and dependencies. Observing red before implementing to green is allowed, not mandatory. After it passes, register the guarantee and dependencies, then perform final acceptance through GBC. Do not create a disabled placeholder to stage ordinary TDD, and do not add invented red-proof metadata.
+
+GBC runs project-owned tests; its execution route cannot determine whether an assertion was weakened or the contract is adequately tested. Review test changes against the consumer's promise and the wrong behavior they should reject. Passing registration establishes an execution result, not defect sensitivity.
 
 A defect replay or deliberate red probe can add confidence for a subtle regression or consequential contract when ordinary review leaves uncertainty. It is optional and risk-based, not a universal red-first requirement:
 
@@ -27,6 +29,6 @@ Do not run such probes against unrelated or valuable work. If the isolation or r
 
 ## Accepting a change
 
-Run affected guarantees through GBC; do not substitute a raw test-runner result for the registered gate. Read the reported results, since a process exit code alone may not represent the gate. Green means no executed test failed; heavy skips and disabled guarantees still leave coverage unverified. Consistency checks establish metadata consistency, not behavioral correctness.
+Run affected guarantees through GBC; do not substitute a direct development run for the registered gate. Read the reported results, since a process exit code alone may not represent the gate. Green means no executed guarantee failed; heavy skips and disabled guarantees still leave coverage unverified, and zero execution supplies no behavioral evidence. Also inspect runner-level skips, expected failures and warnings in raw output. Completing acceptance requires the evidence needed for the task, not just a green label. Consistency checks establish metadata consistency, not behavioral correctness.
 
 If a guarantee fails, investigate the affected contract and consumers. Fix the behavior or resolve an explicitly proposed contract change with the required authority. Do not loosen assertions, remove dependencies or disable the promise merely to obtain green. Refactor tools and temporary disabling remain available for their documented, authorized migration purpose; restore and verify the guarantees before claiming their protection.

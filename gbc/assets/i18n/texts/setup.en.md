@@ -93,13 +93,20 @@ the former intent `doc` names were removed in 0.3.0.
 ## Three things to remember before you start
 
 - **`gbc.md` is a snapshot of the current state, not a sacred text.** It guards against
-  architectural drift, not evolution — to change it, draft → human sign-off → commit via
-  gbc intent; that's legitimate evolution, not a violation. Don't pile responsibilities into
-  an existing file just because you can't hand-edit it — a god file is the drift-guard
-  mechanism turned upside down.
+  architectural drift, not evolution. Routine implementation, helper-file splits, and file-entry
+  maintenance within an authorized goal and responsibility need no repeated architectural
+  approval. Changes to purpose, responsibilities, compatibility, authority, or important constraints
+  need corresponding authorization; obtain missing authority and respect project approval rules.
+  Always land intent changes through gbc intent. Don't pile responsibilities into an existing file
+  just because you can't hand-edit it.
 - **A guarantee is NOT full test coverage.** Each guarantee is a named behavioral promise
   guarded by a narrow test; register only behaviors you care about and that are depended
-  on, reuse what exists first; a guarantee nobody cares about is a liability.
+  on, reuse what exists first; a guarantee nobody cares about is a liability. Narrow means focused
+  scope with sufficient assertions, including exact values when contractual. Development may run
+  unregistered tests directly in the correct environment; red-first is optional. Born-green gates
+  formal creation and test/executor updates for normally enabled guarantees; disabling is not a TDD step. Final acceptance uses
+  GBC and reviews contract/test changes. Green alone does not prove complete acceptance: report
+  heavy skips, disabled guarantees, and zero execution as unverified scope.
 - **Communicate with the human often.** Report the completed connection, verification
   evidence, and actual blockers; do not report unverified target binding as success.
 

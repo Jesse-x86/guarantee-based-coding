@@ -21,36 +21,36 @@ it using the client's project-level convention when needed; no global installati
 
 This workflow assumes **you are the top-level agent**. Recommended flow:
 
-**Plan → align intent → dispatch → final acceptance.**
+**Plan → align intent → implement or dispatch → final acceptance.**
 
 - **Plan**: work out which folders the change touches; read the **relevant**
   `.gbc/<path>/gbc.md` (the current folder, an ancestor when needed). Use `gbc tree show` once at the
   start of a large task for an architecture overview — not as the entry ritual for every edit.
-- **Dispatch**: prefer subagents for implementation, in dependency order (providers before
-  dependents).
-- **Final acceptance**: after a subagent returns, **you** re-run the affected guarantees through
-  GBC tools.
+- **Dispatch when useful**: decide by task independence, complexity, and expected benefit. Use
+  complete, verifiable behavior slices, in dependency order (providers before dependents).
+- **Final acceptance**: after implementation, **you** verify the affected guarantees through
+  GBC tools, including when subagents performed their own checks.
 
-Planning and implementation in one agent is fine for small changes; day-to-day coding is not the
-top-level agent's default role.
+One agent may plan and implement when delegation adds little value. Do not manufacture handoffs
+just to preserve roles; the responsible agent still performs final overall GBC acceptance.
 
 ---
 
 ## Two layers of contract
 
 - **Intent (gbc.md)** — the single source of truth for the architecture, the highest contract,
-  **held and approved by the human**; the agent drafts it. Change it through `gbc intent` (MCP intent
+  **held by the human**; the agent maintains it within granted authority. Change it through `gbc intent` (MCP intent
   tools / CLI), never by hand.
 - **Guarantee** — a **named behavioral promise** a module currently provides and others depend on.
   It may evolve, but the moment you intend to break one, tell every dependent so they fix in step.
 
 ---
 
-## Two phases, and the order matters
+## Work phases, and the order matters
 
 **Never jump to code before the architecture is clear.**
 
-### Phase 1: architecture (draft first; default requires explicit human approval before landing)
+### Phase 1: architecture (establish scope and authority first)
 
 Start with evidence: read the relevant intent, existing terminology and decisions, then inspect
 the affected interfaces, consumers, tests, and observed failure. Separate confirmed facts,
@@ -64,38 +64,42 @@ facts yourself; handle routine implementation choices within scope. When choices
 other, resolve the consequential upstream choice first. Present a recommendation and its tradeoff,
 not a questionnaire about every implementation detail. Existing authorization continues to apply.
 
-When intent must change, draft the **whole relevant delta** with its reasons and remaining choices
-before writing it. Under the default approval rule, land a new delta through `gbc intent` only after
-**explicit human approval**, then run `gbc intent check`. **The landed `gbc.md` is the spec you
-implement against.** Tool consistency does not approve a design. Preparing a draft does not require
-writing managed intent files.
-
-> The default install writes "intent needs confirmation" into the operating rules. If your human
-> asks you to delete that line from the instruction file, the rule simply disappears from your
-> context and you may act more autonomously — with a higher risk of silent architectural drift.
-> While the rule is still there, don't invent a private "bypass."
+When intent must change, draft the **whole relevant delta** with its reasons and remaining choices.
+Routine implementation, helper-file splits, and file-entry maintenance within an authorized goal
+and responsibility need no repeated architectural approval. Changes to purpose, responsibilities,
+compatibility, authority, or important constraints need corresponding authorization; obtain it
+when existing authorization does not cover the delta. Respect any additional project approval
+rules. Land changes only through `gbc intent`, then run `gbc intent check`. **The landed `gbc.md`
+is the spec you implement against.** Tool consistency does not approve a design.
 
 ### Phase 2: implementation (machine-gated)
 
-Prefer "one subtask, one target file" (the brief names the writable file, everything else
-**read-only**). Follow dependency topology (providers first). The implementer:
+Scope each task as a complete, verifiable behavior slice; it may span related files. The brief
+names all writable paths; everything else is **read-only**. Follow dependency topology (providers
+first), and request a scope adjustment before writing outside the brief. The implementer:
 
 1. Reads the approved scope (brief / gbc.md) + interfaces → writes the implementation.
 2. Depended-on / newly-exposed behavior: signature-level uses `add_dependency`; concrete behavior
    means **proactively write a narrow test and register it with `create_guarantee`** (prefer
    reusing an existing guarantee). **A silent unregistered behavioral dep = not done.**
-3. **Self-verify** in scope, through GBC tools only (`verify_provider` / `verify_guarantee`) —
-   **never** hand-run `pytest` (hand-running makes it too easy to "fix" a test to green and hollow
-   out the gate).
-4. On red: restore the behavior, or escalate to the top-level agent so dependents adapt. **Never**
-   loosen or retire a test just to turn red green.
+3. **Develop and self-verify**: direct runs of unregistered tests and targeted debugging are
+   allowed in the correct project environment. Red-first development is optional. Register once
+   the formal born-green gate can pass, then self-verify through GBC tools
+   (`verify_provider` / `verify_guarantee`). No mandatory replay of the development red phase.
+4. If an existing guarantee turns red, investigate and restore behavior or coordinate an authorized
+   contract migration with dependents. An expected failure in a new test is development feedback.
+   **Never** loosen assertions or retire guarantees just to turn red green.
 5. If intent is wrong mid-flight → stop, return to Phase 1; no silent drift.
 6. Moves / renames go through `refactor_file` / `refactor_func` / `rename_guarantee`.
 
 ### Phase 3: final acceptance (top-level agent)
 
-After the implementer returns, the top-level re-verifies the affected guarantees through GBC tools.
-**Do not skip this even if the implementer reports all green.** On green, don't pull the graph; on
+After implementation, the responsible top-level agent verifies the affected guarantees through GBC
+tools, including integration across slices. **Do not skip this even if a subagent reports all green.**
+Review contract and test changes: GBC runs user-maintained tests, and a common entry point cannot
+detect weakened assertions by itself. Green means no failed tests, not complete acceptance:
+report heavy skips, disabled guarantees, and zero-execution results as unverified scope. On green,
+don't pull the graph just for ceremony; on
 red, use `who_depends_on` / `list_provides` / `list_depends_on` to see what broke and who cares.
 
 ---
@@ -131,7 +135,7 @@ contract. Cut these three drift baits:
   is an **explicitly labeled historical note** (`historical fact` / `legacy-compat`).
 
 **Spec-first**: before dispatching a subagent / writing code, establish whether the existing intent
-already covers the work. If it changes, draft it, obtain required approval, and land it through
+already covers the work. If it changes, draft it, obtain any missing authorization, and land it through
 `gbc intent` before implementation. When creating a folder / file, **register
 its intent / `# 文件` entry first**, don't backfill after the code.
 
@@ -178,11 +182,12 @@ implementation from closing its contract loop. Configure framework enforcement (
   metadata and stay with the implementer.
 - **Top-level agent**: maintains human-held intent through GBC intent tools, bounds task scope, reviews
   new dependencies/guarantees, coordinates cross-scope breakage, and does final acceptance.
-- **Subagent**: reads intent without editing it, maintains required interface artifacts with the code,
+- **Subagent**: reads intent, maintains required interface artifacts with the code,
   and owns the local contracts introduced by the implementation—register actual dependencies, reuse or create required guarantees, maintain
   narrow tests that can genuinely go red, and run `verify_*`. By default it may not retire/disable
-  guarantees, change intent, or refactor outside its brief; escalate or obtain explicit authority.
-- Hooks block hand-edited metadata, intent changes, and unauthorized overreach; **do not block
+  guarantees or change intent; these require delegated authority. Refactoring related files within
+  the brief is allowed; obtain a scope adjustment for work outside it.
+- Hooks block hand-edited metadata, unauthorized intent changes, and other overreach; **do not block
   dependency registration, guarantee creation, or verification for subagents.** Enforcement is
   independent of MCP vs CLI.
 
@@ -209,15 +214,17 @@ protects the consumer, whereas merely asserting that a metadata object exists wo
 Other consumers and same-named guarantees on other providers must remain independent.
 
 Explain which plausible defect the test would detect. When useful and authorized, demonstrate
-that sensitivity with a controlled regression or mutation, verify through GBC, restore the code,
-and verify again. It is not a universal red-first requirement. An import error, broken environment,
+that sensitivity with a controlled regression or mutation in the correct environment, restore the
+code, and verify again. Final acceptance still uses GBC. Neither red-first nor replaying a prior
+red phase is universally required. An import error, broken environment,
 or a mock directly returning the asserted bad value does not by itself demonstrate detection of
 the target defect. Mocks may isolate external boundaries, but must not replace the behavior the
 guarantee claims to protect. Report actual checks and limitations separately from test design.
 
-**Born-green remains unchanged**: creation and runner changes must pass the existing gate. It
-checks the current implementation; it does not prove the test is sensitive to a future defect.
-Do not disable guarantees or weaken assertions just to register a failing test.
+**Born-green remains unchanged**: for normally enabled guarantees, formal creation and updates
+to the test or executor must pass the existing gate. It does not constrain unregistered tests during development, and passing
+it does not prove sensitivity to future defects. Do not disable guarantees for TDD or weaken
+assertions just to register a failing test.
 
 ---
 
@@ -260,14 +267,14 @@ dependencies or a requirement to install the source skills.
 | Easy to hit | Do this instead |
 |---|---|
 | Hand-editing gbc.md or json under `.gbc/**` | gbc.md through `gbc intent`; deps / guarantees through GBC tools |
-| Jumping to code once the architecture is clear | Draft gbc.md → human approves (default) → then implement in topology order |
-| A subagent rewriting half the tree "while it's here" | The brief names the writable target file; everything else read-only |
+| Treating every file split as a new architecture decision | Reuse existing authorization; align material changes, then maintain intent through tools |
+| A subagent rewriting half the tree "while it's here" | The brief names all writable paths for the behavior slice; everything else read-only |
 | Skipping the top-level verify because the subagent said green | Subagent self-verifies; the top-level still does final acceptance |
 | An assertion that is weaker or stricter than the consumer's promise | Assert the required behavior, including exact values when contractual |
 | Naming a guarantee for every dependency | Default to free symbol deps; upgrade behavioral ones lazily |
 | Retiring a guarantee that still has dependents | Migrate / fix the dependents first (`retire` refuses) |
 | Calling tools with absolute paths | Always use project-root-relative posix paths |
-| Changing a big batch of files at once | Topology order, one file per step, run guarantees each step |
+| Combining unrelated changes into one task | Verifiable behavior slices in topology order, with final overall GBC acceptance |
 | Hand-fixing references after a move / rename | Use `refactor_file` / `refactor_func` (idempotent, rewrites `[[ ]]` too) |
 
 ---
@@ -278,4 +285,5 @@ Stuck mid-refactor / on a circular dependency? `disable_guarantee` keeps a guara
 while suspending its born-green, so you don't have to tear down dependencies to make a multi-step
 change. `enable_guarantee` re-runs born-green and refuses if it still fails. Disabled guarantees
 stay **loud** — `gbc doctor check` reports them until you enable them back, so they can't rot
-silently.
+silently. This is for authorized temporary suspension during structural work, not a TDD step or a
+way to register a failing test. Report the suspended behavior as unverified until re-enabled.

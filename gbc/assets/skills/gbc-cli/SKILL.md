@@ -7,7 +7,7 @@ description: Drive GBC (Guarantee-Based Coding) through its `gbc` command-line i
 
 GBC turns implicit inter-module dependencies into **named, executable guarantees**: a guarantee
 is a named behavior a file promises, backed by a test. Change code → re-run the affected
-guarantees → green means every dependent's promise still holds. This skill tells you which `gbc`
+guarantees → green means no executed guarantee failed; skipped or disabled guarantees remain unverified. This skill tells you which `gbc`
 commands realize those abilities, so you can use GBC without an MCP connection.
 
 For intent planning, guarantee quality or domain terminology decisions, use the
@@ -32,6 +32,11 @@ Everything here is a plain shell command. If `gbc` is not on PATH, substitute
 3. **Register dependencies** — record that a consumer relies on a provider's symbol/guarantee.
 4. **Verify** after changes — run a provider's guarantees; green iff nothing failed.
 
+Development tests may run directly in the project's correct environment before registration,
+including observing a failure and implementing to green. Normal enabled registration remains
+born-green, and final acceptance still runs through GBC. Do not use a disabled placeholder for
+ordinary TDD. GBC runs your tests; reviewing their assertions remains necessary.
+
 ---
 
 ## Guarantees — `gbc guarantee`
@@ -39,7 +44,7 @@ Everything here is a plain shell command. If `gbc` is not on PATH, substitute
 | Command | What it does |
 |---------|--------------|
 | `gbc guarantee create <provider> <id> <test> <executor> <desc>` | Create a named guarantee. **Born-green**: runs the test now, refuses if it fails. Add `--heavy N` (cost rank; `>=1` is skipped in batch verify), `--timeout S`, or `--disabled` (placeholder that skips born-green — only to break a circular dependency; enable it later). |
-| `gbc guarantee update <provider> <id>` | Change fields: `--desc`, `--test`, `--executor`, `--heavy`, `--timeout`. Changing the test/executor re-runs born-green. |
+| `gbc guarantee update <provider> <id>` | Change fields: `--desc`, `--test`, `--executor`, `--heavy`, `--timeout`. Changing the test/executor re-runs born-green for enabled guarantees; disabled guarantees require a passing enable before their protection is restored. |
 | `gbc guarantee retire <provider> <id>` | Delete a guarantee. **Refused if it still has dependents** — migrate them first. |
 | `gbc guarantee disable <provider> <id>` | Suspend born-green/batch verify for it while keeping its id and all edges. Escape hatch for refactors; **not** a delete. |
 | `gbc guarantee enable <provider> <id>` | Re-run born-green now; clears disabled only if the test passes. |
@@ -70,8 +75,10 @@ unique per provider.
 | `gbc verify provider <provider>` | Run all of a provider's guarantees. Heavy guarantees above the threshold are skipped and reported (not failed). Add `--max-heavy N` to run heavier ones. **GREEN iff nothing failed.** |
 | `gbc verify single <provider> <id>` | Run one guarantee by id — always runs, ignoring the heavy threshold. Add `-v` for full stdout/stderr. |
 
-**Gate semantics**: a test that ran is either pass or fail; a test that was *skipped* (heavy) is
-reported loudly but does **not** turn the gate red. Green = no failures.
+**Gate semantics**: a guarantee that ran is either pass or fail; guarantees skipped for heavy or
+disabled state are reported but do **not** turn the gate red. Green = no failures, not completed
+acceptance. Zero execution supplies no behavioral evidence; inspect raw output for runner-level
+skips and confirm the task's required guarantees actually ran before claiming completion.
 
 ---
 
@@ -154,8 +161,10 @@ entry — it keeps each doc's three-section structure and parent/child consisten
 > If a `<text>` argument begins with `-`, put `--` before it so it isn't parsed as an option:
 > `gbc intent set-intent app -- "- a line starting with a dash"`.
 
-**Writing intent is changing human-held architecture truth.** Whether it needs your human's
-sign-off is set by your agent framework's rules/hooks, not by this tool. Never hand-edit `gbc.md`.
+**Intent records human-held architecture truth.** Follow your framework's authority rules;
+existing authorization covers ordinary implementation and file-entry maintenance within approved
+responsibilities. Material changes outside that authority need the corresponding approval.
+Never hand-edit `gbc.md`.
 
 ---
 

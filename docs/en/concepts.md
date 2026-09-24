@@ -52,7 +52,7 @@ GBC pins down the impact of a change with two layers:
 
 1. **Intent layer**: in `.gbc/**/gbc.md`. Natural language (Markdown) defining a folder's role,
    internal constraints, and architectural intent. It is the source of truth — it tells an agent
-   "what you should and shouldn't do here." **Human-held**; the agent only drafts.
+   "what you should and shouldn't do here." **Human-held**; the agent maintains it within granted authority.
 2. **Guarantee layer**: in `.gbc/**/*.json`. Executable, test-backed concrete behavioral promises.
 
 When changing code, the agent must honor both the intent layer (don't violate the original purpose)
@@ -67,7 +67,7 @@ How to write intent docs (the three sections: intent / internal constraints / fi
 
 The behavior layer guards "behavior doesn't break"; the intent layer guards "direction doesn't
 drift" — both are pre-change defenses, but of different natures: guarantees are mechanically
-verifiable (born-green / verify), while intent relies on **human sign-off + tool consistency**.
+verifiable (born-green / verify), while intent relies on **human-held authority + tool consistency**.
 
 ### What it is
 
@@ -92,14 +92,17 @@ against the past — phase words, roadmaps, and migration narratives are drift b
 - **The only compliant entry**: `gbc intent` (CLI / MCP intent tools). Never hand-edit — hand-editing
   drifts the deterministic constraint, downgrading "verifiable truth" to "best-effort habit".
 - **Spec-first**: investigate the relevant evidence first. If existing intent covers the task,
-  use it; if it must change, draft the delta, obtain the approval required by the project's rules,
-  and land it before implementation. See [workflow.md](./workflow.md) and the **gbc-workflow** skill
+  use it; if it must change, draft the delta, obtain any missing authorization required by the
+  project's rules, and land it before implementation. Routine implementation, helper-file splits,
+  and file-entry maintenance within an authorized goal and responsibility need no repeated
+  architectural approval. Changes to purpose, responsibilities, compatibility, authority, or
+  important constraints need corresponding authorization. See [workflow.md](./workflow.md) and the **gbc-workflow** skill
   for consequential questions, vocabulary reuse, and preserving decision reasons with MCP or CLI.
 
 ### How it relates to the guarantee layer
 
 The intent layer answers "why, and what are the boundary obligations" — **not mechanically
-verifiable**; it relies on human sign-off + intent check. The guarantee layer answers "does the
+verifiable**; it relies on human-held authority + intent check. The guarantee layer answers "does the
 behavior still hold" — **mechanically verifiable**. The former prevents directional drift, the
 latter prevents behavioral breakage; they complement each other.
 
@@ -107,7 +110,7 @@ latter prevents behavioral breakage; they complement each other.
 
 It is a **snapshot of the current state, not a sacred text**: born to prevent drift, not to
 freeze the architecture. Found it wrong, or it starts blocking reasonable evolution? Draft the
-delta → human sign-off → commit through the tools — legitimate evolution, not a violation.
+delta → obtain any missing authorization → land through the tools — legitimate evolution, not a violation.
 Piling responsibilities into one file instead of changing the intent (a god file) is exactly the
 drift-guard mechanism turned upside down. For an agent: **read it (map before acting), obey it
 (stay in scope), propose changes to it (through the official channel) — but don't own it.**
@@ -145,13 +148,15 @@ Whichever surface you swap in — CLI / MCP / a future GUI — these engine-leve
   a dependent and reuses it, rather than writing a second test.
 - **Two-section self-contained meta**: one `.gbc` json per code file, `provides` (as provider) +
   `depends_on` (as consumer).
-- **Born-green**: on create / test change the test runs on the spot, and registration is refused
-  if it fails — the one integrity invariant, with no backdoor.
+- **Born-green**: for normally enabled guarantees, formal creation and test/executor updates run
+  the test on the spot and refuse the change if it fails. Development may run unregistered tests directly in the correct
+  environment, with optional red-first and no mandatory replay; do not disable guarantees for TDD.
   Passing this gate does not establish defect sensitivity; the test must protect the consumer's
   actual behavior, including exact values when contractual (see [workflow.md](./workflow.md#narrow-test-rule)).
 - **Retirement protection**: a guarantee with dependents refuses deletion.
 - **Binary gate**: a test that ran is pass or fail; one that was skipped (heavy) is reported loudly
-  but never turns the gate red. Green = no failures.
+  but never turns the gate red. Green = no failures, not complete acceptance. Report heavy skips,
+  disabled guarantees, and zero execution as unverified scope during final GBC acceptance.
 - **heavy** is a cost rank (int) + an auto-run authorization: batch runs only heavy ≤ threshold;
   a named verify ignores it.
 
@@ -221,9 +226,10 @@ themselves).
 
 ## Limitations (stated honestly)
 
-- **Protection ceiling = test quality**: GBC only catches what a test can catch. Tests that only
-  walk the happy path make guarantees a false sense of safety. (Happy-path-only tests are the
-  textbook example.)
+- **Protection ceiling = test quality**: GBC runs user-maintained tests and only catches what those
+  tests can catch. A focused happy-path test may protect its promise; weak assertions or replacing
+  the protected behavior with a mock may not. Review contract and test changes; centralizing the
+  execution entry point cannot by itself detect weakened assertions.
 - **Manual registration cost**: dependencies must be registered by an agent or human. The per-edge
   cost is small, but coverage takes ongoing investment as the project grows.
 - **Run performance**: every verification really runs tests, so there's some latency cost.

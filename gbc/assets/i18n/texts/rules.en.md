@@ -23,26 +23,28 @@ If this philosophy fits your project, adopt the following rules in your agent in
    The implementer maintains any language/project-specific interface artifact and guarantee tests
    with the code.
 
-2. **Implementation subagents own the local contracts introduced by their work.**
+2. **Implementers own the local contracts introduced by their work.**
    They do more than write implementation: query existing guarantees, register the
    dependencies they actually use, and prefer reusing an existing guarantee. When
    required behavior has no guarantee, they write a narrow test that can genuinely go
    red, create the guarantee, and self-prove with `verify_*`. An unregistered behavioral
    dependency or an unmaintained guarantee test means the task is not done.
 
-3. **Intent and cross-scope destructive changes remain under top-level coordination, but intent is evolvable.**
-   Subagents read `gbc.md` but do not commit changes themselves. Unless the brief
+3. **Coordinate intent and cross-scope destructive changes within granted authority.**
+   Subagents read `gbc.md`; changing it requires delegated authority. Unless the brief
    explicitly authorizes it, they escalate operations that affect other tasks—retiring
-   or disabling guarantees, cross-file renames, and refactors—to the top-level agent.
+   or disabling guarantees, renames, and refactors outside their scope—to the top-level agent.
    But `gbc.md` is only a **snapshot of the current state, not a sacred text**: if it
-   seems wrong or starts blocking reasonable architectural evolution, draft the delta →
-   get human sign-off → commit it through gbc intent. That is legitimate evolution, not
-   a violation. Don't pile responsibilities into an existing file just because you're
+   needs updating, draft the delta and land it through gbc intent. Routine implementation,
+   helper-file splits, and file-entry maintenance within an authorized goal and responsibility
+   need no repeated architectural approval. Changes to purpose, responsibilities, compatibility,
+   authority, or important constraints need corresponding authorization; obtain missing authority
+   and respect additional project approval rules. Don't pile responsibilities into an existing file just because you're
    afraid to change `gbc.md`—a god file is the drift-guard mechanism turned upside down.
 
 4. **Use framework enforcement for "local maintenance allowed, overreach blocked."**
-   Hooks should block hand-edits to `gbc.md` / graph metadata, intent changes by
-   subagents, and unauthorized cross-scope destructive operations. Do not blanket-block
+   Hooks should block hand-edits to `gbc.md` / graph metadata, unauthorized intent changes,
+   and unauthorized cross-scope destructive operations. Do not blanket-block
    dependency registration, guarantee creation, or verification for subagents; that
    prevents the agent closest to the implementation from closing the contract loop.
 
@@ -62,11 +64,26 @@ If this philosophy fits your project, adopt the following rules in your agent in
    terminology, decisions, and relevant code/tests before drafting a change. Ask when an
    unresolved choice materially affects behavior, scope, compatibility, authority, or a
    costly-to-reverse decision and evidence cannot settle it. Reuse existing authorization;
-   retain the project's approval requirement for new intent changes. Report meaningful
+   apply the authority boundary above and any additional project approval rules. Report meaningful
    progress and actual blockers rather than every tool step.
+
+8. **Choose delegation for its benefit, not for ceremony.** Consider independence and complexity;
+   delegate complete, verifiable behavior slices that may span related files. Name all writable
+   paths in the brief; other paths remain read-only. One agent may plan and implement when
+   delegation adds little value. The responsible agent still performs final overall GBC acceptance.
+
+9. **Separate development testing from formal acceptance.** In the correct environment, direct
+   runs of unregistered tests and targeted debugging are allowed; red-first is optional, with no
+   mandatory replay. Born-green still gates formal creation and test/executor updates for normally
+   enabled guarantees. Do not
+   use disabling as a TDD step. Final acceptance uses GBC and reviews contract/test changes:
+   GBC runs user-maintained tests and cannot detect weakened assertions just by centralizing runs.
+   Green means no failures, not full acceptance; report heavy skips, disabled guarantees, and
+   zero-execution results as unverified scope.
 
 Use the bundled **gbc-workflow** skill with MCP or CLI for the detailed workflow; **gbc-cli**
 is the CLI command adapter. A meaningful test protects the consumer's actual promise,
-including exact values when contractual; born-green alone does not establish defect
+with focused scope, sufficient assertions, and no incidental implementation coupling. Assert exact
+values, ordering, and error codes when contractual; born-green alone does not establish defect
 sensitivity. Reuse vocabulary and preserve material decision reasons in existing project
 documents, without requiring a new context file or copying history into `gbc.md`.
