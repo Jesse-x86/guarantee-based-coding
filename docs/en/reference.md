@@ -109,6 +109,14 @@ another run. Sharing is limited to one call; a later call always runs checks aga
 `executed` counts guarantees with results, while `test_runs` counts distinct execution attempts.
 All references to a failing check fail. Checks that cannot produce a result leave their references
 in `missing`; `execution_errors` records error types without exposing private command arguments.
+
+All executor output is decoded as UTF-8, independently of the host locale. Invalid
+bytes are displayed as `\xNN` escapes (`backslashreplace`), preserving their values
+and surrounding diagnostics instead of dropping a stream. Exit codes are unchanged.
+These strings are diagnostic text, not a byte-for-byte archive: newline conversion
+still applies and a literal `\xNN` in the output is indistinguishable from an escape.
+Configure legacy tools to emit UTF-8 if their text must be readable without escapes.
+
 Development may run unregistered tests directly in the correct
 environment; formal creation and test/executor updates for normally enabled guarantees retain born-green. Disabling is not a
 TDD step, and final acceptance runs through GBC with review of contract and test changes.

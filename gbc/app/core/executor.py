@@ -58,6 +58,9 @@ def prepare_execution(config: str, file: str, timeout: int = -1) -> TestExecutio
 def _execute_prepared(plan: TestExecution) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         args=list(plan.args), capture_output=True, text=True, timeout=plan.timeout,
+        # Locale decoding can fail inside Windows reader threads and lose a
+        # whole stream. Keep valid UTF-8 readable and invalid bytes inspectable.
+        encoding="utf-8", errors="backslashreplace",
         cwd=plan.cwd, env=dict(plan.env), stdin=subprocess.DEVNULL,
     )
 

@@ -135,3 +135,37 @@ class TestPreparedExecution:
         upsert_exec_config("planned", ExecutorModel(command=["changed"], cwd="other", timeout=1))
         verify_prepared(plan)
         assert calls[2] == calls[1]
+
+
+class TestOutputDecoding:
+    @pytest.mark.parametrize("prepared", [False, True])
+    @pytest.mark.parametrize("exit_code", [0, 7])
+    @pytest.mark.parametrize("invalid_bytes", [False, True])
+    def test_output_survives_non_utf8_locale(self, fake_project, monkeypatch,
+                                           prepared, exit_code, invalid_bytes):
+        # Exercise real pipes and Windows reader threads. Force subprocess's
+        # locale fallback even if pytest itself was launched with -X utf8.
+        monkeypatch.setattr(subprocess, "_text_encoding", lambda: "gbk")
+        stdout = "中文 € 🚀\n".encode("utf-8")
+        stderr = "错误诊断 €\n".encode("utf-8")
+        if invalid_bytes:
+            stdout += b"bad:\xff\x82\ntruncated:\xe2\x82"
+            stderr += b"bad:\xfe\nend"
+        script = (f"import os; os.write(1, {stdout!r}); "
+                  f"os.write(2, {stderr!r}); raise SystemExit({exit_code})")
+        upsert_exec_config("bytes-output", ExecutorModel(
+            command=[sys.executable, "-c", script], cwd=str(fake_project), timeout=10,
+        ))
+        if prepared:
+            result = verify_prepared(prepare_execution("bytes-output", "unused"))
+        else:
+            result = verify_single("bytes-output", "unused")
+        expected_stdout = "中文 € 🚀\n"
+        expected_stderr = "错误诊断 €\n"
+        if invalid_bytes:
+            expected_stdout += r"bad:\xff\x82" + "\n" + r"truncated:\xe2\x82"
+            expected_stderr += r"bad:\xfe" + "\nend"
+        assert result.return_code == exit_code
+        assert result.stdout == expected_stdout
+        assert result.stderr == expected_stderr
+        assert VerifyModel.model_validate_json(result.model_dump_json()) == result
