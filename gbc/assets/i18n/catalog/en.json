@@ -136,6 +136,7 @@
     "cli.verify.provider.no_execution": "No guarantees were executed; GREEN only means no failures, not completed verification.",
     "cli.verify.provider.incomplete": "Verification is incomplete: skipped guarantees have not been checked.",
     "cli.verify.provider.disabled": "Disabled guarantees remain unverified; restore their behavior and enable them before claiming completion.",
+    "cli.verify.all.no_execution": "No guarantees were executed; the project release gate fails.",
     "cli.verify.single.opt.verbose": "Show full stdout/stderr",
     "cli.refactor.file.arg.old": "Current path (file or directory)",
     "cli.refactor.file.arg.new": "Destination path",

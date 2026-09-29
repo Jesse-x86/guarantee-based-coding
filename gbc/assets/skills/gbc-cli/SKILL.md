@@ -72,13 +72,13 @@ unique per provider.
 
 | Command | What it does |
 |---------|--------------|
+| `gbc verify all` | Strict whole-project release gate. Scans every provider and runs every enabled guarantee regardless of heavy rank. Any failure, disabled guarantee, missing execution result, or zero executions fails the command. Reports `provider:id` locations. |
 | `gbc verify provider <provider>` | Run all of a provider's guarantees. Heavy guarantees above the threshold are skipped and reported (not failed). Add `--max-heavy N` to run heavier ones. **GREEN iff nothing failed.** |
 | `gbc verify single <provider> <id>` | Run one guarantee by id — always runs, ignoring the heavy threshold. Add `-v` for full stdout/stderr. |
 
-**Gate semantics**: a guarantee that ran is either pass or fail; guarantees skipped for heavy or
-disabled state are reported but do **not** turn the gate red. Green = no failures, not completed
-acceptance. Zero execution supplies no behavioral evidence; inspect raw output for runner-level
-skips and confirm the task's required guarantees actually ran before claiming completion.
+**Gate semantics**: use `verify all` for strict project release acceptance. `verify provider`
+retains its scoped behavior: guarantees skipped for heavy or disabled state are reported but do
+**not** turn that provider gate red. Its GREEN means no failures, not completed acceptance.
 
 ---
 

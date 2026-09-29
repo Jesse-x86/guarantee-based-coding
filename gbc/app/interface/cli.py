@@ -420,6 +420,43 @@ def dep_who(
 
 # ======== Verify Commands ========
 
+@verify_app.command("all")
+def verify_all(
+    timeout: int = typer.Option(-1, "--timeout", "-t", help="cli.option.timeout"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    """严格验证当前项目的全部已登记保证。"""
+    from gbc.app.i18n import t
+
+    try:
+        _set_project(project)
+        s = base.verify_all(timeout=timeout)
+        light = "[green]GREEN[/green]" if s.green else "[red]RED[/red]"
+        console.print(
+            f"{light}  passed={len(s.passed)} failed={len(s.failed)} "
+            f"disabled={len(s.disabled)} executed={s.executed} missing={len(s.missing)}"
+        )
+        for item in s.failed:
+            result = s.results[item.provider][item.id]
+            console.print(
+                f"[red]FAIL[/red]  {item.provider}:{item.id} (exit {result.return_code})"
+            )
+            if result.stdout:
+                console.print(f"[dim]── stdout ──[/dim]\n{result.stdout.rstrip()}")
+            if result.stderr:
+                console.print(f"[dim]── stderr ──[/dim]\n{result.stderr.rstrip()}")
+        for item in s.disabled:
+            console.print(f"[magenta]DISABLED[/magenta]  {item.provider}:{item.id}")
+        for item in s.missing:
+            console.print(f"[yellow]MISSING[/yellow]  {item.provider}:{item.id}")
+        if not s.executed:
+            console.print(f"[yellow]{t('cli.verify.all.no_execution')}[/yellow]")
+    except Exception as e:
+        raise handle_error(e)
+    if not s.green:
+        raise typer.Exit(code=1)
+
+
 @verify_app.command("provider")
 def verify_provider(
     provider: str = typer.Argument(..., help="cli.arg.source_file"),

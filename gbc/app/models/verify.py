@@ -61,3 +61,32 @@ class VerifySummary(BaseModel):
     def green(self) -> bool:
         """门禁是否通过：没有任何失败即为绿（skipped 不影响）。"""
         return not self.failed
+
+
+class GuaranteeRef(BaseModel):
+    """项目级验证中一条保证的稳定定位。"""
+
+    provider: str
+    id: str
+
+
+class ProjectVerifySummary(BaseModel):
+    """全项目严格验证汇总。
+
+    与 provider 级宽松批量门禁不同，项目级门禁只有在至少执行一条保证、所有
+    已启用保证都有执行结果、没有失败且没有停用保证时才通过。
+    """
+
+    passed: list[GuaranteeRef] = Field(default_factory=list)
+    failed: list[GuaranteeRef] = Field(default_factory=list)
+    disabled: list[GuaranteeRef] = Field(default_factory=list)
+    missing: list[GuaranteeRef] = Field(default_factory=list)
+    results: dict[str, dict[str, VerifyModel]] = Field(default_factory=dict)
+
+    @property
+    def executed(self) -> int:
+        return sum(len(provider_results) for provider_results in self.results.values())
+
+    @property
+    def green(self) -> bool:
+        return bool(self.executed) and not (self.failed or self.disabled or self.missing)

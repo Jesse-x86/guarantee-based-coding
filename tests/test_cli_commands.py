@@ -56,6 +56,7 @@ _PROJECT_COMMAND_PATHS = (
     ("dep", "remove"),
     ("dep", "of"),
     ("dep", "who"),
+    ("verify", "all"),
     ("verify", "provider"),
     ("verify", "single"),
     ("refactor", "file"),

@@ -7,7 +7,7 @@
 .gbc 元数据模型:Guarantee(具名行为保证,身份是 id≠测试路径)、Dependency(consumer 依赖边,symbol 级免费/行为级挂保证)、FileMeta(双段 provides+depends_on)。纯 pydantic,无内部依赖。
 
 ## verify.py
-验证结果模型:VerifyModel(单测试原始结果)、SkippedGuarantee / VerifySummary(三桶汇总 passed/failed/skipped + green 门禁判定)。
+验证结果模型：VerifyModel(单测试原始结果)、SkippedGuarantee / VerifySummary(provider 级三桶汇总 + 宽松 green 语义)、GuaranteeRef / ProjectVerifySummary(全项目严格门禁，跟踪 passed/failed/disabled/missing/results/executed)。
 
 ## errors.py
 异常层级,GBCError 为根,按域分(Config/Executor/Guarantee/IllegalOperation)。关键语义:GuaranteeTestFailedError(出生即绿)、GuaranteeHasDependentsError(退休保护)。表面层按类型分流渲染。

@@ -18,6 +18,7 @@ gbc intent 管理目标项目的架构意图，gbc doc 查询随版本分发的 
 - gbc setup 输出面向 AI 的本地化接入指南，指导 AI 检查环境、为当前项目持久配置 MCP 并验证；无 MCP 时提供 CLI 接入方式。命令本身只输出 stdout 纯文本指南，不执行安装。
 - MCP 表面暴露保证引擎与意图文档能力；意图写入的人类确认闸门由用户 agent 框架承担。
 - CLI 验证失败（verify single/provider）或 doctor check 发现一致性错误时，进程必须返回非零退出码；成功返回 0，仅有 heavy 跳过或停用提示时保持原有非失败语义。
+- verify all 是全项目严格发布门禁：扫描全部 provider，执行每条已启用保证且不按 heavy 跳过；任一失败、存在 disabled、零执行或已启用保证执行缺席都判定失败，并汇总 provider + guarantee id 的定位。CLI 与 MCP 共用 base 编排，现有 verify provider/single 语义不变。
 - tree 提供目录浏览、仅目录视图和按目标文件组织的修改上下文；CLI 使用 tree show [目录]、tree folders [目录]、tree for <文件...>，裸 gbc tree 仅显示帮助、不读取项目树；完整树经 tree show 查看，旧组级 --detail/--gaps 拒绝并提示迁移到 tree show；子命令支持后置 --project/-C。
 - 浏览目录为项目相对路径，所选目录深度为 0；达到深度边界时保留折叠标记。folders 仅显示目录意图与内部约束，父子投影不重复展示，子文档缺失时使用父目录条目描述。
 - tree for 合并目标文件条目、祖先意图和内部约束、直接依赖的符号和具名保证，以及目标提供的保证和消费者；包含测试引用及停用状态，去重并保留目标关联，缺失登记明确提示。不递归展开依赖、不执行测试、不读取 AGENTS.md。
@@ -27,10 +28,10 @@ gbc intent 管理目标项目的架构意图，gbc doc 查询随版本分发的 
 # 文件
 
 ## mcp.py
-MCP 薄表面：保证引擎、intent_* 架构意图操作、doc_list/doc_read/doc_search 手册查询，复用各子系统 base，统一错误返回；文档结果纯文本，结构化结果 JSON。旧意图 doc_* 名移除。tree/tree_for 复用 interface.base。stdio 启动并显式绑定项目根。
+MCP 薄表面：保证引擎（含严格项目级 verify_all）、intent_* 架构意图操作、doc_list/doc_read/doc_search 手册查询，复用各子系统 base，统一错误返回；文档结果纯文本，结构化结果 JSON。旧意图 doc_* 名移除。tree/tree_for 复用 interface.base。stdio 启动并显式绑定项目根。
 
 ## cli.py
-Typer 命令面，镜像 base 能力并经 rich/i18n 渲染。所有项目操作叶子命令接受后置 --project/-C 并在调用 base 前显式设置目标根；不做 argv 重排。根 --lang 仍是单次覆盖入口。tree 命令组提供 show/folders/for，裸 tree 仅显示帮助；--detail/--gaps 移至 show，旧组级用法明确提示迁移；只收集参数并调用 base。
+Typer 命令面，镜像 base 能力并经 rich/i18n 渲染。verify all 是严格全项目发布门禁，provider/single 保持原语义。所有项目操作叶子命令接受后置 --project/-C 并在调用 base 前显式设置目标根；不做 argv 重排。根 --lang 仍是单次覆盖入口。tree 命令组提供 show/folders/for，裸 tree 仅显示帮助；--detail/--gaps 移至 show，旧组级用法明确提示迁移；只收集参数并调用 base。
 
 ## base.py
-IO/编排层：路径解析、meta 加载/保存、保证 CRUD、依赖双向写、全局反查/一致性与树渲染。正常依赖删除维护双边；consumer meta 已不存在时，只有明确 guarantee_id 且 provider 反向边确实包含该 consumer 才可 provider-only 摘除，并且不得新建空 consumer meta。check_consistency 在目标根没有 .gbc 时失败，杜绝空图假绿。统一选择并渲染目录树、仅目录视图及目标文件修改上下文，维护深度边界、意图去重、直接契约范围和缺失提示。
+IO/编排层：路径解析、meta 加载/保存、保证 CRUD、依赖双向写、全局反查/一致性与树渲染；项目级 verify all 扫描全部 provider、强制执行所有已启用保证并聚合严格门禁结果。正常依赖删除维护双边；consumer meta 已不存在时，只有明确 guarantee_id 且 provider 反向边确实包含该 consumer 才可 provider-only 摘除，并且不得新建空 consumer meta。check_consistency 在目标根没有 .gbc 时失败，杜绝空图假绿。统一选择并渲染目录树、仅目录视图及目标文件修改上下文，维护深度边界、意图去重、直接契约范围和缺失提示。

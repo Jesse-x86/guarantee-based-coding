@@ -35,6 +35,15 @@
             "heavy": 0,
             "dependents": [],
             "disabled": false
+        },
+        "verify_all.strict_release_command": {
+            "desc": "CLI verify all reports passed/failed/disabled/executed/missing with provider:id locations and exits nonzero unless strict project verification completes.",
+            "test": "tests/test_verify_all.py::TestCliVerifyAll",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
         }
     },
     "depends_on": [
@@ -65,6 +74,12 @@
         {
             "symbol": "gbc/app/interface/base.py:verify_provider",
             "guarantees": []
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:verify_all",
+            "guarantees": [
+                "verify_all.strict_project_gate"
+            ]
         }
     ]
 }

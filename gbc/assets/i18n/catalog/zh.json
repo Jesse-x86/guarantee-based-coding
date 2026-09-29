@@ -135,6 +135,7 @@
     "cli.verify.provider.no_execution": "本次未执行任何保证；GREEN 只表示没有失败，不表示验证完成。",
     "cli.verify.provider.incomplete": "保证验证尚未完成：跳过的保证没有执行。",
     "cli.verify.provider.disabled": "停用保证仍未验证；恢复其行为并重新启用后，才能声明完成。",
+    "cli.verify.all.no_execution": "本次未执行任何保证；项目发布门禁失败。",
     "cli.verify.single.opt.verbose": "显示完整 stdout/stderr",
     "cli.refactor.file.arg.old": "当前路径（文件或目录）",
     "cli.refactor.file.arg.new": "目标路径",

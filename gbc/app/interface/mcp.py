@@ -424,6 +424,26 @@ def check_consistency() -> str:
 # ======== 验证 ========
 
 @mcp.tool()
+def verify_all(timeout: int = -1) -> str:
+    """Strictly verify every registered guarantee in the current project.
+
+    All enabled guarantees run regardless of heavy rank. The gate fails when any
+    guarantee fails, any guarantee is disabled, no guarantee executes, or an enabled
+    guarantee has no execution result.
+
+    Returns: JSON {passed, failed, disabled, missing, results, executed, green}
+    """
+    try:
+        summary = base.verify_all(timeout=timeout)
+        payload = summary.model_dump()
+        payload["executed"] = summary.executed
+        payload["green"] = summary.green
+        return _ok(payload)
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
 def verify_provider(provider: str, auto_run_max_heavy: int = 0, timeout: int = -1) -> str:
     """Verify all guarantees a provider offers. Guarantees with heavy > auto_run_max_heavy
     are skipped and reported (not failed). Gate is green iff `failed` is empty.

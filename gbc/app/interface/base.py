@@ -42,7 +42,7 @@ from gbc.app.models.errors import (
     GuaranteeDuplicatedError,
 )
 from gbc.app.models.meta import FileMeta, Guarantee, Dependency
-from gbc.app.models.verify import VerifyModel, VerifySummary
+from gbc.app.models.verify import GuaranteeRef, ProjectVerifySummary, VerifyModel, VerifySummary
 from gbc.app.utils import gbc_md
 from gbc.app.utils.file_utils import to_gbc_json_path
 from gbc.app.utils.json_model_operator import load_model_from_json, save_model_to_json
@@ -707,6 +707,47 @@ def check_consistency() -> list[dict]:
 def verify_provider(provider: str, *, auto_run_max_heavy: int = 0, timeout: int = -1) -> VerifySummary:
     with meta_session(provider, readonly=True) as meta:
         return gtee.verify_provider(meta, auto_run_max_heavy=auto_run_max_heavy, timeout=timeout)
+
+
+def verify_all(*, timeout: int = -1) -> ProjectVerifySummary:
+    """严格验证项目中全部已登记保证，不按 heavy 跳过。"""
+    project_summary = ProjectVerifySummary()
+    for provider, meta in _iter_all_metas():
+        enabled = {
+            gid: guarantee
+            for gid, guarantee in meta.provides.items()
+            if not guarantee.disabled
+        }
+        project_summary.disabled.extend(
+            GuaranteeRef(provider=provider, id=gid)
+            for gid, guarantee in meta.provides.items()
+            if guarantee.disabled
+        )
+        if not enabled:
+            continue
+
+        max_heavy = max(guarantee.heavy for guarantee in enabled.values())
+        provider_summary = gtee.verify_provider(
+            meta, auto_run_max_heavy=max_heavy, timeout=timeout
+        )
+        if provider_summary.results:
+            project_summary.results[provider] = dict(provider_summary.results)
+
+        for gid, result in provider_summary.results.items():
+            target = GuaranteeRef(provider=provider, id=gid)
+            if result.return_code == 0:
+                project_summary.passed.append(target)
+            else:
+                project_summary.failed.append(target)
+
+        executed_ids = set(provider_summary.results)
+        project_summary.missing.extend(
+            GuaranteeRef(provider=provider, id=gid)
+            for gid in enabled
+            if gid not in executed_ids
+        )
+
+    return project_summary
 
 
 def verify_guarantee(provider: str, gid: str, *, timeout: int = -1) -> VerifyModel:

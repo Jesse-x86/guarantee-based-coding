@@ -89,11 +89,12 @@ gbc tree for gbc/entry.py gbc/app/interface/cli.py -C /path/to/project
 
 | CLI | MCP 工具 | 作用 |
 |-----|----------|------|
+| `gbc verify all` | `verify_all` | 严格的全项目发布门禁：扫描全部 provider，无视 heavy 成本秩执行每条已启用保证。任一失败、存在 disabled、执行结果缺席或零执行都会使门禁失败，并报告 provider + 保证 id 定位。 |
 | `gbc verify provider <provider>` | `verify_provider` | 跑该 provider 的全部保证。heavy 超阈值的跳过并报告（不算失败）。`--max-heavy N`。**GREEN 当且仅当无 failed。** |
 | `gbc verify single <provider> <id>` | `verify_guarantee` | 点名跑单条，无视 heavy 永远跑。`-v` 显示完整 stdout/stderr。 |
 
-**门禁语义**：跑了的测试只有过 / 挂；跳过的（heavy）响亮报告但不染红。green = 无 failed。
-这不代表验收完整：heavy 跳过、停用保证和零执行须明确列为未验证范围。开发期可在正确环境中
+**门禁语义**：`verify all` 是严格的全项目发布门禁。`verify provider` 保留原有局部门禁语义：
+heavy 或 disabled 跳过会响亮报告但不染红，GREEN 只表示已执行保证没有失败。开发期可在正确环境中
 直接跑未登记测试；正常启用保证的正式创建及测试 / executor 更新仍须出生即绿。停用不是 TDD 步骤，
 最终验收经 GBC，并审查契约与测试变更。
 

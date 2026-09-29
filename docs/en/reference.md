@@ -94,13 +94,14 @@ the provider.
 
 | CLI | MCP tool | What it does |
 |-----|----------|--------------|
+| `gbc verify all` | `verify_all` | Strict project release gate. Scans every provider and runs every enabled guarantee regardless of heavy rank. Any failure, disabled guarantee, missing execution result, or zero executions makes the gate fail. Reports provider + guarantee id locations. |
 | `gbc verify provider <provider>` | `verify_provider` | Run all of a provider's guarantees. Heavy ones above the threshold are skipped and reported (not failed). `--max-heavy N`. **GREEN iff no failures.** |
 | `gbc verify single <provider> <id>` | `verify_guarantee` | Run one by id, ignoring the heavy threshold — always runs. `-v` shows full stdout/stderr. |
 
-**Gate semantics**: a test that ran is pass or fail; a skipped (heavy) one is reported loudly but
-never turns the gate red. Green = no failures.
-This is not a claim of complete acceptance: report heavy skips, disabled guarantees, and zero
-execution as unverified scope. Development may run unregistered tests directly in the correct
+**Gate semantics**: `verify all` is the strict whole-project release gate. In contrast,
+`verify provider` retains its scoped semantics: a skipped heavy or disabled guarantee is reported
+but does not turn that provider gate red, and GREEN only means no executed guarantee failed.
+Development may run unregistered tests directly in the correct
 environment; formal creation and test/executor updates for normally enabled guarantees retain born-green. Disabling is not a
 TDD step, and final acceptance runs through GBC with review of contract and test changes.
 
