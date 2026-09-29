@@ -37,6 +37,7 @@ from gbc.app.i18n import t
 from gbc.app.models.errors import (
     IllegalFilePathError,
     ExecutorConfigInvalidError,
+    ExecutorNotFoundError,
     MetaNotFoundError,
     GuaranteeNotFoundError,
     GuaranteeDuplicatedError,
@@ -710,43 +711,45 @@ def verify_provider(provider: str, *, auto_run_max_heavy: int = 0, timeout: int 
 
 
 def verify_all(*, timeout: int = -1) -> ProjectVerifySummary:
-    """严格验证项目中全部已登记保证，不按 heavy 跳过。"""
+    """Strict project gate: execute equivalent checks once, attribute every promise."""
     project_summary = ProjectVerifySummary()
+    groups: dict[executor.TestExecution, list[GuaranteeRef]] = {}
+
+    def missing(targets: list[GuaranteeRef], reason: str) -> None:
+        project_summary.missing.extend(targets)
+        for target in targets:
+            project_summary.execution_errors.setdefault(target.provider, {})[target.id] = reason
+
     for provider, meta in _iter_all_metas():
-        enabled = {
-            gid: guarantee
-            for gid, guarantee in meta.provides.items()
-            if not guarantee.disabled
-        }
-        project_summary.disabled.extend(
-            GuaranteeRef(provider=provider, id=gid)
-            for gid, guarantee in meta.provides.items()
-            if guarantee.disabled
-        )
-        if not enabled:
-            continue
-
-        max_heavy = max(guarantee.heavy for guarantee in enabled.values())
-        provider_summary = gtee.verify_provider(
-            meta, auto_run_max_heavy=max_heavy, timeout=timeout
-        )
-        if provider_summary.results:
-            project_summary.results[provider] = dict(provider_summary.results)
-
-        for gid, result in provider_summary.results.items():
+        for gid, guarantee in meta.provides.items():
             target = GuaranteeRef(provider=provider, id=gid)
+            if guarantee.disabled:
+                project_summary.disabled.append(target)
+                continue
+            effective_timeout = timeout if timeout != -1 else guarantee.timeout_override
+            try:
+                plan = executor.prepare_execution(guarantee.executor, guarantee.test, effective_timeout)
+            except (ExecutorNotFoundError, OSError) as error:
+                missing([target], type(error).__name__)
+                continue
+            groups.setdefault(plan, []).append(target)
+
+    for plan, targets in groups.items():
+        project_summary.test_runs += 1
+        try:
+            result = executor.verify_prepared(plan)
+        except (OSError, subprocess.SubprocessError) as error:
+            missing(targets, type(error).__name__)
+            continue
+        if not isinstance(result, VerifyModel):
+            missing(targets, "MissingResult")
+            continue
+        for target in targets:
+            project_summary.results.setdefault(target.provider, {})[target.id] = result.model_copy()
             if result.return_code == 0:
                 project_summary.passed.append(target)
             else:
                 project_summary.failed.append(target)
-
-        executed_ids = set(provider_summary.results)
-        project_summary.missing.extend(
-            GuaranteeRef(provider=provider, id=gid)
-            for gid in enabled
-            if gid not in executed_ids
-        )
-
     return project_summary
 
 

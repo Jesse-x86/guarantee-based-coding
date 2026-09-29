@@ -29,6 +29,8 @@ from gbc.app.core.executor import (
     remove_exec_config,
     upsert_exec_config,
     verify_single,
+    prepare_execution,
+    verify_prepared,
 )
 from gbc.app.models.errors import ExecutorNotFoundError
 from gbc.app.models.verify import VerifyModel
@@ -104,3 +106,32 @@ class TestUpsertAndRemove:
         assert has_exec_config(config_name) is True
         remove_exec_config(config_name)
         assert has_exec_config(config_name) is False
+
+
+class TestPreparedExecution:
+    def test_plan_and_single_execution_use_identical_process_arguments(self, fake_project, monkeypatch):
+        from gbc.app.config.executor import EnvAction
+        upsert_exec_config("planned", ExecutorModel(
+            command=[sys.executable, "{file}", "--selector={f}"], cwd=".", timeout=17,
+            env_ops=[EnvAction(key="GBC_PLAN_TEST", action="set", value="planned")],
+        ))
+        calls = []
+
+        def run(**kwargs):
+            calls.append(kwargs)
+            return subprocess.CompletedProcess(kwargs["args"], 7, "stdout", "stderr")
+
+        monkeypatch.setattr("gbc.app.core.executor.subprocess.run", run)
+        plan = prepare_execution("planned", "check.py::case", 9)
+        direct = verify_single("planned", "check.py::case", timeout=9)
+        planned = verify_prepared(plan)
+        assert direct == planned == VerifyModel(return_code=7, stdout="stdout", stderr="stderr")
+        assert calls[0] == calls[1]
+        assert calls[1]["args"] == [sys.executable, "check.py::case", "--selector=check.py::case"]
+        assert calls[1]["timeout"] == 9
+        assert calls[1]["env"]["GBC_PLAN_TEST"] == "planned"
+        assert calls[1]["stdin"] == subprocess.DEVNULL
+        # A prepared plan must not read a new configuration at execution time.
+        upsert_exec_config("planned", ExecutorModel(command=["changed"], cwd="other", timeout=1))
+        verify_prepared(plan)
+        assert calls[2] == calls[1]

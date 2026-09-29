@@ -61,7 +61,7 @@
             "disabled": false
         },
         "verify_all.strict_project_gate": {
-            "desc": "Project-wide verification scans every provider, runs every enabled guarantee regardless of heavy rank, and fails completeness on disabled, missing, failed, or zero execution.",
+            "desc": "Strict project verification groups equivalent executor/selector/command/cwd/environment/effective-timeout plans once per call, fans success or failure to every referencing guarantee, and rejects disabled, missing or zero-result acceptance. Reports guarantee executed counts separately from unique test_runs.",
             "test": "tests/test_verify_all.py::TestBaseVerifyAll",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
@@ -73,5 +73,18 @@
             "disabled": false
         }
     },
-    "depends_on": []
+    "depends_on": [
+        {
+            "symbol": "gbc/app/core/executor.py:prepare_execution",
+            "guarantees": [
+                "core_executor.subprocess_execution_and_timeout"
+            ]
+        },
+        {
+            "symbol": "gbc/app/core/executor.py:verify_prepared",
+            "guarantees": [
+                "core_executor.subprocess_execution_and_timeout"
+            ]
+        }
+    ]
 }

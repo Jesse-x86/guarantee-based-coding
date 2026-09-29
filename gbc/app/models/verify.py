@@ -82,9 +82,14 @@ class ProjectVerifySummary(BaseModel):
     disabled: list[GuaranteeRef] = Field(default_factory=list)
     missing: list[GuaranteeRef] = Field(default_factory=list)
     results: dict[str, dict[str, VerifyModel]] = Field(default_factory=dict)
+    # Unique plan execution attempts, including attempts that produce no result.
+    test_runs: int = 0
+    # Error types only: exception strings can expose private executor arguments.
+    execution_errors: dict[str, dict[str, str]] = Field(default_factory=dict)
 
     @property
     def executed(self) -> int:
+        """Number of guarantees with results, not the number of subprocess runs."""
         return sum(len(provider_results) for provider_results in self.results.values())
 
     @property

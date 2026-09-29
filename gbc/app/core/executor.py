@@ -13,6 +13,8 @@
 # limitations under the License.
 
 import subprocess
+import os
+from dataclasses import dataclass, field
 
 from gbc.app.config.executor import get_executors_config, ExecutorModel, save_executors_config
 from gbc.app.core.env import apply_env_actions, get_clean_python_path
@@ -21,6 +23,50 @@ from gbc.app.models.verify import VerifyModel
 
 FILE_PLACEHOLDERS = ["{file}", "{f}"]
 DEFAULT_TIMEOUT = 15
+
+
+@dataclass(frozen=True)
+class TestExecution:
+    """Immutable execution identity; environment/arguments stay private in memory."""
+
+    executor: str
+    selector: str
+    args: tuple[str, ...] = field(repr=False)
+    cwd: str
+    timeout: int
+    env: tuple[tuple[str, str], ...] = field(repr=False)
+
+
+def prepare_execution(config: str, file: str, timeout: int = -1) -> TestExecution:
+    """Resolve exactly the configuration that will be used, before batching."""
+    executor_cfg = get_executors_config().executors.get(config)
+    if executor_cfg is None:
+        raise ExecutorNotFoundError(config)
+    args = tuple(arg.replace("{file}", file).replace("{f}", file)
+                 for arg in executor_cfg.command)
+    env = apply_env_actions(get_clean_python_path(), executor_cfg.env_ops)
+    if timeout < 0:
+        timeout = executor_cfg.timeout
+    if timeout < 0:
+        timeout = DEFAULT_TIMEOUT
+    # Freeze relative cwd against the planning process's actual directory; keep
+    # an invalid empty cwd invalid rather than silently repairing configuration.
+    cwd = os.path.abspath(executor_cfg.cwd) if executor_cfg.cwd else executor_cfg.cwd
+    return TestExecution(config, file, args, cwd, timeout, tuple(sorted(env.items())))
+
+
+def _execute_prepared(plan: TestExecution) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        args=list(plan.args), capture_output=True, text=True, timeout=plan.timeout,
+        cwd=plan.cwd, env=dict(plan.env), stdin=subprocess.DEVNULL,
+    )
+
+
+def verify_prepared(plan: TestExecution) -> VerifyModel:
+    """Execute the same immutable plan used as the batch grouping key."""
+    result = _execute_prepared(plan)
+    return VerifyModel(return_code=result.returncode, stdout=result.stdout, stderr=result.stderr)
+
 
 def has_exec_config(config: str) -> bool:
     """
@@ -38,35 +84,8 @@ def _execute(config: str, file: str, timeout: int = -1) -> subprocess.CompletedP
     :param timeout:
     :return:
     """
-    if not has_exec_config(config):
-        raise ExecutorNotFoundError(config)
-
-    executor_cfg = get_executors_config().executors[config]
-
-    args = executor_cfg.command.copy()
-    args = [arg.replace("{file}", file).replace("{f}", file) for arg in args]
-
-    env = apply_env_actions(get_clean_python_path(), executor_cfg.env_ops)
-
-    if timeout < 0:
-        timeout = executor_cfg.timeout
-
-    if timeout < 0:
-        timeout = DEFAULT_TIMEOUT
-
-    result = subprocess.run(
-        args=args,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        cwd=executor_cfg.cwd,
-        env=env,
-        # 绝不让被测进程继承父进程的 stdin。作为 MCP server 运行时父进程 stdin 是
-        # JSON-RPC 协议管道，子进程继承后会阻塞（"终端能跑、当服务挂"的经典坑）。
-        stdin=subprocess.DEVNULL,
-    )
-
-    return result
+    # Never inherit MCP's JSON-RPC stdin in the tested process.
+    return _execute_prepared(prepare_execution(config, file, timeout))
 
 def verify_single(config: str, file: str, *, timeout: int = -1, return_model: bool = True) -> bool | VerifyModel:
     """

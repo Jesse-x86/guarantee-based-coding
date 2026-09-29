@@ -434,7 +434,8 @@ def verify_all(
         light = "[green]GREEN[/green]" if s.green else "[red]RED[/red]"
         console.print(
             f"{light}  passed={len(s.passed)} failed={len(s.failed)} "
-            f"disabled={len(s.disabled)} executed={s.executed} missing={len(s.missing)}"
+            f"disabled={len(s.disabled)} executed={s.executed} missing={len(s.missing)} "
+            f"test_runs={s.test_runs}"
         )
         for item in s.failed:
             result = s.results[item.provider][item.id]
@@ -449,6 +450,9 @@ def verify_all(
             console.print(f"[magenta]DISABLED[/magenta]  {item.provider}:{item.id}")
         for item in s.missing:
             console.print(f"[yellow]MISSING[/yellow]  {item.provider}:{item.id}")
+            reason = s.execution_errors.get(item.provider, {}).get(item.id)
+            if reason:
+                console.print(f"[dim]{reason}[/dim]")
         if not s.executed:
             console.print(f"[yellow]{t('cli.verify.all.no_execution')}[/yellow]")
     except Exception as e:

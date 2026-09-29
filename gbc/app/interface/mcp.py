@@ -431,7 +431,12 @@ def verify_all(timeout: int = -1) -> str:
     guarantee fails, any guarantee is disabled, no guarantee executes, or an enabled
     guarantee has no execution result.
 
-    Returns: JSON {passed, failed, disabled, missing, results, executed, green}
+    Equivalent executor/selector/command/cwd/environment/effective-timeout plans run
+    once per call; every referencing guarantee receives the raw result. `executed`
+    counts guarantees with results; `test_runs` counts unique execution attempts.
+    Missing results remain a strict failure; execution_errors contains reason types.
+
+    Returns: JSON {passed, failed, disabled, missing, results, executed, test_runs, execution_errors, green}
     """
     try:
         summary = base.verify_all(timeout=timeout)

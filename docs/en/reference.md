@@ -94,13 +94,21 @@ the provider.
 
 | CLI | MCP tool | What it does |
 |-----|----------|--------------|
-| `gbc verify all` | `verify_all` | Strict project release gate. Scans every provider and runs every enabled guarantee regardless of heavy rank. Any failure, disabled guarantee, missing execution result, or zero executions makes the gate fail. Reports provider + guarantee id locations. |
+| `gbc verify all` | `verify_all` | Strict project release gate. Groups enabled guarantees by equivalent execution plans, ignores heavy rank, runs each distinct check once per call and attributes its result to every referencing guarantee. Any failure, disabled guarantee, missing execution result, or zero executions makes the gate fail. Reports provider + guarantee id locations. |
 | `gbc verify provider <provider>` | `verify_provider` | Run all of a provider's guarantees. Heavy ones above the threshold are skipped and reported (not failed). `--max-heavy N`. **GREEN iff no failures.** |
 | `gbc verify single <provider> <id>` | `verify_guarantee` | Run one by id, ignoring the heavy threshold — always runs. `-v` shows full stdout/stderr. |
 
 **Gate semantics**: `verify all` is the strict whole-project release gate. In contrast,
 `verify provider` retains its scoped semantics: a skipped heavy or disabled guarantee is reported
 but does not turn that provider gate red, and GREEN only means no executed guarantee failed.
+
+Project-wide sharing requires the same executor name, full test selector, expanded command,
+working directory, effective environment and resolved timeout (call override, guarantee override,
+executor default, then built-in default). Different providers/IDs or heavy ranks do not require
+another run. Sharing is limited to one call; a later call always runs checks again.
+`executed` counts guarantees with results, while `test_runs` counts distinct execution attempts.
+All references to a failing check fail. Checks that cannot produce a result leave their references
+in `missing`; `execution_errors` records error types without exposing private command arguments.
 Development may run unregistered tests directly in the correct
 environment; formal creation and test/executor updates for normally enabled guarantees retain born-green. Disabling is not a
 TDD step, and final acceptance runs through GBC with review of contract and test changes.

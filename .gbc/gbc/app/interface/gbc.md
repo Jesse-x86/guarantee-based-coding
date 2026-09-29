@@ -24,6 +24,7 @@ gbc intent 管理目标项目的架构意图，gbc doc 查询随版本分发的 
 - tree for 合并目标文件条目、祖先意图和内部约束、直接依赖的符号和具名保证，以及目标提供的保证和消费者；包含测试引用及停用状态，去重并保留目标关联，缺失登记明确提示。不递归展开依赖、不执行测试、不读取 AGENTS.md。
 - tree 的 CLI 与 MCP 表面复用 base 层选择与渲染能力，新增用户文本经 i18n；MCP tree 与 base.render_tree 的无参数调用保持兼容；CLI 裸 tree 仅显示帮助。
 - verify provider 的 GREEN/green 仅表示 failed 为空，不表示任务验收完整；CLI 对零执行及任意 skipped 明确提示未取得全部保证的验证证据，对 disabled 指明保证仍停用。MCP 保留原 JSON 字段及 green 语义，并说明相同边界。已执行保证无失败不等于所需验收完整，仍须检查任务所需保证及测试原始输出。
+- verify all 先按真实执行身份分组：executor 名、完整测试 selector、展开后的命令、工作目录、有效环境及有效 timeout；每个等价计划在本次调用中仅运行一次，原始结果回填所有引用的 provider/guarantee。失败必须传播给组内每条保证；停用不参与执行，准备或执行未产生结果的保证计入 missing，严格门禁继续拒绝。executed 保留为有结果的保证数，test_runs 为去重后的执行尝试数；不跨调用缓存结果。
 
 # 文件
 
