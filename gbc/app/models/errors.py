@@ -62,6 +62,17 @@ class IntentDocError(IllegalOperationError):
         return _t(self.msg_key, **self.params)
 
 
+class IntentConflictError(IntentDocError):
+    """选择性保存遇到同语义路径冲突(外部改动与用户改动叠加且结果不同)。
+
+    携带结构化冲突清单(供 editor 转成 409 JSON),不是纯面向用户的文本错误。
+    """
+    def __init__(self, conflicts: list, external_changes: list):
+        super().__init__("exc.doc_save_conflict")
+        self.conflicts = conflicts
+        self.external_changes = external_changes
+
+
 class IllegalFilePathError(IllegalOperationError):
     """
     非法操作，操作意图层面就是错误的

@@ -1,5 +1,8 @@
 # GBC Interactive Demo (for Agents)
 
+> **已废弃，仅供历史参考。** 当前案例请读[用两个例子看懂 GBC](../docs/zh/walkthrough.md)，
+> 接入请读[快速开始](../docs/zh/quick-start.md)。以下旧流程和说明不再作为使用指导。
+
 > 英文平行版 → [`EXAMPLE_EN.md`](./EXAMPLE_EN.md)（`config-service-en` / `*-en` 剧本）
 
 **你是人类** → 把本文交给你的 coding agent，对它说："按这个走一遍，每步停一下解释给我听。"

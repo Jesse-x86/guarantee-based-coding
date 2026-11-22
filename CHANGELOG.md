@@ -2,6 +2,93 @@
 
 > 中文 / English
 
+## 0.4.1 (未发布 / Unreleased)
+
+### 验证与修复 / Verification and fixes
+
+- 新增 `gbc verify all` 与 MCP `verify_all` 全项目验收入口：运行全部启用保证（含 heavy），失败、停用、缺失结果或零执行均导致验收失败。
+  Added CLI and MCP whole-project verification: run every enabled guarantee, including heavy ones, and fail on failed or disabled guarantees, missing results, or zero executions.
+- 同一次全项目验证合并等价的测试执行，保留每条保证的结果，并分别报告保证执行数与实际测试运行数。
+  Deduplicated equivalent test executions within each whole-project verification while preserving per-guarantee results and reporting guarantee counts separately from test runs.
+- 修复 Windows 非 UTF-8 locale 下测试输出解码失败的问题；子进程输出采用 UTF-8 解码，非法字节以转义形式保留。
+  Fixed test-output decoding under non-UTF-8 Windows locales with UTF-8 decoding and escaped invalid bytes.
+- 明确报告零执行、跳过与停用的检查；工作流区分开发期定向测试与最终 GBC 验收，允许未登记测试先获得失败反馈。
+  Clarified zero-execution, skipped, and disabled checks; separated targeted development feedback from final GBC acceptance, including failing tests before registration.
+
+### 文档 / Documentation
+
+- 重排中英文 README：先说明 AI 修改中的连带破坏，再介绍工作方式、与 ADR / AGENTS.md / 测试 / CI 的关系及上手入口。
+  Reorganized both READMEs around unintended regressions during AI edits, followed by the workflow, comparisons with ADRs / AGENTS.md / tests / CI, and onboarding.
+- 将旧 demo 的案例思路改编为双语阅读指南，展示职责漂移、真实消费者回归、测试覆盖不足和登记时验证；旧演示保留为历史资料。
+  Adapted the retired demo into bilingual walkthroughs covering responsibility drift, an actual consumer regression, insufficient test coverage, and checks at registration; old demos remain historical material.
+- 修正核心概念中对 CI、保证身份和验证能力的表述。案例页为仓库文档，离线手册仍保留五个主题；上述文档调整不改变运行接口。
+  Corrected the concepts manual's descriptions of CI, guarantee identity, and verification limits. Walkthroughs are repository documents; the offline manual retains five topics. These documentation edits introduce no runtime interface changes.
+- 统一中英文快速开始中的执行器作用域说明：配置及名称属于目标项目。
+  Corrected both quick-start guides: executor configuration and names are scoped to the target project.
+
+验证范围与结果见 [0.4.1 validation](docs/development/0.4.1-validation.md)。未打包或发布。
+See [0.4.1 validation](docs/development/0.4.1-validation.md) for checks and limitations. Not built or published.
+
+## 0.4.0 (2026-09-23)
+
+### 新增与调整 / Added and changed
+
+- 新增 `gbc-workflow` skill，通用于 MCP / CLI：先调查证据再起草意图，只询问实质未决选择；按消费者行为设计窄测试；复用术语与重要决策理由。`gbc-cli` 保留为命令适配器。
+  Added the transport-neutral `gbc-workflow` skill for evidence-first intent drafting, consequential questions, consumer behavior tests, and vocabulary/decision reuse; `gbc-cli` remains the command adapter.
+- 中英文手册及接入 / 规则指南同步：精确值属于契约时应精确断言；区分目标缺陷辨识力、mock 自证与环境故障；保留现有审批权限、免费符号依赖和 born-green，不强制所有测试先红或新增 ADR / CONTEXT 文件。
+  Updated bilingual manuals and setup/rules guidance: assert exact values when contractual, distinguish defect sensitivity from mock-only or environment failures, and preserve existing authority, free symbol dependencies, and born-green without mandatory red-first or new ADR / CONTEXT files.
+- 选择性借鉴 Matt Pocock 的 grilling / tdd / domain-modeling，来源和 GBC 的调整边界见工作流文档；不新增外部运行依赖、命令、手册主题或数据协议。
+  Selectively adapted ideas from Matt Pocock's grilling / tdd / domain-modeling; attribution and GBC-specific boundaries are in the workflow manual. No new external runtime dependencies, commands, manual topics, or data schema.
+
+验证证据与限制见 [0.4.0 validation](docs/development/0.4.0-validation.md)。
+Validation evidence and limitations are recorded in [0.4.0 validation](docs/development/0.4.0-validation.md).
+
+## 0.3.0 (2026-09-23)
+
+### 不兼容变更 / Breaking changes
+
+- 项目架构意图从 `gbc doc` 改为 `gbc intent`，八个 MCP 意图工具从 `doc_*` 改为 `intent_*`；不保留旧兼容别名。请更新脚本与 agent 指令。
+  Project intent moves from `gbc doc` to `gbc intent`; the eight MCP intent tools move from `doc_*` to `intent_*`, without compatibility aliases. Update scripts and agent instructions.
+- CLI 全树渲染改用 `gbc tree show`；`gbc tree` 仅显示浏览帮助。MCP `tree()` 无参数仍可渲染全树。
+  CLI tree rendering uses `gbc tree show`; `gbc tree` displays browsing help. MCP `tree()` still renders the full tree without arguments.
+
+### 新增 / Added
+
+- `tree show` 支持目录与深度；`tree folders` 浏览目录意图和约束；`tree for` 合并目标文件的修改上下文，对应 MCP `tree` 与 `tree_for`。
+  Folder/depth browsing in `tree show`, intent/constraint browsing in `tree folders`, and combined modification context in `tree for`, exposed through MCP `tree` and `tree_for`.
+- `gbc doc list/read/search` 与 MCP `doc_list/doc_read/doc_search` 离线查询随版本附带的中英文手册：quick-start、concepts、workflow、reference、onboarding-agent。`--help` 继续负责简短语法。
+  Offline versioned English/Chinese manuals through `gbc doc list/read/search` and MCP `doc_list/doc_read/doc_search`, with five fixed topics. `--help` remains short syntax help.
+- 手册以 `docs/` 为单源，构建时收入包资源；支持从 sdist 构建 wheel，安装后无需仓库或目标项目。
+  Manuals have a single source in `docs/`, copied into package resources during builds, including wheels built from sdists; installed queries need no checkout or target project.
+
+## 0.2.3 (2026-09-23)
+
+本版本保持 0.2.2 的命令结构，`gbc tree` 与 `gbc doc` 不改名。
+This release preserves the 0.2.2 command structure; `gbc tree` and `gbc doc` retain their names.
+
+### 修复 / Fixed
+
+- 同一 consumer 的多个 symbol 依赖同一 provider 的同一保证时，删除其中一条依赖仍保留其余依赖所需的反向记录和保证退休保护。
+  When multiple symbols in one consumer depend on the same guarantee from the same provider, removing one dependency preserves the reverse record and guarantee retirement protection required by the remaining dependencies.
+- `gbc verify single`、`gbc verify provider` 验证失败，以及 `gbc doctor check` 发现一致性错误时，CLI 返回非零退出码。
+  The CLI now returns a nonzero exit code when `gbc verify single` or `gbc verify provider` fails, or when `gbc doctor check` finds consistency errors.
+
+## 0.2.2
+
+### 新增 / Added
+
+- 重做意图编辑器：模块化原生前端、中英 i18n、文件夹与文件一等节点，以及文件保证/依赖的只读接口视图。
+  Rebuilt the intent editor with a modular native frontend, zh/en i18n, first-class folder/file nodes, and a read-only guarantee/dependency interface view.
+- 新增当前内存、加载快照、硬盘状态三态 diff，可复制或下载为 LLM 可读文本。
+  Added three-way intent diff views for current memory, loaded snapshot, and disk state, exportable as LLM-readable text.
+
+### 修复 / Fixed
+
+- 保存改为冲突感知的字段级三方合并与选择性写盘：只写变化的 gbc.md，保留无关外部改动，并关闭旧的整树盲写 HTTP 入口。
+  Saving now uses conflict-aware field-level three-way merging and selective writes, preserving unrelated external edits and disabling the legacy blind whole-tree HTTP write endpoint.
+- 文件元数据只读接口增加语义路径校验，防止路径穿越读取。
+  Added semantic-path validation to the read-only file metadata endpoint to prevent path traversal.
+
 ## 0.2.1 (2026-08-04)
 
 ### 新增 / Added

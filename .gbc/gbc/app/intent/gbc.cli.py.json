@@ -1,0 +1,23 @@
+{
+    "provides": {
+        "intent_app.intent_commands": {
+            "desc": "The intent CLI exposes all eight intent operations and writes then reads actual project intent through the sole entry point.",
+            "test": "tests/test_cli_commands.py::TestIntentDocumentationSplit::test_intent_edits_and_all_eight_operations_are_available",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/entry.py"
+            ],
+            "disabled": false
+        }
+    },
+    "depends_on": [
+        {
+            "symbol": "gbc/app/intent/base.py:show",
+            "guarantees": [
+                "intent.base.io_and_consistency"
+            ]
+        }
+    ]
+}

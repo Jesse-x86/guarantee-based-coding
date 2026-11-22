@@ -33,6 +33,10 @@ gbc lang auto   # 恢复自动选择（跟随系统 locale）
 
 不设置时自动跟随系统 locale，缺省回退英文。
 
+0.3.0 起，安装包附带离线手册，可在任意目录查询：`gbc doc list --lang zh`、
+`gbc doc read quick-start --lang zh`、`gbc doc search "保证" --lang zh`。
+`--help` 只负责简短命令语法；项目架构意图改用 `gbc intent`，旧意图命令不保留别名。
+
 > 推荐 `pipx`（[安装说明](https://pipx.pypa.io/stable/installation/)）：GBC 是一个独立命令行工具（类似 `black` / `ruff`），你想的是“装一次到处用”，而不是
 > 让它的依赖污染你正在开发的项目的 Python 环境。你仍可以用 `pip install guarantee-based-coding`
 > （装进当前环境）或 `uvx guarantee-based-coding`（即用即弃）。GBC 的依赖很轻（typer / pydantic / mcp）。
@@ -54,9 +58,9 @@ gbc setup
 
 ### 路径 A — MCP（你的 agent 会说 MCP 时推荐）
 
-GBC 自带一个 stdio MCP server，暴露**两个子系统**的能力：保证引擎（guarantee / dep / verify /
-refactor / tree / consistency / executor）**以及**意图文档（doc show / check / set-* / sync /
-migrate）。
+GBC 自带一个 stdio MCP server，暴露保证引擎（guarantee / dep / verify /
+refactor / tree / consistency / executor）、项目意图（`intent_*`）与离线手册
+（`doc_list` / `doc_read` / `doc_search`）。
 
 启动命令是：
 
@@ -83,11 +87,12 @@ gbc mcp up <你项目根的绝对路径>
 
 跨平台细节（WSL 调 Windows Python 等）见 [reference.md](./reference.md)。
 
-### 路径 B — Skills（不用 MCP、或 MCP 不方便时）
+### 路径 B — CLI（不用 MCP、或 MCP 不方便时）
 
-因为 GBC 的每项能力同时是一条 `gbc ...` 命令，一个能跑 shell 的 agent 可以通过一套**随包分发的
-skill** 使用 GBC。`gbc setup` 会打印这些 skill 文件的绝对路径；把它们拷到你的 agent 发现 skill
-的位置即可（每个框架读 skill 的位置不同——GBC 把文件准备好，放到哪由你决定）。
+因为 GBC 的每项能力同时是一条 `gbc ...` 命令，能跑 shell 的 agent 可用随包的 **gbc-cli**
+命令适配器。独立的 **gbc-workflow** skill 指导意图起草、行为测试及术语 / 决策复用，
+**MCP 和 CLI 均可使用**。`gbc setup` 会打印 skill 目录，可直接阅读；需要接入时遵循客户端
+项目级发现约定，不自动全局安装。
 
 ---
 
@@ -107,8 +112,8 @@ gbc executor upsert pytest-myproject --json '{
 
 - `{file}` 是占位符，运行时替换成保证的测试选择器。
 - 换语言只需换 `command`（如 `["npx", "jest", "{file}"]`）。
-- 给它一个**项目级的名字**（如 `pytest-<项目名>`）——executor 按名字跨项目共享，裸名 `pytest`
-  会和别的项目撞车。
+- 给它一个便于识别的名字（如 `pytest-myproject`）。executor 配置保存在目标项目的
+  `.gbc/executors.json` 中，名称在该项目内使用；不同项目可以使用相同名称。
 - `env_ops` 的完整字段与 `action` 取值（`set`/`append`/`prepend`/`remove`）见
   [reference.md](./reference.md#executor-配置)。
 
@@ -119,7 +124,7 @@ gbc executor upsert pytest-myproject --json '{
 让你的 agent（或你自己）跑一发只读命令：
 
 ```bash
-gbc tree                 # 渲染整棵 .gbc 依赖树（空项目是一棵空树）
+gbc tree show            # 渲染整棵 .gbc 依赖树（空项目是一棵空树）
 gbc doctor check         # 一致性体检，干净时报 "✔ consistent"
 ```
 

@@ -14,11 +14,12 @@
 
 """`gbc` 的唯一入口 —— 纯分发器。
 
-不实现任何业务:只把两个子系统的表面**组合**成一棵命令树,再挂上跨子系统的
+不实现任何业务:只把各子系统的表面**组合**成一棵命令树,再挂上跨子系统的
 服务/初始化命令。各表面自己是薄的、只调各自的 base。
 
   gbc guarantee|dep|verify|doctor|executor|refactor|tree   → 保证引擎(interface.cli)
-  gbc doc <...>                                            → 意图文档(intent.cli)
+  gbc intent <...>                                         → 意图文档(intent.cli)
+  gbc doc list|read|search                                 → 使用文档(documentation.cli)
   gbc mcp up [root]                                        → 保证引擎的 MCP 表面(interface.mcp)
   gbc editor up                                            → 意图文档的 web 表面(intent.editor)
   gbc rules / setup                                        → 跨子系统的辅助命令
@@ -30,11 +31,13 @@ from typing import Optional
 import typer
 
 from gbc.app.interface.cli import app as guarantee_cli
-from gbc.app.intent.cli import doc_app
+from gbc.app.intent.cli import intent_app
+from gbc.app.documentation.cli import doc_app
 
 # 顶层命令树 = 保证引擎的 cli(含 guarantee/dep/verify/doctor/executor/refactor/tree
-# 与全局 --lang callback),再往上挂 doc 子树与服务/辅助命令。
+# 与全局 --lang callback),再往上挂 intent/doc 子树与服务/辅助命令。
 app = guarantee_cli
+app.add_typer(intent_app, name="intent")
 app.add_typer(doc_app, name="doc")
 
 mcp_app = typer.Typer(help="cli.mcp.help")
@@ -121,8 +124,8 @@ def setup_cmd(
     from gbc.app.assets import SKILLS_DIR
     if lang is not None:
         set_lang(resolve_lang(lang))
-    # 与 rules 同构：纯文本发射器。只给坐标(skills 目录/MCP 入口)，
-    # 具体怎么接入取决于用户 agent——{skills_dir} 填入随包 skills 的真实路径。
+    # 与 rules 同构：只输出 AI 接入步骤，不执行安装或修改客户端配置。
+    # {skills_dir} 填入随包 skills 的真实路径，客户端配置按实际支持适配。
     print(load_text("setup").format(skills_dir=str(SKILLS_DIR)))
 
 

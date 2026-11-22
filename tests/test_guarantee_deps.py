@@ -2,10 +2,11 @@
 
 import pytest
 from gbc.app.models.meta import FileMeta, Guarantee, Dependency
-from gbc.app.models.errors import GuaranteeNotFoundError
+from gbc.app.models.errors import GuaranteeNotFoundError, GuaranteeHasDependentsError
 from gbc.app.core.guarantee import (
     add_dependency,
     remove_dependency,
+    retire_guarantee,
     list_provides,
     list_depends_on,
     dependents_of,
@@ -150,6 +151,88 @@ class TestRemoveDependency:
 
 
 # ======================== list_provides / list_depends_on ========================
+
+@pytest.mark.parametrize("whole_symbol", [False, True])
+def test_shared_guarantee_keeps_retirement_guard_until_last_symbol_removed(whole_symbol):
+    consumer_meta = FileMeta()
+    provider_meta = make_provider_meta()
+    for name in (SYMBOL_NAME, "other_helper"):
+        add_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH, name, GID)
+
+    gid = None if whole_symbol else GID
+    remove_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH, SYMBOL_NAME, gid)
+
+    assert dependents_of(provider_meta, GID) == [CONSUMER_PATH]
+    assert any(dep.symbol == f"{PROVIDER_PATH}:other_helper" and GID in dep.guarantees
+               for dep in consumer_meta.depends_on)
+    with pytest.raises(GuaranteeHasDependentsError):
+        retire_guarantee(provider_meta, PROVIDER_PATH, GID)
+
+    remove_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH, "other_helper", gid)
+
+    assert dependents_of(provider_meta, GID) == []
+    if whole_symbol:
+        assert consumer_meta.depends_on == []
+    else:
+        assert len(consumer_meta.depends_on) == 2
+        assert all(dep.guarantees == [] for dep in consumer_meta.depends_on)
+    retire_guarantee(provider_meta, PROVIDER_PATH, GID)
+    assert GID not in provider_meta.provides
+
+
+@pytest.mark.parametrize("whole_symbol", [False, True])
+def test_removing_dependency_preserves_other_consumer(whole_symbol):
+    consumer_meta = FileMeta()
+    other_consumer = FileMeta()
+    other_path = "app/core/other_consumer.py"
+    provider_meta = make_provider_meta()
+    for meta, path in ((consumer_meta, CONSUMER_PATH), (other_consumer, other_path)):
+        add_dependency(meta, path, provider_meta, PROVIDER_PATH, SYMBOL_NAME, GID)
+
+    remove_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH,
+                      SYMBOL_NAME, None if whole_symbol else GID)
+
+    assert dependents_of(provider_meta, GID) == [other_path]
+    assert other_consumer.depends_on[0].guarantees == [GID]
+    with pytest.raises(GuaranteeHasDependentsError):
+        retire_guarantee(provider_meta, PROVIDER_PATH, GID)
+
+
+@pytest.mark.parametrize("whole_symbol", [False, True])
+def test_same_guarantee_id_on_other_provider_does_not_keep_removed_reverse_edge(whole_symbol):
+    consumer_meta = FileMeta()
+    provider_meta = make_provider_meta()
+    other_provider = make_provider_meta()
+    other_path = "app/core/provider.py.extra"
+    for meta, path in ((provider_meta, PROVIDER_PATH), (other_provider, other_path)):
+        add_dependency(consumer_meta, CONSUMER_PATH, meta, path, SYMBOL_NAME, GID)
+
+    remove_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH,
+                      SYMBOL_NAME, None if whole_symbol else GID)
+
+    assert dependents_of(provider_meta, GID) == []
+    assert dependents_of(other_provider, GID) == [CONSUMER_PATH]
+    assert any(dep.symbol == f"{other_path}:{SYMBOL_NAME}" and GID in dep.guarantees
+               for dep in consumer_meta.depends_on)
+    retire_guarantee(provider_meta, PROVIDER_PATH, GID)
+    with pytest.raises(GuaranteeHasDependentsError):
+        retire_guarantee(other_provider, other_path, GID)
+
+
+def test_removing_gid_not_attached_to_target_symbol_preserves_valid_dependency():
+    consumer_meta = FileMeta()
+    provider_meta = make_provider_meta()
+    add_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH, SYMBOL_NAME)
+    add_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH, "other_helper", GID)
+    before_consumer = consumer_meta.model_dump()
+    before_provider = provider_meta.model_dump()
+
+    remove_dependency(consumer_meta, CONSUMER_PATH, provider_meta, PROVIDER_PATH, SYMBOL_NAME, GID)
+
+    assert consumer_meta.model_dump() == before_consumer
+    assert provider_meta.model_dump() == before_provider
+    with pytest.raises(GuaranteeHasDependentsError):
+        retire_guarantee(provider_meta, PROVIDER_PATH, GID)
 
 class TestListFunctions:
     def test_list_provides_returns_provides_copy(self):

@@ -34,6 +34,11 @@ gbc lang auto   # restore automatic selection (follows the system locale)
 
 Without an explicit preference, GBC follows the system locale and falls back to English.
 
+Starting in 0.3.0, the installed package includes an offline manual, available from any directory:
+`gbc doc list --lang en`, `gbc doc read quick-start --lang en`, and
+`gbc doc search "guarantee" --lang en`. `--help` provides short command syntax; project intent
+uses `gbc intent`, with no aliases for the old intent commands.
+
 > **`pipx` is recommended** ([installation guide](https://pipx.pypa.io/stable/installation/)): GBC is a standalone CLI tool (like `black` / `ruff`) — you want it
 > installed once and usable everywhere, not polluting the Python environment of whatever project
 > you're working on. You can still use `pip install guarantee-based-coding` (into your current
@@ -58,9 +63,9 @@ The sections below explain what the two wiring paths look like under the hood, f
 
 ### Path A — MCP (recommended when your agent speaks MCP)
 
-GBC ships a stdio MCP server exposing **both subsystems**: the guarantee engine (guarantee / dep /
-verify / refactor / tree / consistency / executor) **and** the intent documents (doc show / check /
-set-* / sync / migrate).
+GBC ships a stdio MCP server exposing the guarantee engine (guarantee / dep /
+verify / refactor / tree / consistency / executor), project intent (`intent_*`), and the offline
+manual (`doc_list` / `doc_read` / `doc_search`).
 
 The start command is:
 
@@ -91,12 +96,13 @@ Register it as an MCP server. For Claude Code, drop a `.mcp.json` in the project
 
 Cross-platform details (WSL calling Windows Python, etc.) are in [reference.md](./reference.md).
 
-### Path B — Skills (when you don't use MCP, or MCP is inconvenient)
+### Path B — CLI (when you don't use MCP, or MCP is inconvenient)
 
 Because every GBC ability is also a `gbc ...` command, an agent that can run shell commands can use
-GBC through a set of **bundled skills**. `gbc setup` prints the absolute path to those skill files;
-copy them into wherever your agent discovers skills (every framework reads skills from a different
-place — GBC materializes the files, you place them).
+GBC using **gbc-cli**, the bundled command adapter. The separate **gbc-workflow** skill guides
+intent drafting, behavior tests, and vocabulary/decision reuse with **either MCP or CLI**.
+`gbc setup` prints the skill directory. Read the relevant skill there, or use your client's
+project-level discovery convention if integration is needed; do not automatically install globally.
 
 ---
 
@@ -116,8 +122,9 @@ gbc executor upsert pytest-myproject --json '{
 
 - `{file}` is a placeholder substituted at run time with the guarantee's test selector.
 - Switch languages by swapping `command` (e.g. `["npx", "jest", "{file}"]`).
-- Give it a **project-scoped name** (e.g. `pytest-<project>`) — executors are shared across
-  projects by name, so a bare `pytest` would collide with another project's.
+- Give it a recognizable name (e.g. `pytest-myproject`). Executor configuration lives in the
+  target project's `.gbc/executors.json`; names are local to that project, so different projects
+  can use the same name.
 - Full `env_ops` fields and `action` values (`set`/`append`/`prepend`/`remove`) are in
   [reference.md](./reference.md#executor-config).
 
@@ -128,7 +135,7 @@ gbc executor upsert pytest-myproject --json '{
 Have your agent (or you) run a read-only command:
 
 ```bash
-gbc tree                 # render the whole .gbc dependency tree (empty tree for a fresh project)
+gbc tree show            # render the whole .gbc dependency tree (empty tree for a fresh project)
 gbc doctor check         # consistency lint; prints "✔ consistent" when clean
 ```
 

@@ -1,7 +1,7 @@
 {
     "provides": {
         "entry.command_tree_composed": {
-            "desc": "唯一入口组合保证/意图/MCP/editor/rules/setup 与 gbc lang；用户持久语言偏好跨进程生效，auto 清除；根 --lang 不被空局部参数覆盖；console_scripts 与 python -m 均经 i18n 且正确传播非零退出码。",
+            "desc": "唯一入口组合保证/intent/doc/MCP/editor/rules/setup/lang；intent 保留八项意图操作且旧 doc 意图命令拒绝，doc 离线查询无需项目并保持语言优先级与简短帮助；setup 双语模板和 skills 路径可用；持久语言跨进程生效，auto 清除，入口 i18n 及非零退出码正确。",
             "test": "tests/test_cli_commands.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
@@ -15,6 +15,18 @@
             "symbol": "gbc/app/i18n/lang.py:set_language_preference",
             "guarantees": [
                 "i18n.lang.resolve_priority"
+            ]
+        },
+        {
+            "symbol": "gbc/app/intent/cli.py:intent_app",
+            "guarantees": [
+                "intent_app.intent_commands"
+            ]
+        },
+        {
+            "symbol": "gbc/app/documentation/cli.py:doc_app",
+            "guarantees": [
+                "doc_cli.query_surface"
             ]
         }
     ]

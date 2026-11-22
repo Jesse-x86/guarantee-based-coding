@@ -241,9 +241,10 @@ def remove_dependency(
 ) -> None:
     """撤销一条依赖（add_dependency 的逆操作，同样维护双向一致）。
 
-    - gid 非 None：只摘掉这一个保证依赖（consumer 边去掉 gid，provider 反向边去掉 consumer），
-      symbol 边若还挂着别的保证则保留。
-    - gid 为 None：整条 symbol 边连同它挂的所有保证一起撤销，并从各保证的 dependents 摘除 consumer。
+    - gid 非 None：只摘掉这一个保证依赖，保留 symbol 边（可退为免费依赖）。
+    - gid 为 None：整条 symbol 边连同它挂的所有保证一起撤销。
+    两种撤销都仅在 consumer 不再通过任何 symbol 依赖同一 provider 的同一保证时，
+    才从该保证的 dependents 摘除 consumer。
     """
     symbol = f"{provider}:{symbol_name}"
     dep = _find_dependency(consumer_meta, symbol)
@@ -251,19 +252,25 @@ def remove_dependency(
         raise GuaranteeNotFoundError(target_file=consumer, guarantee_path=symbol)
 
     def _detach(target_gid: str) -> None:
+        if any(
+            remaining.symbol.startswith(f"{provider}:")
+            and target_gid in remaining.guarantees
+            for remaining in consumer_meta.depends_on
+        ):
+            return
         guarantee = provider_meta.provides.get(target_gid)
         if guarantee and consumer in guarantee.dependents:
             guarantee.dependents.remove(consumer)
 
     if gid is None:
+        consumer_meta.depends_on.remove(dep)
         for g in list(dep.guarantees):
             _detach(g)
-        consumer_meta.depends_on.remove(dep)
         return
 
     if gid in dep.guarantees:
         dep.guarantees.remove(gid)
-    _detach(gid)
+        _detach(gid)
     # symbol 边变空（无保证）后是否保留：保留——它仍是一条有效的免费 symbol 依赖。
 
 

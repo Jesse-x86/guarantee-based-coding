@@ -5,9 +5,10 @@
 Command / tool cheat sheet, executor config, cross-platform wiring. For getting started see
 [quick-start.md](./quick-start.md); for the workflow see [workflow.md](./workflow.md).
 
-Every GBC ability has three equivalent forms: **CLI** (`gbc ...`), **MCP tool** (agent-called), and
-the **gbc-cli skill**. The tables below lead with the CLI and note the matching
-MCP tool name.
+GBC abilities are available through **CLI** (`gbc ...`) and **MCP tools**. The **gbc-cli** skill
+adapts those abilities to shell commands; **gbc-workflow** guides intent, behavior tests, and
+vocabulary/decision reuse with either transport. See [workflow.md](./workflow.md). The tables
+below lead with CLI and note the matching MCP tool name.
 
 If `gbc` is not on PATH, any `gbc` can be replaced with `python -m gbc.entry`.
 
@@ -22,16 +23,42 @@ If `gbc` is not on PATH, any `gbc` can be replaced with `python -m gbc.entry`.
 | `gbc lang [zh\|en\|auto]` | View or set the persistent user language preference. With no argument, shows the preference and effective language; `auto` clears the explicit preference and restores automatic selection. |
 | `gbc setup` | Print a localized wiring guide: how to connect MCP / skills to your agent. A trailing `--lang zh/en` overrides the language for this invocation only. |
 | `gbc rules` | Print the author's recommended guardrails (recommended defaults, not an enforced sandbox). A trailing `--lang zh/en` overrides the language for this invocation only. |
-| `gbc tree` | Render the whole `.gbc` dependency tree. `--detail` expands guarantee details, `--gaps` appends registration gaps. |
+| `gbc tree` | Show browsing-command help and exit successfully. |
+| `gbc tree show [folder]` | Render the whole `.gbc` dependency tree when the folder is omitted, or browse a selected subtree. Supports `--depth N`; `--detail` expands guarantee details, and `--gaps` appends registration gaps. |
+| `gbc tree folders [folder]` | Show only folder intent and internal constraints; supports `--depth N`. Fall back to the parent's entry when a child has no document, and deduplicate parent/child projections of the same folder. |
+| `gbc tree for <file>...` | Combine modification context for target files: file entries, all ancestor intent and constraints, direct dependency symbols and named guarantees, and guarantees provided by the targets with their consumers. |
 | `gbc doctor check` | Global consistency lint: dangling refs + two-way edge drift + disabled guarantees (reported loudly). |
 
 For normal use, run `gbc lang zh` or `gbc lang en` once; use the trailing `--lang` on `setup` or
-`rules` only for a temporary override.
+`rules` or a `doc` leaf command for a temporary override.
 
 By default, GBC selects the project root in this order: `GBC_PROJECT_ROOT` > current working
 directory (cwd). It does **not** search parent directories. Where supported, append
 `--project <project-root>` or `-C <project-root>` to an engine leaf command to override it, for
 example `gbc doctor check -C /path/to/project`.
+
+### Tree browsing and modification context
+
+Migrate the old CLI tree-rendering call to `gbc tree show`; group-level `gbc tree --detail` / `--gaps` now fail with a migration hint, so use `gbc tree show --detail` / `--gaps`. The MCP `tree` tool still returns the tree with no arguments.
+
+Folder and file paths are relative to the project root; paths outside the project are rejected.
+The selected folder is depth 0, and `--depth 1` shows its immediate children. Omit the depth
+for an unlimited view; collapse markers indicate content hidden by the depth limit.
+
+```sh
+gbc tree show gbc --depth 1 --detail -C /path/to/project
+gbc tree folders gbc --depth 2 -C /path/to/project
+gbc tree for gbc/entry.py gbc/app/interface/cli.py -C /path/to/project
+```
+
+`tree for` requires file targets and does not accept browsing options such as `--depth`,
+`--detail`, or `--gaps`. It deduplicates shared context while retaining target associations,
+including guarantee test references and disabled status. Dependencies expand only one hop;
+it does not read source code, test contents, or `AGENTS.md`, and does not run tests.
+
+MCP equivalents: `tree(detail=False, gaps=False, folder="", depth=None, folders_only=False)`
+for browsing (`folders_only=True` corresponds to `tree folders`), and `tree_for(files=[...])`
+for modification context.
 
 ---
 
@@ -39,8 +66,8 @@ example `gbc doctor check -C /path/to/project`.
 
 | CLI | MCP tool | What it does |
 |-----|----------|--------------|
-| `gbc guarantee create <provider> <id> <test> <executor> <desc>` | `create_guarantee` | Create a named guarantee. **Born-green**: runs the test now, refuses if it fails. `--heavy N` / `--timeout S` / `--disabled` (placeholder skipping the gate, only to break a circular dependency). |
-| `gbc guarantee update <provider> <id>` | `update_guarantee` | Change fields: `--desc` / `--test` / `--executor` / `--heavy` / `--timeout`. Changing the test / executor re-runs the gate. |
+| `gbc guarantee create <provider> <id> <test> <executor> <desc>` | `create_guarantee` | Create a named guarantee. **Born-green for normal enabled creation**: runs the test now, refuses if it fails. `--heavy N` / `--timeout S` / `--disabled` (placeholder skipping the gate, only to break a circular dependency). |
+| `gbc guarantee update <provider> <id>` | `update_guarantee` | Change fields: `--desc` / `--test` / `--executor` / `--heavy` / `--timeout`. Changing the test / executor re-runs the gate for enabled guarantees; disabled updates stay suspended until enable. |
 | `gbc guarantee retire <provider> <id>` | `retire_guarantee` | Retire. **Refused** if it still has dependents (retirement protection). |
 | `gbc guarantee disable <provider> <id>` | `disable_guarantee` | Disable: keep id and all edges, suspend the gate / batch verify. Disable ≠ retire. |
 | `gbc guarantee enable <provider> <id>` | `enable_guarantee` | Re-enable: re-run born-green now, promote only if it passes, else stay disabled. |
@@ -67,11 +94,32 @@ the provider.
 
 | CLI | MCP tool | What it does |
 |-----|----------|--------------|
+| `gbc verify all` | `verify_all` | Strict project release gate. Groups enabled guarantees by equivalent execution plans, ignores heavy rank, runs each distinct check once per call and attributes its result to every referencing guarantee. Any failure, disabled guarantee, missing execution result, or zero executions makes the gate fail. Reports provider + guarantee id locations. |
 | `gbc verify provider <provider>` | `verify_provider` | Run all of a provider's guarantees. Heavy ones above the threshold are skipped and reported (not failed). `--max-heavy N`. **GREEN iff no failures.** |
 | `gbc verify single <provider> <id>` | `verify_guarantee` | Run one by id, ignoring the heavy threshold — always runs. `-v` shows full stdout/stderr. |
 
-**Gate semantics**: a test that ran is pass or fail; a skipped (heavy) one is reported loudly but
-never turns the gate red. Green = no failures.
+**Gate semantics**: `verify all` is the strict whole-project release gate. In contrast,
+`verify provider` retains its scoped semantics: a skipped heavy or disabled guarantee is reported
+but does not turn that provider gate red, and GREEN only means no executed guarantee failed.
+
+Project-wide sharing requires the same executor name, full test selector, expanded command,
+working directory, effective environment and resolved timeout (call override, guarantee override,
+executor default, then built-in default). Different providers/IDs or heavy ranks do not require
+another run. Sharing is limited to one call; a later call always runs checks again.
+`executed` counts guarantees with results, while `test_runs` counts distinct execution attempts.
+All references to a failing check fail. Checks that cannot produce a result leave their references
+in `missing`; `execution_errors` records error types without exposing private command arguments.
+
+All executor output is decoded as UTF-8, independently of the host locale. Invalid
+bytes are displayed as `\xNN` escapes (`backslashreplace`), preserving their values
+and surrounding diagnostics instead of dropping a stream. Exit codes are unchanged.
+These strings are diagnostic text, not a byte-for-byte archive: newline conversion
+still applies and a literal `\xNN` in the output is indistinguishable from an escape.
+Configure legacy tools to emit UTF-8 if their text must be readable without escapes.
+
+Development may run unregistered tests directly in the correct
+environment; formal creation and test/executor updates for normally enabled guarantees retain born-green. Disabling is not a
+TDD step, and final acceptance runs through GBC with review of contract and test changes.
 
 ---
 
@@ -88,24 +136,61 @@ After a refactor: fix imports, move tests and `gbc guarantee update <p> <id> --t
 
 ---
 
-## Intent docs — `gbc doc` / MCP
+## Offline GBC manual — `gbc doc` / MCP
+
+The manual ships with the installed GBC version and works offline, from any directory, without
+a target project. It does not inspect or modify `.gbc`. `--help` remains short command syntax.
+
+| CLI | MCP tool | Result |
+|-----|----------|--------|
+| `gbc doc list [--lang en\|zh]` | `doc_list(lang=None)` | Selected language and fixed topic IDs with titles. |
+| `gbc doc read <topic> [--lang en\|zh]` | `doc_read(topic, lang=None)` | The complete Markdown topic. |
+| `gbc doc search "<query>" [--lang en\|zh] [--limit 20]` | `doc_search(query, lang=None, limit=20)` | Case-insensitive literal line matches, with topic ID, one-based line number and text. |
+
+The fixed topics are `quick-start`, `concepts`, `workflow`, `reference`, and `onboarding-agent`.
+Language selection follows the same preference chain as other GBC output; `--lang` overrides
+one invocation. Search uses a literal substring, not regular expressions, and defaults to 20
+matches (valid range 1–100). Matching text is a snippet of at most 240 characters centered on
+the match, rather than an unlimited line. Empty queries and unknown topics are errors. Results include `truncated`
+when more matches exist, so a limited result is distinguishable from a complete search.
+
+MCP list returns `{language, topics: [{id, title}]}`; read returns Markdown text; search returns
+`{language, query, matches: [{topic, line, text}], truncated}`. It searches only the selected
+language. The Markdown sources in `docs/en/` and `docs/zh/` are canonical; packaging copies
+these ten topics into package resources without keeping a second source copy.
+
+```sh
+gbc doc list --lang en
+gbc doc read workflow --lang en
+gbc doc search "guarantee" --lang en --limit 10
+```
+
+## Intent docs — `gbc intent` / MCP
+
+**0.3.0 breaking migration:** all former intent `gbc doc ...` commands are now
+`gbc intent ...`; the eight former `doc_*` MCP tools are now `intent_*`. There are no compatibility
+aliases. Update scripts and agent instructions; `doc` now queries this GBC manual.
 
 | CLI | MCP tool | What it does |
 |-----|----------|--------------|
-| `gbc doc show <folder>` | `doc_show` | View a folder's intent / constraints / entries. Root is `""` or `.`. |
-| `gbc doc check` | `doc_check` | Whole-tree consistency lint (DRIFT/ORPHAN are errors, STUB is a note). |
-| `gbc doc set-intent <folder> "<text>"` | `doc_set_intent` | Set intent (auto single-source projection into the parent entry). |
-| `gbc doc set-constraints <folder> "<text>"` | `doc_set_constraints` | Set internal constraints (local only). |
-| `gbc doc set-file <folder> <name> "<desc>"` | `doc_set_file` | Add / update a file entry (name without `/`). |
-| `gbc doc rm-entry <folder> <name>` | `doc_rm_entry` | Remove an entry (doesn't delete the on-disk file; left for git review). |
-| `gbc doc sync` | `doc_sync` | Deterministically repair parent/child drift. |
-| `gbc doc migrate` | `doc_migrate` | Upgrade all gbc.md to the latest format. |
+| `gbc intent show <folder>` | `intent_show` | View a folder's intent / constraints / entries. Root is `""` or `.`. |
+| `gbc intent check` | `intent_check` | Whole-tree consistency lint (DRIFT/ORPHAN are errors, STUB is a note). |
+| `gbc intent set-intent <folder> "<text>"` | `intent_set_intent` | Set intent (auto single-source projection into the parent entry). |
+| `gbc intent set-constraints <folder> "<text>"` | `intent_set_constraints` | Set internal constraints (local only). |
+| `gbc intent set-file <folder> <name> "<desc>"` | `intent_set_file` | Add / update a file entry (name without `/`). |
+| `gbc intent rm-entry <folder> <name>` | `intent_rm_entry` | Remove an entry (doesn't delete the on-disk file; left for git review). |
+| `gbc intent sync` | `intent_sync` | Deterministically repair parent/child drift. |
+| `gbc intent migrate` | `intent_migrate` | Upgrade all gbc.md to the latest format. |
 
 > When a `<text>` argument begins with `-`, put `--` before it so it isn't parsed as an option:
-> `gbc doc set-intent app -- "- a line starting with a dash"`.
+> `gbc intent set-intent app -- "- a line starting with a dash"`.
 
 **Writing intent changes human-held architecture truth.** Whether it needs human sign-off is set by
 your framework's rules / hooks, not gated by the tool. Never hand-edit gbc.md.
+Under the recommended workflow, routine implementation, helper-file splits, and file-entry
+maintenance within an authorized goal and responsibility need no repeated architectural approval;
+changes to purpose, responsibilities, compatibility, authority, or important constraints need
+corresponding authorization. Existing authorization continues to apply.
 
 ---
 
@@ -171,7 +256,8 @@ the start contract:
 
 - One MCP server instance = one project root. Multiple projects = multiple entries (different
   project-root args).
-- MCP now exposes **both subsystems**: the guarantee engine + intent documents (doc tools). The
+- MCP exposes the guarantee engine, project intent (`intent_*`), and the offline GBC manual
+  (`doc_list`, `doc_read`, `doc_search`). The
   human-confirmation gate for writing intent is carried by your framework, not by hiding the
   channel.
 - Path arguments are always **project-root-relative** posix paths (`gbc/app/core/maker.py`), not

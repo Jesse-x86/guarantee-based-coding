@@ -8,6 +8,42 @@
             "heavy": 0,
             "dependents": [],
             "disabled": false
+        },
+        "cli.gate_exit_codes": {
+            "desc": "CLI subprocess gate exit codes: verification failures and doctor consistency errors fail; successes and heavy/disabled-only notices succeed; failing births remain nonzero.",
+            "test": "tests/test_cli_commands.py::TestGateExitCodes",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "tree.command_modes": {
+            "desc": "CLI 裸 tree 仅显示双语帮助、exit 0 且不解析或读取项目树；show 默认展示完整树并接收 detail/gaps，旧组级 detail/gaps 及短选项失败并给本地化 tree show 迁移提示；folders/for 保持参数语义、多文件和叶子后置 -C。",
+            "test": "tests/test_tree_interfaces.py::TestCliTree",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "verify_provider.reports_execution_gaps": {
+            "desc": "Provider verification preserves GREEN/RED and exit semantics while bilingual output explicitly reports zero execution, skipped checks, and disabled guarantees without claiming task completion.",
+            "test": "tests/test_verification_reporting.py::TestCliVerificationReporting",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
+        },
+        "verify_all.strict_release_command": {
+            "desc": "CLI verify all reports passed/failed/disabled/executed/missing with provider:id locations and exits nonzero unless strict project verification completes.",
+            "test": "tests/test_verify_all.py::TestCliVerifyAll",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [],
+            "disabled": false
         }
     },
     "depends_on": [
@@ -15,6 +51,34 @@
             "symbol": "gbc/app/config/project.py:set_current_project",
             "guarantees": [
                 "config.project.current_project_runtime_state"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:render_tree",
+            "guarantees": [
+                "render_tree.scoped_views"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:render_tree_for",
+            "guarantees": [
+                "render_tree_for.direct_contract_context"
+            ]
+        },
+        {
+            "symbol": "gbc/app/i18n/translate.py:t",
+            "guarantees": [
+                "i18n.translate.lookup_and_fallback"
+            ]
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:verify_provider",
+            "guarantees": []
+        },
+        {
+            "symbol": "gbc/app/interface/base.py:verify_all",
+            "guarantees": [
+                "verify_all.strict_project_gate"
             ]
         }
     ]

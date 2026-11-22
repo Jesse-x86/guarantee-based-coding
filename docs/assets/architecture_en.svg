@@ -55,7 +55,7 @@
   <!-- LAYER 1: INTENT -->
   <rect x="130" y="30" width="700" height="72" rx="12" fill="url(#grad-intent)" stroke="#1565c0" stroke-width="2" filter="url(#shadow)"/>
   <text x="480" y="58" font-family="'Segoe UI', Arial, sans-serif" font-size="16" font-weight="700" fill="#0d47a1" text-anchor="middle">📋 Intent Layer — gbc.md</text>
-  <text x="480" y="82" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#1565c0" text-anchor="middle">Held by humans · Architectural intent · Constrains agent behavior · Editable only via gbc-doc</text>
+  <text x="480" y="82" font-family="'Segoe UI', Arial, sans-serif" font-size="12" fill="#1565c0" text-anchor="middle">Held by humans · Architectural intent · Constrains agent behavior · Editable only via gbc intent</text>
 
   <line x1="290" y1="102" x2="290" y2="145" stroke="#1565c0" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
   <line x1="670" y1="102" x2="670" y2="145" stroke="#1565c0" stroke-width="1.8" marker-end="url(#arrow-blue)"/>

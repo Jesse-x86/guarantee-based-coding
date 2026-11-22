@@ -43,12 +43,14 @@ dep_app = typer.Typer(help="cli.dep.help")
 verify_app = typer.Typer(help="cli.verify.help")
 doctor_app = typer.Typer(help="cli.doctor.help")
 executor_app = typer.Typer(help="cli.executor.help")
+tree_app = typer.Typer(help="cli.tree.help")
 
 app.add_typer(guarantee_app, name="guarantee")
 app.add_typer(dep_app, name="dep")
 app.add_typer(verify_app, name="verify")
 app.add_typer(doctor_app, name="doctor")
 app.add_typer(executor_app, name="executor")
+app.add_typer(tree_app, name="tree")
 
 console = Console()
 
@@ -418,6 +420,47 @@ def dep_who(
 
 # ======== Verify Commands ========
 
+@verify_app.command("all")
+def verify_all(
+    timeout: int = typer.Option(-1, "--timeout", "-t", help="cli.option.timeout"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    """严格验证当前项目的全部已登记保证。"""
+    from gbc.app.i18n import t
+
+    try:
+        _set_project(project)
+        s = base.verify_all(timeout=timeout)
+        light = "[green]GREEN[/green]" if s.green else "[red]RED[/red]"
+        console.print(
+            f"{light}  passed={len(s.passed)} failed={len(s.failed)} "
+            f"disabled={len(s.disabled)} executed={s.executed} missing={len(s.missing)} "
+            f"test_runs={s.test_runs}"
+        )
+        for item in s.failed:
+            result = s.results[item.provider][item.id]
+            console.print(
+                f"[red]FAIL[/red]  {item.provider}:{item.id} (exit {result.return_code})"
+            )
+            if result.stdout:
+                console.print(f"[dim]── stdout ──[/dim]\n{result.stdout.rstrip()}")
+            if result.stderr:
+                console.print(f"[dim]── stderr ──[/dim]\n{result.stderr.rstrip()}")
+        for item in s.disabled:
+            console.print(f"[magenta]DISABLED[/magenta]  {item.provider}:{item.id}")
+        for item in s.missing:
+            console.print(f"[yellow]MISSING[/yellow]  {item.provider}:{item.id}")
+            reason = s.execution_errors.get(item.provider, {}).get(item.id)
+            if reason:
+                console.print(f"[dim]{reason}[/dim]")
+        if not s.executed:
+            console.print(f"[yellow]{t('cli.verify.all.no_execution')}[/yellow]")
+    except Exception as e:
+        raise handle_error(e)
+    if not s.green:
+        raise typer.Exit(code=1)
+
+
 @verify_app.command("provider")
 def verify_provider(
     provider: str = typer.Argument(..., help="cli.arg.source_file"),
@@ -431,6 +474,11 @@ def verify_provider(
         s = base.verify_provider(provider, auto_run_max_heavy=max_heavy, timeout=timeout)
         light = "[green]GREEN[/green]" if s.green else "[red]RED[/red]"
         console.print(f"{light}  passed={len(s.passed)} failed={len(s.failed)} skipped={len(s.skipped)}")
+        from gbc.app.i18n import t
+        if not s.passed and not s.failed:
+            console.print(f"[yellow]{t('cli.verify.provider.no_execution')}[/yellow]")
+        elif s.skipped:
+            console.print(f"[yellow]{t('cli.verify.provider.incomplete')}[/yellow]")
         if s.failed:
             console.print(f"[red]failed:[/red] {', '.join(s.failed)}")
         disabled = [sk for sk in s.skipped if sk.reason == "disabled"]
@@ -441,8 +489,11 @@ def verify_provider(
         if disabled:
             tags = ", ".join(sk.id for sk in disabled)
             console.print(f"[magenta]{len(disabled)} DISABLED (born-green suspended):[/magenta] {tags}")
+            console.print(f"[magenta]{t('cli.verify.provider.disabled')}[/magenta]")
     except Exception as e:
         raise handle_error(e)
+    if not s.green:
+        raise typer.Exit(code=1)
 
 
 @verify_app.command("single")
@@ -467,6 +518,8 @@ def verify_single(
                 console.print(f"[dim]── stderr ──[/dim]\n{result.stderr.rstrip()}")
     except Exception as e:
         raise handle_error(e)
+    if not passed:
+        raise typer.Exit(code=1)
 
 
 # ======== Refactor ========
@@ -540,17 +593,60 @@ def refactor_func_cmd(
 
 # ======== Tree ========
 
-@app.command("tree", help="cli.tree.help")
+@tree_app.callback(invoke_without_command=True)
 def tree_cmd(
+    ctx: typer.Context,
+    detail: bool = typer.Option(False, "--detail", "-d", hidden=True),
+    gaps: bool = typer.Option(False, "--gaps", "-g", hidden=True),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    """显示浏览命令帮助；实际树读取由叶子命令负责。"""
+    if detail or gaps:
+        from gbc.app.i18n import t
+        typer.echo(t("cli.tree.error.group_options"), err=True)
+        raise typer.Exit(code=2)
+    if ctx.invoked_subcommand is None:
+        typer.echo(ctx.get_help())
+        return
+    _set_project(project)
+
+
+@tree_app.command("show", help="cli.tree.show.help")
+def tree_show(
+    folder: str = typer.Argument("", help="cli.tree.argument.folder"),
+    depth: Optional[int] = typer.Option(None, "--depth", help="cli.tree.option.depth"),
     detail: bool = typer.Option(False, "--detail", "-d", help="cli.tree.option.detail"),
     gaps: bool = typer.Option(False, "--gaps", "-g", help="cli.tree.option.gaps"),
     project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
 ):
-    """把整棵 .gbc 渲染成一份 AI 可读的依赖树（gbc.md 意图为骨 + json 依赖边）。"""
     try:
         _set_project(project)
-        # 用 print 而非 console.print：树里有 [意图]/[保证] 等方括号，避免被 rich 当样式标记解析。
-        print(base.render_tree(detail=detail, gaps=gaps))
+        print(base.render_tree(folder=folder, depth=depth, detail=detail, gaps=gaps))
+    except Exception as e:
+        raise handle_error(e)
+
+
+@tree_app.command("folders", help="cli.tree.folders.help")
+def tree_folders(
+    folder: str = typer.Argument("", help="cli.tree.argument.folder"),
+    depth: Optional[int] = typer.Option(None, "--depth", help="cli.tree.option.depth"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    try:
+        _set_project(project)
+        print(base.render_tree(folder=folder, depth=depth, folders_only=True))
+    except Exception as e:
+        raise handle_error(e)
+
+
+@tree_app.command("for", help="cli.tree.for.help")
+def tree_for(
+    files: list[str] = typer.Argument(..., help="cli.tree.argument.files"),
+    project: Optional[str] = typer.Option(None, "--project", "-C", help="cli.option.project"),
+):
+    try:
+        _set_project(project)
+        print(base.render_tree_for(files))
     except Exception as e:
         raise handle_error(e)
 
@@ -579,6 +675,8 @@ def doctor_check(
             console.print_json(json.dumps(notices, ensure_ascii=False))
     except Exception as e:
         raise handle_error(e)
+    if errors:
+        raise typer.Exit(code=1)
 
 
 # ======== Executor Commands ========

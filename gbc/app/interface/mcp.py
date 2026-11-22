@@ -31,6 +31,7 @@ from mcp.server.fastmcp import FastMCP
 
 from . import base
 from gbc.app.intent import base as intent_base
+from gbc.app.documentation import base as documentation_base
 from gbc.app.models.errors import GBCError
 
 mcp = FastMCP("gbc")
@@ -362,7 +363,8 @@ def who_depends_on(provider: str, symbol: str | None = None, guarantee_id: str |
 
 
 @mcp.tool()
-def tree(detail: bool = False, gaps: bool = False) -> str:
+def tree(detail: bool = False, gaps: bool = False, folder: str = "",
+         depth: int | None = None, folders_only: bool = False) -> str:
     """Render the whole `.gbc` tree as one AI-readable dependency document.
 
     Backbone = every folder's intent / internal constraints / file entries (from
@@ -375,11 +377,26 @@ def tree(detail: bool = False, gaps: bool = False) -> str:
     gaps:   append a "registration gaps" section — purely graph-derived (no filesystem
             scan, zero false positives on config/assets): files that have .gbc json or
             are depended-upon yet have no gbc.md file entry.
+    folder: Project-relative folder to browse; empty selects the project root.
+    depth: Maximum relative depth; the selected folder has depth zero.
+    folders_only: Show only directory intent and internal constraints.
     """
     try:
         # 文档型工具：直接返回原始文本(不经 _ok 的 json.dumps)，让 MCP 当文本块发出，
         # 换行是字面换行、零转义开销。是「工具返回 JSON 字符串」约定的有意例外。
-        return base.render_tree(detail=detail, gaps=gaps)
+        return base.render_tree(detail=detail, gaps=gaps, folder=folder,
+                                depth=depth, folders_only=folders_only)
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def tree_for(files: list[str]) -> str:
+    """Return read-only change context for target files, including ancestor intent
+    and direct dependency/provided contracts. Does not recurse or execute tests.
+    """
+    try:
+        return base.render_tree_for(files)
     except Exception as e:
         return _err(e)
 
@@ -407,12 +424,42 @@ def check_consistency() -> str:
 # ======== 验证 ========
 
 @mcp.tool()
+def verify_all(timeout: int = -1) -> str:
+    """Strictly verify every registered guarantee in the current project.
+
+    All enabled guarantees run regardless of heavy rank. The gate fails when any
+    guarantee fails, any guarantee is disabled, no guarantee executes, or an enabled
+    guarantee has no execution result.
+
+    Equivalent executor/selector/command/cwd/environment/effective-timeout plans run
+    once per call; every referencing guarantee receives the raw result. `executed`
+    counts guarantees with results; `test_runs` counts unique execution attempts.
+    Missing results remain a strict failure; execution_errors contains reason types.
+
+    Returns: JSON {passed, failed, disabled, missing, results, executed, test_runs, execution_errors, green}
+    """
+    try:
+        summary = base.verify_all(timeout=timeout)
+        payload = summary.model_dump()
+        payload["executed"] = summary.executed
+        payload["green"] = summary.green
+        return _ok(payload)
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
 def verify_provider(provider: str, auto_run_max_heavy: int = 0, timeout: int = -1) -> str:
     """Verify all guarantees a provider offers. Guarantees with heavy > auto_run_max_heavy
     are skipped and reported (not failed). Gate is green iff `failed` is empty.
+    `green` means no failures, NOT completed verification or task acceptance: it is
+    also true when no guarantees ran. Inspect passed/failed/results for executed
+    checks and skipped for unverified guarantees. Disabled guarantees are skipped
+    with reason="disabled"; they remain suspended until their behavior is restored
+    and enable_guarantee succeeds.
 
     Verification runs each guarantee's narrow test(s) — the point is guarding
-    behavioral promises, not full-suite coverage.
+    registered behavioral promises, not full-suite coverage or task acceptance.
 
     Args:
         provider: Source file path
@@ -466,11 +513,11 @@ def upsert_executor(config_name: str, config_data: dict) -> str:
         return _err(e)
 
 
-# ======== 意图文档（gbc.md：与 cli(gbc doc)/editor 对称的第三个薄表面）========
+# ======== 意图文档（gbc.md：与 cli(gbc intent)/editor 对称的第三个薄表面）========
 # 读(show/check)与写(set-*/sync/migrate)都经 MCP；写入的「改前须人类确认」闸门
 # 由用户 agent 框架(hook/rules)承担——MCP 与 CLI 对称，隐藏写入通道不产生额外安全。
 
-def _doc_root():
+def _intent_root():
     """当前目标项目的 gbc 根(镜像层)。与 intent.cli._gbc_root 同源。"""
     from gbc.app.config.project import get_current_project
     gbc_root, _ = intent_base.resolve_gbc(str(get_current_project()))
@@ -478,35 +525,35 @@ def _doc_root():
 
 
 @mcp.tool()
-def doc_show(folder: str = "") -> str:
+def intent_show(folder: str = "") -> str:
     """Show a folder's intent / internal constraints / entries from its gbc.md.
 
     Args:
         folder: project-relative folder path; use "" for the root.
 
-    Returns: plain text rendering (same as `gbc doc show`).
+    Returns: plain text rendering (same as `gbc intent show`).
     """
     try:
-        return intent_base.show(_doc_root(), folder)
+        return intent_base.show(_intent_root(), folder)
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
-def doc_check() -> str:
+def intent_check() -> str:
     """Whole-tree intent consistency check (DRIFT/ORPHAN are errors, STUB is a note).
 
     Returns: JSON {errors: [...], notes: [...]} (errors empty = tree consistent).
     """
     try:
-        errors, notes = intent_base.check(_doc_root())
+        errors, notes = intent_base.check(_intent_root())
         return _ok({"errors": errors, "notes": notes})
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
-def doc_set_intent(folder: str, text: str) -> str:
+def intent_set_intent(folder: str, text: str) -> str:
     """Set a folder's intent (auto single-source projection into the parent doc entry).
 
     Writing intent changes the human-held architecture truth — your agent framework's
@@ -519,13 +566,13 @@ def doc_set_intent(folder: str, text: str) -> str:
     Returns: JSON list of written gbc.md paths.
     """
     try:
-        return _ok([str(p) for p in intent_base.set_intent(_doc_root(), folder, text)])
+        return _ok([str(p) for p in intent_base.set_intent(_intent_root(), folder, text)])
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
-def doc_set_constraints(folder: str, text: str) -> str:
+def intent_set_constraints(folder: str, text: str) -> str:
     """Set a folder's internal constraints (local only, not projected to the parent).
 
     Args:
@@ -535,13 +582,13 @@ def doc_set_constraints(folder: str, text: str) -> str:
     Returns: JSON list of written gbc.md paths.
     """
     try:
-        return _ok([str(p) for p in intent_base.set_constraints(_doc_root(), folder, text)])
+        return _ok([str(p) for p in intent_base.set_constraints(_intent_root(), folder, text)])
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
-def doc_set_file(folder: str, name: str, desc: str) -> str:
+def intent_set_file(folder: str, name: str, desc: str) -> str:
     """Add/update a file entry in a folder's gbc.md (name must not contain '/').
 
     Args:
@@ -552,13 +599,13 @@ def doc_set_file(folder: str, name: str, desc: str) -> str:
     Returns: JSON list of written gbc.md paths.
     """
     try:
-        return _ok([str(p) for p in intent_base.set_file(_doc_root(), folder, name, desc)])
+        return _ok([str(p) for p in intent_base.set_file(_intent_root(), folder, name, desc)])
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
-def doc_rm_entry(folder: str, name: str) -> str:
+def intent_rm_entry(folder: str, name: str) -> str:
     """Remove an entry from a folder's gbc.md (doc only; the on-disk file is left for git review).
 
     Args:
@@ -568,31 +615,60 @@ def doc_rm_entry(folder: str, name: str) -> str:
     Returns: JSON list of written gbc.md paths.
     """
     try:
-        return _ok([str(p) for p in intent_base.rm_entry(_doc_root(), folder, name)])
+        return _ok([str(p) for p in intent_base.rm_entry(_intent_root(), folder, name)])
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
-def doc_sync() -> str:
+def intent_sync() -> str:
     """Deterministically fix DRIFT/ORPHAN: re-project child intents into parent entries.
 
     Returns: JSON list of fix descriptions (empty = nothing to sync).
     """
     try:
-        return _ok(intent_base.sync(_doc_root()))
+        return _ok(intent_base.sync(_intent_root()))
     except Exception as e:
         return _err(e)
 
 
 @mcp.tool()
-def doc_migrate() -> str:
+def intent_migrate() -> str:
     """Upgrade all gbc.md files to the latest format.
 
     Returns: JSON list of migrated paths (empty = all up to date).
     """
     try:
-        return _ok(intent_base.migrate(_doc_root()))
+        return _ok(intent_base.migrate(_intent_root()))
+    except Exception as e:
+        return _err(e)
+
+
+# ======== 使用文档（无需目标项目，只读包内手册）========
+
+@mcp.tool()
+def doc_list(lang: str | None = None) -> str:
+    """List bundled documentation topics, optionally selecting zh or en."""
+    try:
+        return _ok(documentation_base.list_topics(lang=lang))
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_read(topic: str, lang: str | None = None) -> str:
+    """Read one bundled documentation topic as plain Markdown."""
+    try:
+        return documentation_base.read_topic(topic, lang=lang)
+    except Exception as e:
+        return _err(e)
+
+
+@mcp.tool()
+def doc_search(query: str, lang: str | None = None, limit: int = 20) -> str:
+    """Search bundled documentation with bounded results; no project is required."""
+    try:
+        return _ok(documentation_base.search_docs(query, lang=lang, limit=limit))
     except Exception as e:
         return _err(e)
 

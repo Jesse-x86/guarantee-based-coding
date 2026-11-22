@@ -12,3 +12,5 @@ dist/
 AGENTS.md
 demo/workspace/
 skills/setup-gbc/gbc.config.json
+# 本机私有文档/草稿——绝不提交
+.cache/

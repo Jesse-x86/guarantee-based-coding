@@ -5,15 +5,17 @@
 
 """保证:入口分发器(gbc.entry)整合后的命令树承诺。
 
-- 唯一入口暴露两子系统的表面 + 服务/辅助命令。
+- 唯一入口暴露各子系统的表面 + 服务/辅助命令。
 - gbc rules 输出双语规则文本,声明"非强制沙箱"。
-- gbc doc 经 intent 子系统合规读意图。
-- gbc setup 输出本地化接线指南，只给坐标(MCP 入口/skills 目录)。
+- gbc intent 经 intent 子系统合规读意图。
+- gbc setup 输出本地化 AI 接入指南，含可解析的 MCP 模板与 CLI 备用入口。
 - 根 --help 根据 --lang / GBC_LANG 输出对应语言文本。
 """
 import importlib
+import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 
@@ -34,11 +36,11 @@ def _isolate_language_preference(monkeypatch, tmp_path):
 
 
 def test_command_tree_has_all_commands():
-    """承诺:保证命令 + doc/mcp/editor/rules/setup 都在唯一入口下。"""
+    """承诺:保证命令 + intent/doc/mcp/editor/rules/setup 都在唯一入口下。"""
     result = runner.invoke(get_wrapped_app(), ["--help"])
     assert result.exit_code == 0
     for cmd in (
-        "guarantee", "verify", "doc", "mcp", "editor", "rules", "setup", "lang"
+        "guarantee", "verify", "intent", "doc", "mcp", "editor", "rules", "setup", "lang"
     ):
         assert cmd in result.output
 
@@ -54,6 +56,7 @@ _PROJECT_COMMAND_PATHS = (
     ("dep", "remove"),
     ("dep", "of"),
     ("dep", "who"),
+    ("verify", "all"),
     ("verify", "provider"),
     ("verify", "single"),
     ("refactor", "file"),
@@ -164,26 +167,93 @@ def test_mcp_up_is_a_command():
     assert "up" in result.output
 
 
-def test_setup_prints_wiring_guide():
-    """承诺:setup 输出接线指南，含 MCP 入口与 skills 目录坐标，且双语可出。"""
-    zh = runner.invoke(get_wrapped_app(), ["setup", "--lang", "zh"])
-    en = runner.invoke(get_wrapped_app(), ["setup", "--lang", "en"])
-    assert zh.exit_code == 0 and en.exit_code == 0
-    # 只给坐标：MCP 启动入口 + skills 目录路径(占位符已填充)。
-    for out in (zh.output, en.output):
-        assert "gbc mcp up" in out
-        assert str(SKILLS_DIR) in out
+@pytest.mark.parametrize("lang", ["zh", "en"])
+def test_setup_prints_wiring_guide(lang):
+    """承诺:双语指南输出可解析且显式绑定项目的 MCP 模板和 CLI 备用入口。"""
+    result = runner.invoke(get_wrapped_app(), ["setup", "--lang", lang])
+    assert result.exit_code == 0, result.output
+    assert result.stderr == ""
+    out = result.stdout
+    templates = [
+        json.loads(block)
+        for block in re.findall(r"```json\s*\n(.*?)\n```", out, re.DOTALL)
+    ]
+    assert len(templates) == 2
+    target = "/abs/path/to/your/project"
+    assert templates[0] == {"command": "gbc", "args": ["mcp", "up", target]}
+    assert templates[1] == {
+        "command": "/abs/path/to/python",
+        "args": ["-m", "gbc.entry", "mcp", "up", target],
+    }
+    assert str(SKILLS_DIR) in out
+    assert "{skills_dir}" not in out
+    assert f'gbc tree show --project "{target}"' in out
 
 
-def test_doc_show_reads_intent(tmp_path):
-    """承诺:doc show 经 intent 子系统读出意图(用 --project 显式指定)。"""
+def test_intent_show_reads_intent(tmp_path):
+    """承诺:intent show 经 intent 子系统读出意图(用 --project 显式指定)。"""
     from gbc.app.intent import base
     gbc_root, _ = base.resolve_gbc(str(tmp_path))
     base.set_intent(gbc_root, "sub", "hello intent")
 
-    result = runner.invoke(get_wrapped_app(), ["doc", "show", "sub", "--project", str(tmp_path)])
+    result = runner.invoke(get_wrapped_app(), ["intent", "show", "sub", "--project", str(tmp_path)])
     assert result.exit_code == 0
     assert "hello intent" in result.output
+
+
+class TestIntentDocumentationSplit:
+    @pytest.mark.parametrize("extra,expected", [([], "zh"), (["--lang", "en"], "en")])
+    def test_documentation_language_uses_root_then_local_override(self, extra, expected):
+        result = _gbc("--lang", "zh", "doc", "list", *extra)
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert json.loads(result.stdout)["language"] == expected
+
+    def test_intent_edits_and_all_eight_operations_are_available(self, tmp_path):
+        command = get_wrapped_app()
+        help_result = runner.invoke(command, ["intent", "--help"])
+        assert help_result.exit_code == 0, help_result.output
+        for name in ("show", "check", "set-intent", "set-constraints", "set-file",
+                     "rm-entry", "sync", "migrate"):
+            assert name in help_result.output
+        written = runner.invoke(command, ["intent", "set-intent", "sub", "CLI intent",
+                                          "-C", str(tmp_path)])
+        assert written.exit_code == 0, written.output
+        shown = runner.invoke(command, ["intent", "show", "sub", "-C", str(tmp_path)])
+        assert shown.exit_code == 0 and "CLI intent" in shown.output
+
+    @pytest.mark.parametrize("operation", [
+        "show", "check", "set-intent", "set-constraints", "set-file", "rm-entry", "sync", "migrate"
+    ])
+    def test_old_doc_operations_are_rejected_without_mutation(self, tmp_path, monkeypatch, operation):
+        monkeypatch.chdir(tmp_path)
+        result = runner.invoke(get_wrapped_app(), ["doc", operation])
+        assert result.exit_code != 0
+        assert "No such command" in result.output
+        assert not (tmp_path / ".gbc").exists()
+
+    def test_queries_run_without_project_and_help_stays_short(self, tmp_path, monkeypatch):
+        from gbc.app.config import project
+
+        def forbidden():
+            pytest.fail("Bundled documentation must not resolve a project")
+        monkeypatch.setattr(project, "get_current_project", forbidden)
+        monkeypatch.chdir(tmp_path)
+        command = get_wrapped_app()
+        listed = runner.invoke(command, ["doc", "list", "--lang", "en"])
+        assert listed.exit_code == 0, listed.output
+        assert "quick-start" in listed.output and "reference" in listed.output
+        read = runner.invoke(command, ["doc", "read", "quick-start", "--lang", "en"])
+        assert read.exit_code == 0 and "gbc" in read.output.lower(), read.output
+        searched = runner.invoke(command, ["doc", "search", "gbc", "--lang", "en", "--limit", "1"])
+        assert searched.exit_code == 0, searched.output
+        assert "gbc" in searched.output.lower()
+        help_result = runner.invoke(command, ["doc", "--help"])
+        assert help_result.exit_code == 0, help_result.output
+        for operation in ("list", "read", "search"):
+            assert operation in help_result.output
+        assert len(help_result.output) < 5000
+        assert "cli.doc." not in help_result.output
+        assert not (tmp_path / ".gbc").exists()
 
 
 # ============================================================================
@@ -418,6 +488,109 @@ def _gbc(*args, env=None):
         timeout=30,
         env=_child_env(env),
     )
+
+
+@pytest.fixture
+def gate_project(tmp_path):
+    """A real temporary GBC project whose executor runs a controllable script."""
+    project = tmp_path / "gate-project"
+    project.mkdir()
+    (project / "provider.py").write_text("def behavior(): pass\n", encoding="utf-8")
+    script = project / "check.py"
+    script.write_text("print('gate-check'); raise SystemExit(0)\n", encoding="utf-8")
+
+    def invoke(*args):
+        return _gbc("--lang", "en", *args, "-C", str(project))
+
+    config = {"command": [sys.executable, "{file}"], "cwd": str(project)}
+    result = invoke("executor", "upsert", "gate-script", "--json", json.dumps(config))
+    assert result.returncode == 0, result.stdout + result.stderr
+    result = invoke(
+        "guarantee", "create", "provider.py", "behavior.gate", "check.py",
+        "gate-script", "CLI gate regression",
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    return project, script, invoke
+
+
+class TestGateExitCodes:
+    """Real entry-point processes must expose gate outcomes to shell callers."""
+
+    @pytest.mark.parametrize("command", ["single", "provider"])
+    @pytest.mark.parametrize("fails", [False, True])
+    def test_verify_exit_matches_executed_result(self, gate_project, command, fails):
+        _, script, invoke = gate_project
+        script.write_text(
+            f"print('gate-check'); raise SystemExit({7 if fails else 0})\n",
+            encoding="utf-8",
+        )
+        args = ["verify", command, "provider.py"]
+        if command == "single":
+            args.append("behavior.gate")
+        result = invoke(*args)
+        output = result.stdout + result.stderr
+        status = ("FAIL" if fails else "PASS") if command == "single" else (
+            "RED" if fails else "GREEN"
+        )
+        assert status in output
+        assert (result.returncode != 0) is fails, output
+        assert "unexpected" not in output.lower()
+        assert "Traceback" not in output
+        if command == "single" and fails:
+            assert "gate-check" in output
+
+    @pytest.mark.parametrize("skip", ["heavy", "disabled"])
+    def test_provider_only_skips_are_success(self, gate_project, skip):
+        _, script, invoke = gate_project
+        if skip == "heavy":
+            update = invoke("guarantee", "update", "provider.py", "behavior.gate", "--heavy", "1")
+        else:
+            update = invoke("guarantee", "disable", "provider.py", "behavior.gate")
+        assert update.returncode == 0, update.stdout + update.stderr
+        script.write_text("raise SystemExit(7)\n", encoding="utf-8")
+        result = invoke("verify", "provider", "provider.py")
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert "GREEN" in result.stdout
+        assert "skipped=1" in result.stdout
+        assert ("heavy skipped" if skip == "heavy" else "DISABLED") in result.stdout
+
+    @pytest.mark.parametrize("broken", [False, True])
+    @pytest.mark.parametrize("disabled", [False, True])
+    def test_doctor_errors_fail_but_disabled_notices_do_not(self, gate_project, broken, disabled):
+        project, _, invoke = gate_project
+        (project / "consumer.py").write_text("# consumer\n", encoding="utf-8")
+        result = invoke("dep", "add", "consumer.py", "provider.py", "behavior", "-g", "behavior.gate")
+        assert result.returncode == 0, result.stdout + result.stderr
+        if disabled:
+            result = invoke("guarantee", "disable", "provider.py", "behavior.gate")
+            assert result.returncode == 0, result.stdout + result.stderr
+        if broken:
+            # Simulate lost consumer metadata, leaving a real dangling reverse edge.
+            (project / ".gbc" / "gbc.consumer.py.json").unlink()
+        result = invoke("doctor", "check")
+        output = result.stdout + result.stderr
+        if broken:
+            assert "missing_forward" in output
+        elif not disabled:
+            assert "consistent" in output
+        if disabled:
+            assert "disabled notice" in output
+        assert (result.returncode != 0) is broken, output
+        assert "unexpected" not in output.lower()
+        assert "Traceback" not in output
+
+    def test_born_green_failure_stays_nonzero(self, gate_project):
+        _, script, invoke = gate_project
+        script.write_text("raise SystemExit(7)\n", encoding="utf-8")
+        result = invoke(
+            "guarantee", "create", "provider.py", "behavior.rejected", "check.py",
+            "gate-script", "Must refuse failing birth",
+        )
+        assert result.returncode != 0, result.stdout + result.stderr
+        assert "behavior.rejected" in result.stdout
+        listed = invoke("guarantee", "list", "provider.py")
+        assert listed.returncode == 0, listed.stdout + listed.stderr
+        assert "behavior.rejected" not in listed.stdout
 
 
 def test_e2e_doctor_missing_gbc_propagates_nonzero_exit(tmp_path):

@@ -1,0 +1,41 @@
+/* 评审层:差异抽屉(scrim/drawer/比较 tab/diff 卡片/导出组)。 */
+
+.scrim{position:fixed;inset:0;background:rgba(16,24,40,.32);z-index:20;opacity:0;pointer-events:none;transition:opacity .16s}
+.scrim.open{opacity:1;pointer-events:auto}
+.drawer{position:fixed;top:0;right:0;width:min(880px,92vw);height:100vh;background:#fff;z-index:21;display:grid;grid-template-rows:auto minmax(0,1fr) auto;box-shadow:-18px 0 45px rgba(18,29,49,.18);transform:translateX(102%);transition:transform .2s ease}
+.drawer.open{transform:translateX(0)}
+.drawer-head{padding:18px 20px 14px;border-bottom:1px solid var(--line)}
+.drawer-title-row{display:flex;align-items:center;gap:10px}
+.drawer-title{font-size:19px;font-weight:760;letter-spacing:-.02em}
+.change-total{padding:2px 8px;border-radius:999px;background:var(--brand-soft);color:var(--brand-2);font-size:11px;font-weight:750}
+.compare-tabs{display:flex;gap:4px;margin-top:14px;padding:4px;border-radius:9px;background:var(--surface-3);width:max-content}
+.compare-tab{height:31px;border:0;border-radius:6px;background:transparent;color:var(--muted);padding:0 11px;font-size:12px;font-weight:650}
+.compare-tab.active{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(24,38,61,.12)}
+.compare-note{display:flex;align-items:flex-start;gap:8px;margin-top:10px;color:var(--muted);font-size:12px}
+.external-alert{margin-top:10px;padding:9px 11px;border:1px solid #efd895;border-radius:8px;background:var(--amber-soft);color:#715012;font-size:12px;display:none}
+.external-alert.show{display:block}
+.drawer-body{overflow:auto;padding:10px 20px 28px;background:#fbfcfe}
+.change-section{margin-top:16px}
+.change-section-head{position:sticky;top:-10px;z-index:1;display:flex;align-items:center;gap:9px;padding:10px 2px 7px;background:#fbfcfe}
+.section-title{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.count{min-width:22px;height:20px;padding:0 6px;border-radius:999px;display:grid;place-items:center;color:#fff;font-size:11px}
+.count.added{background:var(--green)}.count.modified{background:var(--amber)}.count.deleted{background:var(--red)}
+.diff-card{border:1px solid var(--line);border-radius:10px;background:#fff;margin:8px 0;overflow:hidden}
+.diff-card.added{border-left:4px solid var(--green)}
+.diff-card.modified{border-left:4px solid var(--amber)}
+.diff-card.deleted{border-left:4px solid var(--red)}
+.diff-card-head{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid #edf0f4;background:#fff}
+.diff-path{font:650 12px ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
+.diff-kind{margin-left:auto;color:var(--muted);font-size:11px;white-space:nowrap}
+.diff-code{margin:0;padding:10px 0;overflow:auto;background:#fcfdff;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}
+.diff-line{display:block;min-height:19px;padding:0 12px 0 10px;white-space:pre}
+.diff-line.add{background:var(--green-soft);color:#12683d}
+.diff-line.del{background:var(--red-soft);color:#9d3038}
+.diff-line.ctx{color:#586477}
+.diff-prefix{display:inline-block;width:18px;user-select:none;opacity:.75}
+.section-empty{padding:14px;border:1px dashed var(--line);border-radius:9px;color:var(--muted);font-size:12px;background:#fff}
+.drawer-foot{display:flex;align-items:center;gap:8px;padding:12px 18px;border-top:1px solid var(--line);background:#fff}
+.drawer-foot .split{flex:1}
+.export-group{display:flex;gap:6px;padding-right:12px;border-right:1px solid var(--line)}
+
+@media(max-width:700px){.drawer{width:100vw}.drawer-foot{flex-wrap:wrap}.export-group{border-right:0}}

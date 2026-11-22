@@ -1,7 +1,7 @@
 {
     "provides": {
         "assets.resources_present": {
-            "desc": "静态资源定位入口的路径常量(I18N_CATALOG_DIR/I18N_TEXTS_DIR/EDITOR_FRONTEND_DIR)指向 gbc/assets/ 下真实存在且已填充的资源目录——catalog 含默认语言 en.json、texts 含 rules、editor 含 index.html。守「资源被移走/丢失却忘改常量」的回归；也是打包(package-data 覆盖 assets/**)的源码侧前置。",
+            "desc": "静态资源路径指向真实且已填充的资源：catalog 默认语言、rules/setup 文本、editor 零构建前端，以及 gbc-cli/gbc-workflow 技能入口、非空发现描述与可解析的随附本地链接。守资源遗漏或移动后定位失效的回归；这是 assets/** 打包的源码侧前置，不证明指导语义或安装包完整性。",
             "test": "tests/test_assets.py",
             "executor": "pytest-gbc-v2",
             "timeout_override": -1,
@@ -10,6 +10,17 @@
                 "gbc/app/i18n/translate.py",
                 "gbc/app/i18n/lang.py",
                 "gbc/app/intent/editor.py"
+            ],
+            "disabled": false
+        },
+        "DOCS_DIR.offline_manual": {
+            "desc": "DOCS_DIR exposes all fixed English and Chinese manual topics independent of cwd; installed package resources take precedence, source fallback is anchored only to this package checkout with the GBC project marker.",
+            "test": "tests/test_assets.py",
+            "executor": "pytest-gbc-v2",
+            "timeout_override": -1,
+            "heavy": 0,
+            "dependents": [
+                "gbc/app/documentation/base.py"
             ],
             "disabled": false
         }

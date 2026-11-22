@@ -1,95 +1,107 @@
 # Guarantee-Based Coding (GBC)
 
-**Instead of hoping the AI gets smarter, make it so even a dumb agent can't break your code.**
+**Stop AI changes from breaking code elsewhere.**
 
-**中文版本: [README.md](../../README.md)**
+Getting AI to change a feature is often quick. The trouble starts when that change breaks
+something elsewhere.
 
-GBC turns "will this change quietly break something elsewhere?" from a worry into a fact you can
-verify on the spot: the behaviors you care about are registered as test-backed **guarantees**. Run
-them after every change — all green means safe; a red tells you exactly what you broke and who
-depends on it.
+You can wait for tests or CI to catch it and send the agent back to fix it. But some of that
+back-and-forth is avoidable: another module already depended on that behavior—the agent just
+didn't know it when making the change.
 
----
+GBC records those expectations: what a module is responsible for, which parts of the code rely
+on it, what behavior needs to stay intact, and which tests to run. The agent has something to
+consult before editing and checks to run afterward.
 
-## 🚀 Quick start
+[中文](../../README.md) · [GBC in two examples](walkthrough.md) · [Quick start](quick-start.md)
+
+## How does one line break code you never touched?
+
+You ask an agent to simplify configuration loading. It removes a default:
+
+```diff
+- return config.get(key, "")
++ return config.get(key)
+```
+
+Existing keys still work. But another module relies on missing keys returning an empty string
+and calls `.strip()` on the result. Now it receives `None` and crashes—even though that module
+isn't in the diff.
+
+In GBC, that behavior is a named, test-backed **guarantee**, and the module using it is registered
+as a consumer. The agent can inspect this dependency before editing. After the change, running
+the guarantee catches the regression if its test covers the missing-key case.
+
+**Who promises what → who relies on it → which check protects it.** GBC maintains these
+relationships so local changes have explicit checks and failures point to a relied-on promise.
+
+Architecture has a related problem: a feature can work while its responsibilities drift.
+GBC's intent documents describe current responsibilities, internal constraints, and file roles
+by directory. They guide the agent's changes; guarantee tests verify specific behavior.
+
+→ **[Read the full examples: preserve responsibilities and catch behavioral regressions](walkthrough.md)**
+
+## Inside one code change
+
+1. **Inspect relevant context.** Look up the target files' architectural intent, direct dependencies,
+   and behavioral promises without loading all the project's documentation at once.
+2. **Implement within those boundaries.** Preserve existing contracts; coordinate changes when
+   responsibilities or relied-on behavior need to change.
+3. **Verify and correct.** Run related guarantees during development, feed failures back to the
+   agent, and verify again after fixing them.
+
+GBC works with your existing agent through CLI or MCP and runs your project's own tests.
+It supplies context and results; the agent interprets and fixes issues. Whether a failed check
+blocks a commit or merge depends on your integration and permissions.
+
+## Already using ADRs, AGENTS.md, and CI?
+
+They work together. GBC focuses on **what this change must preserve, which code relies on it,
+and how to check that the promises still hold.**
+
+| Existing tool or document | Main question | What GBC adds |
+|---|---|---|
+| ADR | Why did we make this architectural decision? | Current responsibilities and constraints organized by code location, with links to decision history when needed |
+| AGENTS.md | How should an agent work in this project? | Queryable, tool-maintained intent structure and behavioral dependencies; AGENTS.md can direct agents to use GBC |
+| Tests | Does this check pass now? | Named promises, their providers and consumers, and the checks that back them |
+| CI/CD | When and where do builds, checks, and delivery run? | Contract verification that can run inside an agent's editing process or in CI |
+
+ADRs and AGENTS.md can both be organized by module; CI can give rapid feedback too. GBC connects
+relevant context, behavioral dependencies, and executable checks. Splitting documents or running
+tests earlier is only part of that. See [Core concepts](concepts.md#how-it-differs-from-existing-ideas)
+for the fuller comparison.
+
+## Quick start
 
 ```bash
 pipx install guarantee-based-coding
-gbc setup        # prints a localized wiring guide: how to connect MCP / skills to your agent
+gbc setup
 ```
 
-The `gbc` command is now on your PATH. Full onboarding (install → wire into your agent → smoke
-test) is in **[docs/en/quick-start.md](quick-start.md)**.
+`gbc setup` prints the agent integration guide. Follow the [Quick start](quick-start.md) for
+installation, integration, and a smoke check. You can also hand the
+[Agent onboarding guide](onboarding-agent.md) to your agent for help getting connected.
 
-Want your agent to wire it in for you? Hand it
-**[docs/en/onboarding-agent.md](onboarding-agent.md)**.
+## Read more
 
----
+| What you want to understand | Read |
+|---|---|
+| What GBC contributes to an actual change | [Walkthrough](walkthrough.md) |
+| How intent, guarantees, and consumers fit together | [Core concepts](concepts.md) |
+| Maintaining contracts, writing tests, and accepting changes | [Workflow](workflow.md) |
+| CLI, MCP tools, and test execution configuration | [Reference](reference.md) |
+| Version changes and migration notes | [Changelog](../../CHANGELOG.md) |
 
-> 🚧 **Interactive demo under construction**: the old demo suite is deprecated and a new interactive demo is in the works. For now, start directly from the docs.
+GBC uses this method to maintain its own project. It supports CLI and MCP, and connects to test
+languages and frameworks through executor configuration. Project metadata lives in `.gbc/`;
+business code needs no GBC-specific annotations.
 
----
+**Protection depends on registered contracts and their tests.** Dependencies need active maintenance;
+uncovered behavior is not automatically protected. Intent guides changes, but natural-language
+constraints do not automatically become executable checks. Test and contract changes still need
+review. GREEN means no executed check failed; acceptance also requires the needed checks to run.
+See [Limitations](concepts.md#limitations-stated-honestly).
 
-## 📚 Documentation
+## License and contact
 
-| You want to | Go here |
-|-------------|---------|
-| Install and get running | [Quick Start](quick-start.md) |
-| Understand what GBC protects | [Core Concepts](concepts.md) |
-| Change code safely under GBC | [Working under GBC](workflow.md) |
-| Look up a command / tool / executor | [Reference](reference.md) |
-| You're an agent asked to wire GBC in | [Agent Onboarding](onboarding-agent.md) |
-
-Chinese docs: [docs/zh/](../zh/).
-
----
-
-## The core idea
-
-Dependencies between code are essentially a set of **guarantees**. Module A depends on module B not
-on its implementation details, but on some of its behavioral promises — the type, format, semantics
-of return values. Make those guarantees **explicit, executable, and verifiable**, and correctness
-shifts from "the AI thinks it got it right" to "every depended-on guarantee still passes" — a
-mechanically verifiable boolean.
-
-![Without GBC vs with GBC](../assets/workflow-comparison_en.svg)
-
-GBC is **not** another AI coding assistant challenging Cursor / Aider — it fills the piece they lack
-in large projects: a **machine-verifiable boundary for change**. It works *with* those agents
-(check the dependency tree before, pass all relevant guarantees after) and differs from CI (CI is
-after-the-fact; GBC is an admission gate that catches errors before they land, inside the agent's
-context).
-
-Full concepts, architecture diagram, and how it differs from existing ideas (Design by Contract /
-testing) are in [Core Concepts](concepts.md).
-
----
-
-## Current status
-
-GBC is a working Python distribution package (`pipx install guarantee-based-coding`), and it manages
-its own `.gbc/` with GBC (dogfooding):
-
-- ✅ Core guarantee mechanism (named ids, many-to-one, born-green, retirement protection, reverse
-  lookup)
-- ✅ Language-agnostic executor config
-- ✅ CLI + MCP dual interface (intent docs `gbc doc` fully exposed over MCP)
-- ✅ Intent-document subsystem (`gbc doc` / web editor)
-- ✅ Bundled wiring guide (`gbc setup`) and a skill pack for CLI-only agents
-- ✅ Atomic file writes + backups
-
-
-**Honest limitations**: protection ceiling = test quality (happy-path-only tests are a false sense
-of safety); dependencies must be registered actively, and coverage takes ongoing investment as the
-project grows; every verification really runs tests, so there's some latency. See
-[Core Concepts · Limitations](concepts.md#limitations-stated-honestly).
-
----
-
-## License
-
-This project is licensed under [Apache-2.0](../../LICENSE).
-
-## Contact
-
-If this direction interests you, stars, issues, or reaching out directly are all welcome.
+[Apache-2.0](../../LICENSE). Issues with questions, feedback, and experience reports are welcome.
