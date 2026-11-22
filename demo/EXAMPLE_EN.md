@@ -1,5 +1,8 @@
 # GBC Interactive Demo (for Agents, English)
 
+> **Retired; historical reference only.** Read [GBC in two examples](../docs/en/walkthrough.md)
+> or the [Quick start](../docs/en/quick-start.md). The old procedure and explanations below are no longer usage guidance.
+
 English parallel of the Chinese walkthrough in [`EXAMPLE.md`](./EXAMPLE.md).
 Uses project `config-service-en` and scenarios `config-service-*-en`.
 

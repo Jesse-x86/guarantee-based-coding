@@ -122,8 +122,9 @@ gbc executor upsert pytest-myproject --json '{
 
 - `{file}` is a placeholder substituted at run time with the guarantee's test selector.
 - Switch languages by swapping `command` (e.g. `["npx", "jest", "{file}"]`).
-- Give it a **project-scoped name** (e.g. `pytest-<project>`) — executors are shared across
-  projects by name, so a bare `pytest` would collide with another project's.
+- Give it a recognizable name (e.g. `pytest-myproject`). Executor configuration lives in the
+  target project's `.gbc/executors.json`; names are local to that project, so different projects
+  can use the same name.
 - Full `env_ops` fields and `action` values (`set`/`append`/`prepend`/`remove`) are in
   [reference.md](./reference.md#executor-config).
 

@@ -112,8 +112,8 @@ gbc executor upsert pytest-myproject --json '{
 
 - `{file}` 是占位符，运行时替换成保证的测试选择器。
 - 换语言只需换 `command`（如 `["npx", "jest", "{file}"]`）。
-- 给它一个**项目级的名字**（如 `pytest-<项目名>`）——executor 按名字跨项目共享，裸名 `pytest`
-  会和别的项目撞车。
+- 给它一个便于识别的名字（如 `pytest-myproject`）。executor 配置保存在目标项目的
+  `.gbc/executors.json` 中，名称在该项目内使用；不同项目可以使用相同名称。
 - `env_ops` 的完整字段与 `action` 取值（`set`/`append`/`prepend`/`remove`）见
   [reference.md](./reference.md#executor-配置)。
 

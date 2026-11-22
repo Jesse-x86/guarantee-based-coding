@@ -21,3 +21,6 @@ GBC 可分发 Python 包，pip 安装后提供 gbc。entry.py 是纯分发器，
 
 ## build_support.py
 setuptools 构建扩展：将 docs/en 与 docs/zh 五个手册主题复制到 wheel 的 gbc/assets/docs；源分发保留手册及构建支持，可独立重建 wheel。
+
+## docs/
+面向使用者的产品说明、案例、双语手册与开发记录。用可核对的示例解释 GBC 的意图和行为契约，区分工具能力、工作流约定与验证证据；固定离线手册主题由构建配置选取。

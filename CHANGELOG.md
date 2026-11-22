@@ -2,6 +2,33 @@
 
 > 中文 / English
 
+## 0.4.1 (未发布 / Unreleased)
+
+### 验证与修复 / Verification and fixes
+
+- 新增 `gbc verify all` 与 MCP `verify_all` 全项目验收入口：运行全部启用保证（含 heavy），失败、停用、缺失结果或零执行均导致验收失败。
+  Added CLI and MCP whole-project verification: run every enabled guarantee, including heavy ones, and fail on failed or disabled guarantees, missing results, or zero executions.
+- 同一次全项目验证合并等价的测试执行，保留每条保证的结果，并分别报告保证执行数与实际测试运行数。
+  Deduplicated equivalent test executions within each whole-project verification while preserving per-guarantee results and reporting guarantee counts separately from test runs.
+- 修复 Windows 非 UTF-8 locale 下测试输出解码失败的问题；子进程输出采用 UTF-8 解码，非法字节以转义形式保留。
+  Fixed test-output decoding under non-UTF-8 Windows locales with UTF-8 decoding and escaped invalid bytes.
+- 明确报告零执行、跳过与停用的检查；工作流区分开发期定向测试与最终 GBC 验收，允许未登记测试先获得失败反馈。
+  Clarified zero-execution, skipped, and disabled checks; separated targeted development feedback from final GBC acceptance, including failing tests before registration.
+
+### 文档 / Documentation
+
+- 重排中英文 README：先说明 AI 修改中的连带破坏，再介绍工作方式、与 ADR / AGENTS.md / 测试 / CI 的关系及上手入口。
+  Reorganized both READMEs around unintended regressions during AI edits, followed by the workflow, comparisons with ADRs / AGENTS.md / tests / CI, and onboarding.
+- 将旧 demo 的案例思路改编为双语阅读指南，展示职责漂移、真实消费者回归、测试覆盖不足和登记时验证；旧演示保留为历史资料。
+  Adapted the retired demo into bilingual walkthroughs covering responsibility drift, an actual consumer regression, insufficient test coverage, and checks at registration; old demos remain historical material.
+- 修正核心概念中对 CI、保证身份和验证能力的表述。案例页为仓库文档，离线手册仍保留五个主题；上述文档调整不改变运行接口。
+  Corrected the concepts manual's descriptions of CI, guarantee identity, and verification limits. Walkthroughs are repository documents; the offline manual retains five topics. These documentation edits introduce no runtime interface changes.
+- 统一中英文快速开始中的执行器作用域说明：配置及名称属于目标项目。
+  Corrected both quick-start guides: executor configuration and names are scoped to the target project.
+
+验证范围与结果见 [0.4.1 validation](docs/development/0.4.1-validation.md)。未打包或发布。
+See [0.4.1 validation](docs/development/0.4.1-validation.md) for checks and limitations. Not built or published.
+
 ## 0.4.0 (2026-09-23)
 
 ### 新增与调整 / Added and changed
